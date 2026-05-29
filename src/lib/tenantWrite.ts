@@ -34,6 +34,11 @@ export async function withTenantPayload(payload: Record<string, any>, opts: Tena
     includeBrandId = true,
   } = opts;
 
+  // Skip scope lookup entirely if no tenant fields are needed (e.g. pre-auth inserts)
+  if (!includeUserId && !includeUserName && !includeClientId && !includeBrandId) {
+    return { ...payload };
+  }
+
   const scope = await getTenantScope();
   return {
     ...payload,

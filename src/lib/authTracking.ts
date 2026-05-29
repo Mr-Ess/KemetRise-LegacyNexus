@@ -29,22 +29,26 @@ export const trackLoginSuccess = async (userId: string) => {
 };
 
 export const trackFailedLogin = async (email: string) => {
-  await tenantDb.insert("failed_login_attempts", { email }, {
-    includeUserId: false,
-    includeUserName: false,
-    includeClientId: false,
-    includeBrandId: false,
-  });
+  // Use direct supabase client (no auth required — user is not logged in here)
+  await supabase
+    .from("failed_login_attempts")
+    .insert({ email })
+    .then(() => {}); // fire-and-forget, ignore errors silently
 };
 
 // Client-side throttle: max 5 failed attempts per email per 15 min
 export const checkRateLimit = async (email: string): Promise<{ allowed: boolean; waitMin?: number }> => {
-  const since = new Date(Date.now() - 15 * 60 * 1000).toISOString();
-  const { count } = await supabase
-    .from("failed_login_attempts")
-    .select("*", { count: "exact", head: true })
-    .eq("email", email)
-    .gte("attempted_at", since);
-  if ((count || 0) >= 5) return { allowed: false, waitMin: 15 };
-  return { allowed: true };
+  try {
+    const since = new Date(Date.now() - 15 * 60 * 1000).toISOString();
+    const { count, error } = await supabase
+      .from("failed_login_attempts")
+      .select("*", { count: "exact", head: true })
+      .eq("email", email)
+      .gte("attempted_at", since);
+    if (error) return { allowed: true }; // fail open — can't check, allow attempt
+    if ((count || 0) >= 5) return { allowed: false, waitMin: 15 };
+    return { allowed: true };
+  } catch {
+    return { allowed: true }; // fail open
+  }
 };
