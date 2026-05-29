@@ -1,0 +1,27 @@
+# SEO + Crawlers
+User-agent: *
+Allow: /
+Disallow: /auth
+Disallow: /reset-password
+Disallow: /accept-invite
+Disallow: /checkout
+Disallow: /customer-portal
+Disallow: /settings
+Disallow: /backups
+
+User-agent: Googlebot
+Allow: /
+Allow: /blog
+Allow: /landing
+Allow: /b/
+
+User-agent: Bingbot
+Allow: /
+
+User-agent: Twitterbot
+Allow: /
+
+User-agent: facebookexternalhit
+Allow: /
+
+Sitemap: https://kemetrise.com/sitemap.xml

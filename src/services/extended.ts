@@ -1,0 +1,75 @@
+import { supabase } from "@/integrations/supabase/client";
+import { getTenantScope } from "@/lib/tenantScope";
+import { tenantDb, scopedSelect } from "@/lib/tenantDb";
+
+export type ExtTable =
+  | "brand_owners" | "brand_renewals" | "project_team"
+  | "materials" | "inventory" | "suppliers"
+  | "logistics_shipping" | "import_export" | "artistic_production"
+  | "finance_analytics" | "payment_gateways" | "assets_management"
+  | "clients" | "affiliated_agents" | "crm_interactions" | "marketing_campaigns"
+  | "heartbeats" | "legal_vault" | "system_alerts"
+  | "agent_logs" | "workflow_map"
+  | "archive_vault" | "client_mapping" | "client_brand_access"
+  | "departments" | "sub_tasks";
+
+const TENANT_SCOPED_TABLES: ExtTable[] = ["affiliated_agents", "workflow_map"];
+
+const isTenantScopedTable = (table: ExtTable) => TENANT_SCOPED_TABLES.includes(table);
+
+export const extApi = {
+  async list(table: ExtTable, opts?: { eq?: Record<string, any>; order?: string }) {
+    const eqFilters = { ...(opts?.eq || {}) };
+    return await tenantDb.select(table as any, {
+      eq: eqFilters,
+      orderBy: opts?.order || "created_at",
+      ascending: false,
+    });
+  },
+  async create(table: ExtTable, payload: Record<string, any>) {
+    const scope = await getTenantScope();
+    const rowPayload: Record<string, any> = { ...payload, user_id: scope.userId };
+
+    if (isTenantScopedTable(table)) {
+      if (scope.clientId) rowPayload.client_id = scope.clientId;
+      if (scope.brandId) rowPayload.brand_id = scope.brandId;
+      if (scope.userName) rowPayload.user_name = scope.userName;
+    }
+
+    return await tenantDb.insert(table as any, rowPayload);
+  },
+  async update(table: ExtTable, id: string, patch: Record<string, any>) {
+    const scopedPatch: Record<string, any> = { ...patch };
+    if (isTenantScopedTable(table)) {
+      const scope = await getTenantScope();
+      if (scope.clientId && scopedPatch.client_id === undefined) scopedPatch.client_id = scope.clientId;
+      if (scope.brandId && scopedPatch.brand_id === undefined) scopedPatch.brand_id = scope.brandId;
+      if (scope.userName && scopedPatch.user_name === undefined) scopedPatch.user_name = scope.userName;
+    }
+
+    return await tenantDb.update(table as any, scopedPatch, { id }, { includeTenantInPatch: false });
+  },
+  async remove(table: ExtTable, id: string) {
+    await tenantDb.remove(table as any, { id });
+  },
+};
+
+// Vault settings (singleton per user)
+export const vaultSettingsApi = {
+  async get() {
+    const { data: u } = await supabase.auth.getUser();
+    if (!u.user) return null;
+    const rows = await scopedSelect<any>("vault_settings", { eq: { user_id: u.user.id }, limit: 1 });
+    return rows[0] || null;
+  },
+  async upsert(patch: Record<string, any>) {
+    const { data: u } = await supabase.auth.getUser();
+    if (!u.user) throw new Error("Not authenticated");
+    return await tenantDb.upsert(
+      "vault_settings",
+      { user_id: u.user.id, ...patch, updated_at: new Date().toISOString() },
+      { onConflict: "user_id" },
+      { includeClientId: false, includeBrandId: false },
+    );
+  },
+};

@@ -1,0 +1,9 @@
+{
+  "manifest_version": 3,
+  "name": "KemetRise Quick Access",
+  "version": "1.0.0",
+  "description": "Quick access to your KemetRise empire from any browser tab.",
+  "permissions": ["activeTab", "storage"],
+  "action": { "default_popup": "popup.html", "default_icon": "icon.png" },
+  "icons": { "48": "icon.png", "128": "icon.png" }
+}

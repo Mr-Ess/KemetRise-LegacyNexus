@@ -1,0 +1,182 @@
+import { useState } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { useTranslation } from "react-i18next";
+import { useBrands } from "@/context/BrandsContext";
+import {
+  LayoutDashboard, Crown, Gem, Building2, Database, ShieldCheck,
+  Briefcase, FolderOpen, Users, UserCheck, Handshake, Map, Scroll,
+  GitBranch, Lock, Heart, AlertTriangle, ChevronDown, ChevronRight,
+  Menu, Settings, LogOut, Plus, Search, Layers, Bell, FileText, BarChart3, Tag, RotateCcw, Webhook, Code, DollarSign,
+  Store, Globe, Share2, Chrome, Shield, Package, Boxes, MessageCircle, Megaphone, Truck, ScrollText, Building, CreditCard, Palette, Plane, UserCircle, TrendingUp, BellRing, BookOpen, Mic, Video,
+} from "lucide-react";
+
+const iconMap: Record<string, any> = { Gem, Building2, Database, ShieldCheck };
+
+const Sidebar = ({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => void }) => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { brands } = useBrands();
+  const { t } = useTranslation();
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({ Brands: true });
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const toggle = (label: string) => setExpanded(prev => ({ ...prev, [label]: !prev[label] }));
+
+  type NavSection = {
+    icon: any; label: string; path?: string;
+    children?: { icon?: any; label: string; onClick?: () => void }[];
+    addButton?: boolean; onAdd?: () => void;
+  };
+
+  const navSections: NavSection[] = [
+    { icon: LayoutDashboard, label: t("dashboard"), path: "/" },
+    {
+      icon: Crown, label: t("brands"), addButton: true, onAdd: () => navigate("/brands/add"),
+      children: brands.map(b => ({
+        icon: iconMap[Object.keys(iconMap)[Math.floor(Math.random() * 4)]] || Crown,
+        label: b.name, onClick: () => navigate(`/brands/${b.id}`),
+      })),
+    },
+    { icon: Briefcase, label: t("services"), path: "/services" },
+    { icon: FolderOpen, label: t("projects"), path: "/projects" },
+    { icon: Lock, label: t("digital_inheritance"), path: "/digital-inheritance" },
+    { icon: Users, label: t("employees"), path: "/employees" },
+    { icon: Handshake, label: t("success_partners"), path: "/success-partners" },
+    { icon: UserCheck, label: t("affiliates"), path: "/affiliates" },
+    { icon: Building2, label: t("branches"), path: "/branches", addButton: true, onAdd: () => navigate("/branches") },
+    { icon: Scroll, label: t("legendary_journey"), path: "/legendary-journey" },
+    { icon: Users, label: t("customers"), path: "/customers", addButton: true, onAdd: () => navigate("/customers") },
+    { icon: Layers, label: "Operations Hub", path: "/operations" },
+    { icon: Bell, label: "Notifications", path: "/notifications" },
+    { icon: FileText, label: "Audit Logs", path: "/audit-logs" },
+    { icon: UserCheck, label: t("team"), path: "/team" },
+    { icon: BarChart3, label: "Reports", path: "/reports" },
+    { icon: DollarSign, label: "Revenue", path: "/revenue" },
+    { icon: Tag, label: "Coupons", path: "/coupons" },
+    { icon: RotateCcw, label: "Refunds", path: "/refunds" },
+    { icon: Webhook, label: "Webhooks", path: "/webhooks" },
+    { icon: Code, label: "API Docs", path: "/api-docs" },
+    { icon: Store, label: "Marketplace", path: "/marketplace" },
+    { icon: Globe, label: "White Label", path: "/white-label" },
+    { icon: Share2, label: "Referrals", path: "/referrals" },
+    { icon: Shield, label: "Sessions", path: "/security/sessions" },
+    { icon: Chrome, label: "Extension", path: "/extension" },
+    { icon: Package, label: "Materials", path: "/materials" },
+    { icon: Boxes, label: "Inventory", path: "/inventory" },
+    { icon: MessageCircle, label: "CRM Interactions", path: "/crm-interactions" },
+    { icon: Megaphone, label: "Marketing", path: "/marketing" },
+    { icon: Truck, label: "Logistics", path: "/logistics" },
+    { icon: Plane, label: "Import/Export", path: "/import-export" },
+    { icon: Palette, label: "Artistic Production", path: "/artistic-production" },
+    { icon: Building, label: "Assets", path: "/assets" },
+    { icon: CreditCard, label: "Payment Gateways", path: "/payment-gateways" },
+    { icon: TrendingUp, label: "Finance Analytics", path: "/finance-analytics" },
+    { icon: ScrollText, label: "Legal Vault", path: "/legal-vault" },
+    
+    { icon: UserCheck, label: "Affiliated Agents", path: "/affiliated-agents" },
+    { icon: BellRing, label: "Notification Rules", path: "/notification-rules" },
+    { icon: Mic, label: "Voice Assistant", path: "/voice" },
+    { icon: Video, label: "Video Call", path: "/video" },
+    { icon: BookOpen, label: "Help", path: "/help" },
+    { icon: GitBranch, label: "Workflow Map", path: "/workflow-map" },
+    { icon: FileText, label: "Agent Logs", path: "/agent-logs" },
+  ];
+
+  
+
+  const filteredSections = searchQuery
+    ? navSections.filter(s => s.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        s.children?.some(c => c.label.toLowerCase().includes(searchQuery.toLowerCase())))
+    : navSections;
+
+  if (collapsed) {
+    return (
+      <aside className="w-14 h-screen bg-sidebar border-r border-border flex flex-col shrink-0">
+        <div className="p-2 border-b border-border flex justify-center">
+          <button onClick={onToggle} className="p-2 rounded-md hover:bg-secondary transition-colors"><Menu className="w-5 h-5 text-primary" /></button>
+        </div>
+        <nav className="flex-1 py-2 space-y-1 px-1 overflow-y-auto">
+          {navSections.map(item => (
+            <button key={item.label} onClick={() => item.path ? navigate(item.path) : item.children && toggle(item.label)}
+              className={`w-full flex items-center justify-center p-2.5 rounded-md transition-all ${
+                item.path && location.pathname === item.path ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground hover:bg-secondary"
+              }`} title={item.label}>
+              <item.icon className="w-4 h-4" />
+            </button>
+          ))}
+        </nav>
+        <div className="border-t border-border py-2 px-1 space-y-1">
+          <button onClick={() => navigate("/settings")} className="w-full flex items-center justify-center p-2.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-secondary" title="Settings"><Settings className="w-4 h-4" /></button>
+          <button className="w-full flex items-center justify-center p-2.5 rounded-md text-blood-red hover:bg-blood-red/10" title="Logout"><LogOut className="w-4 h-4" /></button>
+        </div>
+      </aside>
+    );
+  }
+
+  return (
+    <aside className="w-52 h-screen bg-sidebar border-r border-border flex flex-col shrink-0">
+      <div className="p-3 border-b border-border flex items-center justify-between">
+        <span className="font-display text-[10px] font-bold text-primary tracking-widest">KEMETRISE</span>
+        <button onClick={onToggle} className="p-1 rounded hover:bg-secondary transition-colors"><Menu className="w-4 h-4 text-muted-foreground" /></button>
+      </div>
+
+      {/* Global Search */}
+      <div className="px-2 py-2 border-b border-border/50">
+        <div className="relative">
+          <Search className="w-3.5 h-3.5 text-muted-foreground absolute left-2.5 top-1/2 -translate-y-1/2" />
+          <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
+            placeholder="Search..." className="w-full bg-secondary/50 border border-border rounded-md pl-8 pr-3 py-1.5 text-[11px] font-body text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/50" />
+        </div>
+      </div>
+
+      <nav className="flex-1 overflow-y-auto py-2 px-2 space-y-0.5 scrollbar-thin">
+        {filteredSections.map(item => (
+          <div key={item.label}>
+            <div className="flex items-center">
+              <button
+                onClick={() => item.path && !item.children ? navigate(item.path) : item.children && toggle(item.label)}
+                className={`flex-1 flex items-center gap-2.5 px-2.5 py-2 rounded-md text-sm transition-all ${
+                  item.path && location.pathname === item.path
+                    ? "bg-primary/10 text-primary"
+                    : "text-muted-foreground hover:text-foreground hover:bg-secondary"
+                }`}>
+                <item.icon className="w-4 h-4 shrink-0" />
+                <span className="font-body font-medium text-sm flex-1 text-left">{item.label}</span>
+                {item.children && (expanded[item.label] ? <ChevronDown className="w-3.5 h-3.5 shrink-0" /> : <ChevronRight className="w-3.5 h-3.5 shrink-0" />)}
+              </button>
+              {item.addButton && (
+                <button onClick={() => item.onAdd?.()} className="p-1.5 rounded-md text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors" title={`Add to ${item.label}`}>
+                  <Plus className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+            {item.children && expanded[item.label] && (
+              <div className="ml-4 pl-3 border-l border-border/50 mt-0.5 space-y-0.5">
+                {item.children
+                  .filter(c => !searchQuery || c.label.toLowerCase().includes(searchQuery.toLowerCase()))
+                  .map(child => (
+                  <button key={child.label} onClick={() => child.onClick?.()}
+                    className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-xs text-muted-foreground hover:text-foreground hover:bg-secondary transition-all">
+                    {child.icon && <child.icon className="w-3.5 h-3.5" />}
+                    <span className="font-body">{child.label}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        ))}
+      </nav>
+
+      <div className="border-t border-border px-2 py-2 space-y-0.5">
+        <button onClick={() => navigate("/settings")} className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-md text-sm transition-all ${location.pathname === "/settings" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground hover:bg-secondary"}`}>
+          <Settings className="w-4 h-4 shrink-0" /><span className="font-body font-medium text-sm">Settings</span>
+        </button>
+        <button className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-md text-sm text-blood-red hover:bg-blood-red/10 transition-all">
+          <LogOut className="w-4 h-4 shrink-0" /><span className="font-body font-medium text-sm">Logout</span>
+        </button>
+      </div>
+    </aside>
+  );
+};
+
+export default Sidebar;
