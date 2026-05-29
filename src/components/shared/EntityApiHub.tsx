@@ -19,6 +19,9 @@ const EntityApiHub = ({ entityName, ownerKind, ownerId }: Props) => {
   const [newWebhookEvents, setNewWebhookEvents] = useState("all");
   const [loading, setLoading] = useState(false);
 
+  // Don't render at all until entity is saved (ownerId exists)
+  if (!persistent) return null;
+
   useEffect(() => {
     if (!persistent) return;
     setLoading(true);
@@ -32,7 +35,6 @@ const EntityApiHub = ({ entityName, ownerKind, ownerId }: Props) => {
   }, [persistent, ownerKind, ownerId]);
 
   const generateKey = async () => {
-    if (!persistent) { toast.info("Save the entity first to generate keys"); return; }
     try {
       const k = await apiKeysApi.create(ownerKind!, ownerId!, `Key ${apiKeys.length + 1}`);
       setApiKeys(p => [k, ...p]);
@@ -46,7 +48,6 @@ const EntityApiHub = ({ entityName, ownerKind, ownerId }: Props) => {
   };
 
   const addWebhook = async () => {
-    if (!persistent) { toast.info("Save the entity first to add webhooks"); return; }
     if (!newWebhookUrl.trim()) { toast.error("URL required"); return; }
     try {
       const w = await webhooksApi.create(ownerKind!, ownerId!, {
@@ -70,13 +71,13 @@ const EntityApiHub = ({ entityName, ownerKind, ownerId }: Props) => {
       <div className="flex items-center gap-2">
         <Plug className="w-3.5 h-3.5 text-primary" />
         <span className="font-display text-[10px] tracking-wider text-primary">API MANAGEMENT — {entityName.toUpperCase()}</span>
-        {!persistent && <span className="text-[9px] text-muted-foreground ml-auto">(save to enable)</span>}
+
       </div>
 
       <div className="space-y-1.5">
         <div className="flex items-center justify-between">
           <span className="text-[10px] font-display text-muted-foreground">API KEYS</span>
-          <Button type="button" variant="outline" size="sm" onClick={generateKey} disabled={!persistent || loading} className="gap-1 text-[10px] h-6 px-2"><Plus className="w-3 h-3" />Generate Key</Button>
+          <Button type="button" variant="outline" size="sm" onClick={generateKey} disabled={loading} className="gap-1 text-[10px] h-6 px-2"><Plus className="w-3 h-3" />Generate Key</Button>
         </div>
         {apiKeys.map(k => (
           <div key={k.id} className="flex items-center gap-2 p-2 bg-secondary/50 rounded border border-border">
@@ -99,7 +100,7 @@ const EntityApiHub = ({ entityName, ownerKind, ownerId }: Props) => {
             <option value="update">Update</option>
             <option value="delete">Delete</option>
           </select>
-          <Button type="button" variant="outline" size="sm" onClick={addWebhook} disabled={!persistent} className="text-[10px] h-7 px-2 shrink-0"><Globe className="w-3 h-3" /></Button>
+          <Button type="button" variant="outline" size="sm" onClick={addWebhook} className="text-[10px] h-7 px-2 shrink-0"><Globe className="w-3 h-3" /></Button>
         </div>
         {webhooks.map(w => (
           <div key={w.id} className="flex items-center gap-2 p-2 bg-secondary/50 rounded border border-border">
