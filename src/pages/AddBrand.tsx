@@ -45,6 +45,7 @@ const AddBrand = () => {
   const existingBrand = id ? getBrand(id) : undefined;
   const isEditing = !!existingBrand;
 
+  const [saving, setSaving] = useState(false);
   const [name, setName] = useState("");
   const [address, setAddress] = useState("");
   const [industry, setIndustry] = useState("");
@@ -81,7 +82,7 @@ const AddBrand = () => {
     }
   }, [existingBrand]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) { toast.error("Brand name is required"); return; }
     const data = {
@@ -94,14 +95,21 @@ const AddBrand = () => {
       financialDocs: financialDocs.filter(d => d.name),
       marketingPlans: marketingPlans.filter(m => m.title.trim()),
     };
-    if (isEditing) {
-      updateBrand(existingBrand!.id, data);
-      toast.success(`${name} updated successfully!`);
-      navigate(`/brands/${existingBrand!.id}`);
-    } else {
-      addBrand(data);
-      toast.success(`${name} added successfully!`);
-      navigate("/");
+    setSaving(true);
+    try {
+      if (isEditing) {
+        await updateBrand(existingBrand!.id, data);
+        toast.success(`${name} updated successfully!`);
+        navigate(`/brands/${existingBrand!.id}`);
+      } else {
+        await addBrand(data);
+        toast.success(`${name} added successfully!`);
+        navigate("/");
+      }
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to save brand. Please try again.");
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -323,8 +331,8 @@ const AddBrand = () => {
               <EntityApiHub entityName={name || "Brand"} ownerKind="brand" ownerId={id || undefined} />
             </section>
 
-            <Button type="submit" className="w-full gap-2 font-display text-sm tracking-wider">
-              <Save className="w-4 h-4" />{isEditing ? "SAVE CHANGES" : "SAVE BRAND"}
+            <Button type="submit" disabled={saving} className="w-full gap-2 font-display text-sm tracking-wider">
+              <Save className="w-4 h-4" />{saving ? "SAVING..." : isEditing ? "SAVE CHANGES" : "SAVE BRAND"}
             </Button>
           </form>
         </div>
