@@ -342,7 +342,7 @@ export const BrandsProvider = ({ children }: { children: ReactNode }) => {
         status: "active",
         ...toBrandColumns(brand),
       },
-      { includeClientId: false, includeBrandId: false },
+      { includeClientId: false, includeBrandId: false, includeUserName: false },
     );
     if (data) {
       const brandId = (data as any).id;
