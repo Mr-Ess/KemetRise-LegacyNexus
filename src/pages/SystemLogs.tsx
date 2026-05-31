@@ -5,17 +5,22 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, FileText, Activity, Search } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { ArrowLeft, FileText, Activity, Search, Shield, Monitor, Smartphone, Tablet, Trash2, LogOut } from "lucide-react";
 import { auditApi } from "@/services/system";
 import { tenantDb } from "@/lib/tenantDb";
+import { supabase } from "@/integrations/supabase/client";
 import ExportButton from "@/components/shared/ExportButton";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useAuth } from "@/hooks/useAuth";
+import { toast } from "sonner";
 
 export default function SystemLogs() {
   const nav = useNavigate();
+  const { user } = useAuth();
   const [tab, setTab] = useState("audit");
 
-  // Audit Logs state
+  // ── Audit Logs ──────────────────────────────────────────────────
   const [auditLogs, setAuditLogs] = useState<any[]>([]);
   const [auditLoading, setAuditLoading] = useState(true);
   const [auditQ, setAuditQ] = useState("");
@@ -23,17 +28,48 @@ export default function SystemLogs() {
   const [auditFrom, setAuditFrom] = useState("");
   const [auditTo, setAuditTo] = useState("");
 
-  // Agent Logs state
+  // ── Agent Logs ──────────────────────────────────────────────────
   const [agentLogs, setAgentLogs] = useState<any[]>([]);
   const [agentLoading, setAgentLoading] = useState(true);
   const [agentQ, setAgentQ] = useState("");
   const [agentStatus, setAgentStatus] = useState("all");
 
+  // ── Sessions ────────────────────────────────────────────────────
+  const [sessions, setSessions] = useState<any[]>([]);
+  const [sessionsLoading, setSessionsLoading] = useState(true);
+
+  const loadSessions = async () => {
+    if (!user) return;
+    setSessionsLoading(true);
+    try {
+      const data = await tenantDb.select("user_sessions", { eq: { revoked: false }, orderBy: "last_active", ascending: false });
+      setSessions(data || []);
+    } finally { setSessionsLoading(false); }
+  };
+
+  const revokeSession = async (id: string) => {
+    try { await tenantDb.update("user_sessions", { revoked: true }, { id }); }
+    catch { return toast.error("Failed to revoke session"); }
+    toast.success("Session revoked");
+    loadSessions();
+  };
+
+  const revokeAllSessions = async () => {
+    await tenantDb.update("user_sessions", { revoked: true }, { eq: { user_id: user!.id } } as any);
+    await supabase.auth.signOut({ scope: "others" } as any);
+    toast.success("All other sessions revoked");
+    loadSessions();
+  };
+
+  const DeviceIcon = (device: string) =>
+    /mobile|phone/i.test(device || "") ? Smartphone : /tablet/i.test(device || "") ? Tablet : Monitor;
+
   useEffect(() => {
     auditApi.list(500).then(d => setAuditLogs(d as any[])).finally(() => setAuditLoading(false));
     tenantDb.select("agent_logs", { orderBy: "created_at", ascending: false, limit: 500 })
       .then(d => setAgentLogs(d as any[])).finally(() => setAgentLoading(false));
-  }, []);
+    loadSessions();
+  }, [user]);
 
   const filteredAudit = useMemo(() => auditLogs.filter(l => {
     if (auditLevel !== "all" && l.level !== auditLevel) return false;
@@ -64,16 +100,19 @@ export default function SystemLogs() {
           <h1 className="text-2xl font-bold text-primary flex items-center gap-2" style={{ fontFamily: "Orbitron" }}>
             <FileText className="w-6 h-6" /> System Logs
           </h1>
-          <ExportButton data={tab === "audit" ? filteredAudit : filteredAgent} filename={tab === "audit" ? "audit-logs" : "agent-logs"} title="Logs" />
+          <ExportButton data={tab === "audit" ? filteredAudit : tab === "agent" ? filteredAgent : sessions} filename={tab === "audit" ? "audit-logs" : tab === "agent" ? "agent-logs" : "sessions"} title="Logs" />
         </div>
 
         <Tabs value={tab} onValueChange={setTab}>
-          <TabsList className="grid w-full grid-cols-2 max-w-sm">
+          <TabsList className="grid w-full grid-cols-3 max-w-md">
             <TabsTrigger value="audit" className="flex items-center gap-1.5">
-              <FileText className="w-3.5 h-3.5" /> Audit Logs ({auditLogs.length})
+              <FileText className="w-3.5 h-3.5" /> Audit ({auditLogs.length})
             </TabsTrigger>
             <TabsTrigger value="agent" className="flex items-center gap-1.5">
-              <Activity className="w-3.5 h-3.5" /> Agent Logs ({agentLogs.length})
+              <Activity className="w-3.5 h-3.5" /> Agents ({agentLogs.length})
+            </TabsTrigger>
+            <TabsTrigger value="sessions" className="flex items-center gap-1.5">
+              <Shield className="w-3.5 h-3.5" /> Sessions ({sessions.length})
             </TabsTrigger>
           </TabsList>
 
@@ -180,6 +219,62 @@ export default function SystemLogs() {
               )}
             </Card>
             <p className="text-xs text-muted-foreground text-center">Showing {filteredAgent.length} of {agentLogs.length}</p>
+          </TabsContent>
+
+          {/* ── SESSIONS ───────────────────────────────────────────────── */}
+          <TabsContent value="sessions" className="space-y-3 mt-4">
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <p className="text-sm text-muted-foreground">Active sessions for your account across all devices.</p>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive" size="sm" className="gap-1.5"><LogOut className="w-3.5 h-3.5"/>Revoke All Others</Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Revoke all other sessions?</AlertDialogTitle>
+                    <AlertDialogDescription>All other devices will be signed out immediately. Your current session stays active.</AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={revokeAllSessions}>Revoke All</AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
+
+            {sessionsLoading ? (
+              <div className="space-y-2">{[1,2,3].map(i=><Skeleton key={i} className="h-20 w-full"/>)}</div>
+            ) : sessions.length === 0 ? (
+              <Card className="p-12 text-center text-muted-foreground">
+                <Shield className="w-12 h-12 mx-auto mb-3 opacity-20"/>
+                <p>No active sessions found</p>
+                <p className="text-xs mt-1">Sessions will appear here when you sign in on other devices.</p>
+              </Card>
+            ) : (
+              <div className="space-y-2">
+                {sessions.map(s => {
+                  const DevIcon = DeviceIcon(s.device);
+                  return (
+                    <Card key={s.id} className="p-4 flex items-center gap-4 hover:bg-secondary/20 transition-colors">
+                      <div className="p-2 rounded-lg bg-primary/10 shrink-0"><DevIcon className="w-6 h-6 text-primary"/></div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-semibold text-sm">{s.browser || "Browser"} on {s.os || s.device || "Unknown OS"}</span>
+                          <Badge variant="outline" className="text-[10px]">{s.device || "Desktop"}</Badge>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          IP: {s.ip_address || "—"} · Last active: {s.last_active ? new Date(s.last_active).toLocaleString() : "—"}
+                        </p>
+                        {s.location && <p className="text-xs text-muted-foreground">{s.location}</p>}
+                      </div>
+                      <Button size="sm" variant="ghost" onClick={() => revokeSession(s.id)} title="Revoke">
+                        <Trash2 className="w-4 h-4 text-destructive"/>
+                      </Button>
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
           </TabsContent>
         </Tabs>
       </div>

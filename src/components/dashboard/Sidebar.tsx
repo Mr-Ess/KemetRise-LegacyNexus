@@ -55,11 +55,8 @@ const Sidebar = ({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => 
     { icon: Code, label: "Developer Hub", path: "/api-docs" },
     { icon: Store, label: "Marketplace", path: "/marketplace" },
     { icon: Share2, label: "Referrals", path: "/referrals" },
-    { icon: Shield, label: "Sessions", path: "/security/sessions" },
     { icon: CreditCard, label: "Payment Gateways", path: "/payment-gateways" },
-    { icon: BellRing, label: "Notification Rules", path: "/notification-rules" },
-    { icon: Mic, label: "Voice Assistant", path: "/voice" },
-    { icon: Video, label: "Video Call", path: "/video" },
+    { icon: Mic, label: "Virtual Assistant", path: "/voice" },
     { icon: GitBranch, label: "Workflow Map", path: "/workflow-map" },
     { icon: Users, label: "User Management", path: "/user-management" },
   ];

@@ -147,7 +147,7 @@ const App = () => (
                 <Route path="/refunds" element={<Navigate to="/finance-analytics" replace />} />
                 <Route path="/webhooks" element={<Navigate to="/api-docs" replace />} />
                 <Route path="/api-docs" element={<Protected><DeveloperHub /></Protected>} />
-                <Route path="/security/sessions" element={<Protected><Sessions /></Protected>} />
+                <Route path="/security/sessions" element={<Navigate to="/audit-logs" replace />} />
                 <Route path="/security/ip-whitelist" element={<Protected><IPWhitelist /></Protected>} />
                 <Route path="/security/sso" element={<Protected><SSO /></Protected>} />
                 <Route path="/white-label" element={<Navigate to="/api-docs" replace />} />
@@ -171,10 +171,10 @@ const App = () => (
                 <Route path="/finance-analytics" element={<Protected><FinanceAnalytics /></Protected>} />
                 <Route path="/heirs" element={<Navigate to="/digital-inheritance" replace />} />
                 <Route path="/affiliated-agents" element={<Navigate to="/affiliates" replace />} />
-                <Route path="/notification-rules" element={<Protected><NotificationRules /></Protected>} />
+                <Route path="/notification-rules" element={<Navigate to="/notifications" replace />} />
                 <Route path="/help" element={<Protected><Help /></Protected>} />
                 <Route path="/voice" element={<Protected><VoiceAssistant /></Protected>} />
-                <Route path="/video" element={<Protected><VideoConference /></Protected>} />
+                <Route path="/video" element={<Navigate to="/voice" replace />} />
                 <Route path="/changelog" element={<Protected><Changelog /></Protected>} />
                 <Route path="/backups" element={<Protected><Backups /></Protected>} />
                 <Route path="/automations" element={<Protected><AutomationBuilder /></Protected>} />
