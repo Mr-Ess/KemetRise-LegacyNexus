@@ -31,6 +31,7 @@ const Referrals = lazy(() => import("./pages/Referrals"));
 const BrowserExtension = lazy(() => import("./pages/BrowserExtension"));
 const AddBrand = lazy(() => import("./pages/AddBrand.tsx"));
 const BrandDetails = lazy(() => import("./pages/BrandDetails.tsx"));
+const BrandsHub = lazy(() => import("./pages/BrandsHub.tsx"));
 const Projects = lazy(() => import("./pages/Projects.tsx"));
 const Customers = lazy(() => import("./pages/Customers.tsx"));
 const Branches = lazy(() => import("./pages/Branches.tsx"));
@@ -121,13 +122,14 @@ const App = () => (
                 <Route path="/accept-invite/:token" element={<AcceptInvite />} />
                 <Route path="/b/:id" element={<PublicBrand />} />
                 <Route path="/" element={<Protected><Index /></Protected>} />
+                <Route path="/brands" element={<Protected><BrandsHub /></Protected>} />
                 <Route path="/brands/add" element={<Protected><AddBrand /></Protected>} />
                 <Route path="/brands/:id" element={<Protected><BrandDetails /></Protected>} />
                 <Route path="/brands/edit/:id" element={<Protected><AddBrand /></Protected>} />
-                <Route path="/projects" element={<Protected><Projects /></Protected>} />
-                <Route path="/customers" element={<Protected><Customers /></Protected>} />
-                <Route path="/branches" element={<Protected><Branches /></Protected>} />
-                <Route path="/services" element={<Protected><Services /></Protected>} />
+                <Route path="/projects" element={<Navigate to="/brands" replace />} />
+                <Route path="/customers" element={<Navigate to="/brands" replace />} />
+                <Route path="/branches" element={<Navigate to="/brands" replace />} />
+                <Route path="/services" element={<Navigate to="/brands" replace />} />
                 <Route path="/employees" element={<Protected><Employees /></Protected>} />
                 <Route path="/affiliates" element={<Protected><Affiliates /></Protected>} />
                 <Route path="/success-partners" element={<Protected><SuccessPartners /></Protected>} />

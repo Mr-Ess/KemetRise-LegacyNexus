@@ -30,6 +30,7 @@ const Sidebar = ({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => 
 
   const navSections: NavSection[] = [
     { icon: LayoutDashboard, label: t("dashboard"), path: "/" },
+    { icon: Crown, label: "Brands Hub", path: "/brands" },
     {
       icon: Crown, label: t("brands"), addButton: true, onAdd: () => navigate("/brands/add"),
       children: brands.map(b => ({
@@ -37,16 +38,11 @@ const Sidebar = ({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => 
         label: b.name, onClick: () => navigate(`/brands/${b.id}`),
       })),
     },
-    { icon: Briefcase, label: t("services"), path: "/services" },
-    { icon: FolderOpen, label: t("projects"), path: "/projects" },
     { icon: Lock, label: t("digital_inheritance"), path: "/digital-inheritance" },
     { icon: Users, label: t("employees"), path: "/employees" },
     { icon: Handshake, label: t("success_partners"), path: "/success-partners" },
     { icon: UserCheck, label: t("affiliates"), path: "/affiliates" },
-    { icon: Building2, label: t("branches"), path: "/branches", addButton: true, onAdd: () => navigate("/branches") },
     { icon: Scroll, label: t("legendary_journey"), path: "/legendary-journey" },
-    { icon: Users, label: t("customers"), path: "/customers", addButton: true, onAdd: () => navigate("/customers") },
-    { icon: UserCheck, label: "Affiliated Agents", path: "/affiliates" },
     { icon: Layers, label: "Operations Hub", path: "/operations" },
     { icon: Bell, label: "Notifications", path: "/notifications" },
     { icon: FileText, label: "System Logs", path: "/audit-logs" },
