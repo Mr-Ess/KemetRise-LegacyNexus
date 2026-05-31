@@ -37,11 +37,20 @@ export default function SystemLogs() {
   const loadAgentLogs = async () => {
     setAgentLoading(true);
     try {
-      // 1. Try tenant-scoped query first
-      let data = await tenantDb.select("agent_logs", { orderBy: "created_at", ascending: false, limit: 500 }) as any[];
+      // 1. Try RPC that bypasses RLS (SECURITY DEFINER — all rows regardless of user_id)
+      let data: any[] = [];
+      const { data: rpcData, error: rpcErr } = await supabase.rpc("get_all_agent_logs", { p_limit: 500 });
+      if (!rpcErr && rpcData?.length) {
+        data = rpcData;
+      }
 
-      // 2. If empty, try direct supabase (covers rows with different/null user_id)
-      if (!data?.length) {
+      // 2. Fallback: tenant-scoped query
+      if (!data.length) {
+        data = await tenantDb.select("agent_logs", { orderBy: "created_at", ascending: false, limit: 500 }) as any[];
+      }
+
+      // 3. Fallback: direct supabase (covers rows with different/null user_id)
+      if (!data.length) {
         const { data: direct } = await supabase
           .from("agent_logs")
           .select("*")
