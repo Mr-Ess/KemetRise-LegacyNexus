@@ -189,6 +189,8 @@ GRANT ALL ON public.payment_methods TO service_role;
 
 -- 3a) Enhance workflow_map (graph edges) with visual / runtime fields
 ALTER TABLE public.workflow_map
+  ADD COLUMN IF NOT EXISTS brand_id           uuid REFERENCES public.brands(id) ON DELETE SET NULL,
+  ADD COLUMN IF NOT EXISTS client_id          uuid,
   ADD COLUMN IF NOT EXISTS workflow_name      text,
   ADD COLUMN IF NOT EXISTS workflow_version   text DEFAULT '1.0',
   ADD COLUMN IF NOT EXISTS is_active          boolean NOT NULL DEFAULT true,
