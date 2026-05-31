@@ -32,7 +32,6 @@ const Sidebar = ({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => 
     { icon: LayoutDashboard, label: t("dashboard"), path: "/" },
     { icon: Crown, label: "Brands Hub", path: "/brands" },
     { icon: Lock, label: t("digital_inheritance"), path: "/digital-inheritance" },
-    { icon: Users, label: t("employees"), path: "/employees" },
     { icon: Scroll, label: t("legendary_journey"), path: "/legendary-journey" },
     { icon: Store, label: "Marketplace", path: "/marketplace" },
     { icon: Layers, label: "Operations Hub", path: "/operations" },
