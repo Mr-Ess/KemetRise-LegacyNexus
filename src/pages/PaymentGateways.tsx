@@ -12,6 +12,7 @@ import { Card } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { extApi } from "@/services/extended";
+import { tenantDb } from "@/lib/tenantDb";
 import ExportButton from "@/components/shared/ExportButton";
 import BrandSelector from "@/components/shared/BrandSelector";
 
@@ -66,11 +67,11 @@ export default function PaymentGateways() {
     try {
       const [g, t, s] = await Promise.all([
         extApi.list("payment_gateways"),
-        extApi.list("payment_splits"),
+        tenantDb.select("payment_transactions", { orderBy: "created_at", ascending: false, limit: 200 }).catch(() => []),
         extApi.list("payment_splits"),
       ]);
       setGateways(g as Gateway[]);
-      // transactions come from a different table in tenantDb
+      setTransactions(t as Transaction[]);
       setSplits(s as any[]);
     } catch (err: any) { toast.error(err.message); }
     finally { setLoading(false); }

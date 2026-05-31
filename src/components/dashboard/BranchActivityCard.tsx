@@ -18,8 +18,16 @@ type Branch = {
 const mapDbStatus = (s: string): Branch["status"] =>
   s === "active" ? "Active" : s === "maintenance" ? "Maintenance" : "Inactive";
 
-const BranchActivityCard = () => {
+const BranchActivityCard = ({ globalStatusFilter }: { globalStatusFilter?: string } = {}) => {
   const [statusFilter, setStatusFilter] = useState<"all" | Branch["status"]>("all");
+
+  // Sync from parent global filter
+  useEffect(() => {
+    if (!globalStatusFilter || globalStatusFilter === "All") setStatusFilter("all");
+    else if (globalStatusFilter === "Active") setStatusFilter("Active");
+    else if (globalStatusFilter === "Inactive") setStatusFilter("Inactive");
+    else if (globalStatusFilter === "Maintenance") setStatusFilter("Maintenance");
+  }, [globalStatusFilter]);
   const [showFilters, setShowFilters] = useState(false);
   const [branches, setBranches] = useState<Branch[]>([]);
 

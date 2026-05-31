@@ -53,7 +53,7 @@ const Index = () => {
 
             {/* Row 3 */}
             <div className="grid grid-cols-1 md:grid-cols-5 gap-3 md:auto-rows-fr">
-              <div className="md:col-span-3"><BranchActivityCard /></div>
+              <div className="md:col-span-3"><BranchActivityCard globalStatusFilter={statusFilter} /></div>
               <div className="md:col-span-2"><FinancialOverviewCard /></div>
             </div>
 
@@ -69,7 +69,7 @@ const Index = () => {
 
             {/* Row 6 - System Analytics */}
             <div className="grid grid-cols-1 gap-3">
-              <SystemAnalyticsCard />
+              <SystemAnalyticsCard globalEntityFilter={activeFilter} />
             </div>
           </div>
         </main>

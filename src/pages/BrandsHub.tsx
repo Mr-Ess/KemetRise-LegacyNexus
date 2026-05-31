@@ -361,13 +361,17 @@ function EntityTab({ items, loading, create, update, remove, title, columns, fie
       if (v === undefined || v === "") continue;
       payload[f.key] = f.type === "number" ? Number(v) : v;
     }
-    payload._legal_docs      = docs._legal_docs.filter(d => d.name);
-    payload._contracts        = docs._contracts.filter(d => d.name);
-    payload._marketing_plans  = docs._marketing_plans.filter(d => d.name);
-    payload._other_files      = docs._other_files.filter(d => d.name);
-    payload._owners            = people._owners.filter(p => p.name.trim());
-    payload._key_personnel     = people._key_personnel.filter(p => p.name.trim());
-    payload._team              = people._team.filter(p => p.name.trim());
+    // Store _* fields inside data JSONB — they are not dedicated DB columns
+    payload.data = {
+      ...(payload.data || {}),
+      _legal_docs:      docs._legal_docs.filter(d => d.name),
+      _contracts:       docs._contracts.filter(d => d.name),
+      _marketing_plans: docs._marketing_plans.filter(d => d.name),
+      _other_files:     docs._other_files.filter(d => d.name),
+      _owners:          people._owners.filter(p => p.name.trim()),
+      _key_personnel:   people._key_personnel.filter(p => p.name.trim()),
+      _team:            people._team.filter(p => p.name.trim()),
+    };
     if (!payload.name && !payload.agent_name) { toast.error("Name is required"); return; }
     if (editId) await update(editId, payload);
     else        await create(payload);

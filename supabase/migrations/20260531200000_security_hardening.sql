@@ -107,6 +107,8 @@ COMMENT ON COLUMN public.payment_gateways.signature_algorithm IS
 -- ─────────────────────────────────────────────────────────────────────────────
 DROP POLICY IF EXISTS "audit_logs_owner_all" ON public.audit_logs;
 DROP POLICY IF EXISTS audit_logs_owner_all ON public.audit_logs;
+DROP POLICY IF EXISTS audit_logs_read_own ON public.audit_logs;
+DROP POLICY IF EXISTS audit_logs_insert_own ON public.audit_logs;
 
 CREATE POLICY audit_logs_read_own ON public.audit_logs
   FOR SELECT

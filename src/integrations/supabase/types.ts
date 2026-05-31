@@ -2271,6 +2271,45 @@ export type Database = {
         }
         Relationships: []
       }
+      notifications: {
+        Row: {
+          assignee_ref: string | null
+          brand_id: string | null
+          created_at: string
+          id: string
+          is_read: boolean
+          message: string | null
+          task_id: string | null
+          title: string
+          type: string
+          user_id: string | null
+        }
+        Insert: {
+          assignee_ref?: string | null
+          brand_id?: string | null
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          message?: string | null
+          task_id?: string | null
+          title: string
+          type?: string
+          user_id?: string | null
+        }
+        Update: {
+          assignee_ref?: string | null
+          brand_id?: string | null
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          message?: string | null
+          task_id?: string | null
+          title?: string
+          type?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       payment_gateways: {
         Row: {
           api_config: Json | null
@@ -3426,6 +3465,486 @@ export type Database = {
           to_agent_code?: string
           user_id?: string
           user_name?: string | null
+        }
+        Relationships: []
+      }
+      agent_permissions: {
+        Row: {
+          agent_code: string
+          agent_id: string | null
+          allowed_actions: string[]
+          allowed_tables: string[]
+          brand_id: string | null
+          can_escalate: boolean
+          created_at: string
+          id: string
+          max_daily_ops: number | null
+          max_spend_eur: number | null
+          notes: string | null
+          requires_approval: boolean
+          sandbox_mode: boolean
+          sector_access: Json
+          updated_at: string
+          user_id: string
+          user_name: string | null
+        }
+        Insert: {
+          agent_code: string
+          agent_id?: string | null
+          allowed_actions?: string[]
+          allowed_tables?: string[]
+          brand_id?: string | null
+          can_escalate?: boolean
+          created_at?: string
+          id?: string
+          max_daily_ops?: number | null
+          max_spend_eur?: number | null
+          notes?: string | null
+          requires_approval?: boolean
+          sandbox_mode?: boolean
+          sector_access?: Json
+          updated_at?: string
+          user_id: string
+          user_name?: string | null
+        }
+        Update: {
+          agent_code?: string
+          agent_id?: string | null
+          allowed_actions?: string[]
+          allowed_tables?: string[]
+          brand_id?: string | null
+          can_escalate?: boolean
+          created_at?: string
+          id?: string
+          max_daily_ops?: number | null
+          max_spend_eur?: number | null
+          notes?: string | null
+          requires_approval?: boolean
+          sandbox_mode?: boolean
+          sector_access?: Json
+          updated_at?: string
+          user_id?: string
+          user_name?: string | null
+        }
+        Relationships: []
+      }
+      payment_methods: {
+        Row: {
+          brand_id: string | null
+          created_at: string
+          customer_id: string | null
+          display_name: string | null
+          expires_at: string | null
+          gateway_id: string | null
+          id: string
+          is_default: boolean
+          metadata: Json
+          method_type: string
+          provider_code: string | null
+          token: string | null
+          user_id: string
+          user_name: string | null
+        }
+        Insert: {
+          brand_id?: string | null
+          created_at?: string
+          customer_id?: string | null
+          display_name?: string | null
+          expires_at?: string | null
+          gateway_id?: string | null
+          id?: string
+          is_default?: boolean
+          metadata?: Json
+          method_type?: string
+          provider_code?: string | null
+          token?: string | null
+          user_id: string
+          user_name?: string | null
+        }
+        Update: {
+          brand_id?: string | null
+          created_at?: string
+          customer_id?: string | null
+          display_name?: string | null
+          expires_at?: string | null
+          gateway_id?: string | null
+          id?: string
+          is_default?: boolean
+          metadata?: Json
+          method_type?: string
+          provider_code?: string | null
+          token?: string | null
+          user_id?: string
+          user_name?: string | null
+        }
+        Relationships: []
+      }
+      payment_splits: {
+        Row: {
+          amount: number
+          brand_id: string | null
+          created_at: string
+          currency: string
+          id: string
+          notes: string | null
+          percentage: number | null
+          processed_at: string | null
+          recipient_id: string | null
+          recipient_name: string | null
+          recipient_type: string
+          status: string
+          transaction_id: string
+          user_id: string
+          user_name: string | null
+        }
+        Insert: {
+          amount?: number
+          brand_id?: string | null
+          created_at?: string
+          currency?: string
+          id?: string
+          notes?: string | null
+          percentage?: number | null
+          processed_at?: string | null
+          recipient_id?: string | null
+          recipient_name?: string | null
+          recipient_type?: string
+          status?: string
+          transaction_id: string
+          user_id: string
+          user_name?: string | null
+        }
+        Update: {
+          amount?: number
+          brand_id?: string | null
+          created_at?: string
+          currency?: string
+          id?: string
+          notes?: string | null
+          percentage?: number | null
+          processed_at?: string | null
+          recipient_id?: string | null
+          recipient_name?: string | null
+          recipient_type?: string
+          status?: string
+          transaction_id?: string
+          user_id?: string
+          user_name?: string | null
+        }
+        Relationships: []
+      }
+      responsible_personnel: {
+        Row: {
+          ai_can_contact: boolean
+          avatar_url: string | null
+          brand_id: string | null
+          client_id: string | null
+          created_at: string
+          department: string | null
+          emails: Json
+          full_name: string
+          id: string
+          is_active: boolean
+          metadata: Json
+          national_id: string | null
+          notes: string | null
+          owner_id: string
+          owner_kind: string
+          phones: Json
+          priority: number
+          socials: Json
+          title: string | null
+          updated_at: string
+          user_id: string
+          user_name: string | null
+          whatsapp: string | null
+        }
+        Insert: {
+          ai_can_contact?: boolean
+          avatar_url?: string | null
+          brand_id?: string | null
+          client_id?: string | null
+          created_at?: string
+          department?: string | null
+          emails?: Json
+          full_name: string
+          id?: string
+          is_active?: boolean
+          metadata?: Json
+          national_id?: string | null
+          notes?: string | null
+          owner_id: string
+          owner_kind: string
+          phones?: Json
+          priority?: number
+          socials?: Json
+          title?: string | null
+          updated_at?: string
+          user_id: string
+          user_name?: string | null
+          whatsapp?: string | null
+        }
+        Update: {
+          ai_can_contact?: boolean
+          avatar_url?: string | null
+          brand_id?: string | null
+          client_id?: string | null
+          created_at?: string
+          department?: string | null
+          emails?: Json
+          full_name?: string
+          id?: string
+          is_active?: boolean
+          metadata?: Json
+          national_id?: string | null
+          notes?: string | null
+          owner_id?: string
+          owner_kind?: string
+          phones?: Json
+          priority?: number
+          socials?: Json
+          title?: string | null
+          updated_at?: string
+          user_id?: string
+          user_name?: string | null
+          whatsapp?: string | null
+        }
+        Relationships: []
+      }
+      role_permissions: {
+        Row: {
+          brand_id: string | null
+          can_approve: boolean
+          can_create: boolean
+          can_delete: boolean
+          can_export: boolean
+          can_read: boolean
+          can_update: boolean
+          created_at: string
+          extra_perms: Json
+          id: string
+          resource_type: string
+          role: string
+          updated_at: string
+          user_id: string
+          user_name: string | null
+        }
+        Insert: {
+          brand_id?: string | null
+          can_approve?: boolean
+          can_create?: boolean
+          can_delete?: boolean
+          can_export?: boolean
+          can_read?: boolean
+          can_update?: boolean
+          created_at?: string
+          extra_perms?: Json
+          id?: string
+          resource_type: string
+          role: string
+          updated_at?: string
+          user_id: string
+          user_name?: string | null
+        }
+        Update: {
+          brand_id?: string | null
+          can_approve?: boolean
+          can_create?: boolean
+          can_delete?: boolean
+          can_export?: boolean
+          can_read?: boolean
+          can_update?: boolean
+          created_at?: string
+          extra_perms?: Json
+          id?: string
+          resource_type?: string
+          role?: string
+          updated_at?: string
+          user_id?: string
+          user_name?: string | null
+        }
+        Relationships: []
+      }
+      sector_permissions: {
+        Row: {
+          ai_agent_codes: string[] | null
+          ai_managed: boolean
+          branch_ids: string[] | null
+          brand_id: string
+          can_approve: boolean
+          can_delete: boolean
+          can_export: boolean
+          can_read: boolean
+          can_write: boolean
+          created_at: string
+          id: string
+          notes: string | null
+          sector: string
+          target_user_id: string
+          updated_at: string
+          user_id: string
+          user_name: string | null
+        }
+        Insert: {
+          ai_agent_codes?: string[] | null
+          ai_managed?: boolean
+          branch_ids?: string[] | null
+          brand_id: string
+          can_approve?: boolean
+          can_delete?: boolean
+          can_export?: boolean
+          can_read?: boolean
+          can_write?: boolean
+          created_at?: string
+          id?: string
+          notes?: string | null
+          sector: string
+          target_user_id: string
+          updated_at?: string
+          user_id: string
+          user_name?: string | null
+        }
+        Update: {
+          ai_agent_codes?: string[] | null
+          ai_managed?: boolean
+          branch_ids?: string[] | null
+          brand_id?: string
+          can_approve?: boolean
+          can_delete?: boolean
+          can_export?: boolean
+          can_read?: boolean
+          can_write?: boolean
+          created_at?: string
+          id?: string
+          notes?: string | null
+          sector?: string
+          target_user_id?: string
+          updated_at?: string
+          user_id?: string
+          user_name?: string | null
+        }
+        Relationships: []
+      }
+      workflow_executions: {
+        Row: {
+          brand_id: string | null
+          client_id: string | null
+          completed_at: string | null
+          created_at: string
+          error_message: string | null
+          id: string
+          initiated_by: string | null
+          started_at: string
+          status: string
+          steps_log: Json
+          trigger_payload: Json
+          trigger_source: string | null
+          user_id: string
+          user_name: string | null
+          workflow_name: string
+        }
+        Insert: {
+          brand_id?: string | null
+          client_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          initiated_by?: string | null
+          started_at?: string
+          status?: string
+          steps_log?: Json
+          trigger_payload?: Json
+          trigger_source?: string | null
+          user_id: string
+          user_name?: string | null
+          workflow_name: string
+        }
+        Update: {
+          brand_id?: string | null
+          client_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          initiated_by?: string | null
+          started_at?: string
+          status?: string
+          steps_log?: Json
+          trigger_payload?: Json
+          trigger_source?: string | null
+          user_id?: string
+          user_name?: string | null
+          workflow_name?: string
+        }
+        Relationships: []
+      }
+      workflow_steps: {
+        Row: {
+          action_config: Json
+          action_type: string
+          agent_code: string | null
+          brand_id: string | null
+          client_id: string | null
+          condition_expr: string | null
+          created_at: string
+          id: string
+          is_active: boolean
+          notes: string | null
+          on_failure_step: string | null
+          on_success_step: string | null
+          retry_count: number | null
+          step_label: string
+          step_order: number
+          timeout_seconds: number | null
+          updated_at: string
+          user_id: string
+          user_name: string | null
+          workflow_name: string
+        }
+        Insert: {
+          action_config?: Json
+          action_type?: string
+          agent_code?: string | null
+          brand_id?: string | null
+          client_id?: string | null
+          condition_expr?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          notes?: string | null
+          on_failure_step?: string | null
+          on_success_step?: string | null
+          retry_count?: number | null
+          step_label: string
+          step_order?: number
+          timeout_seconds?: number | null
+          updated_at?: string
+          user_id: string
+          user_name?: string | null
+          workflow_name: string
+        }
+        Update: {
+          action_config?: Json
+          action_type?: string
+          agent_code?: string | null
+          brand_id?: string | null
+          client_id?: string | null
+          condition_expr?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          notes?: string | null
+          on_failure_step?: string | null
+          on_success_step?: string | null
+          retry_count?: number | null
+          step_label?: string
+          step_order?: number
+          timeout_seconds?: number | null
+          updated_at?: string
+          user_id?: string
+          user_name?: string | null
+          workflow_name?: string
         }
         Relationships: []
       }

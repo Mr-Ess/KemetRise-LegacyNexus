@@ -159,9 +159,20 @@ const GaugeBar = ({ label, value, icon, color }: { label: string; value: number;
 
 // ── Main Component ────────────────────────────────────────────────────
 
-const SystemAnalyticsCard = () => {
+const SystemAnalyticsCard = ({ globalEntityFilter }: { globalEntityFilter?: string } = {}) => {
   const [activeTab, setActiveTab] = useState<Tab>("tasks");
   const [agentFilter, setAgentFilter] = useState<"all" | "ai" | "human">("all");
+
+  // Sync tab from parent entity filter
+  useEffect(() => {
+    const map: Record<string, Tab> = {
+      Brands: "brands", Customers: "customers", Branches: "branches",
+      Projects: "tasks", Affiliates: "tasks", "Success Partners": "tasks",
+    };
+    if (globalEntityFilter && globalEntityFilter !== "All" && map[globalEntityFilter]) {
+      setActiveTab(map[globalEntityFilter]);
+    }
+  }, [globalEntityFilter]);
   const [counts, setCounts] = useState<Record<string, number>>({});
 
   useEffect(() => {

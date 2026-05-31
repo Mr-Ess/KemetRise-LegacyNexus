@@ -71,7 +71,7 @@ const HybridTaskFlowCard = () => {
       setTasks((p) => [row as any, ...p]);
       // Send in-app notification to assignee if specified
       if (newAssignee.trim()) {
-        supabase.from("notifications" as any).insert({
+        supabase.from("notifications").insert({
           assignee_ref: newAssignee.trim(),
           task_id: (row as any).id,
           title: "New Task Assigned",
