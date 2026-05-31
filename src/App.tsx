@@ -46,6 +46,7 @@ const OperationsHub = lazy(() => import("./pages/OperationsHub.tsx"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword.tsx"));
 const Notifications = lazy(() => import("./pages/Notifications.tsx"));
 const AuditLogs = lazy(() => import("./pages/AuditLogs.tsx"));
+const SystemLogs = lazy(() => import("./pages/SystemLogs.tsx"));
 const Team = lazy(() => import("./pages/Team.tsx"));
 const ReportsBuilder = lazy(() => import("./pages/ReportsBuilder.tsx"));
 const PublicBrand = lazy(() => import("./pages/PublicBrand.tsx"));
@@ -133,16 +134,16 @@ const App = () => (
                 <Route path="/legendary-journey" element={<Protected><LegendaryJourney /></Protected>} />
                 <Route path="/operations" element={<Protected><OperationsHub /></Protected>} />
                 <Route path="/notifications" element={<Protected><Notifications /></Protected>} />
-                <Route path="/audit-logs" element={<Protected><AuditLogs /></Protected>} />
+                <Route path="/audit-logs" element={<Protected><SystemLogs /></Protected>} />
                 <Route path="/team" element={<Protected><Team /></Protected>} />
                 <Route path="/reports" element={<Protected><ReportsBuilder /></Protected>} />
                 <Route path="/settings" element={<Protected><Settings /></Protected>} />
                 <Route path="/pricing" element={<Pricing />} />
                 <Route path="/checkout" element={<Protected><Checkout /></Protected>} />
                 <Route path="/customer-portal" element={<Protected><CustomerPortal /></Protected>} />
-                <Route path="/revenue" element={<Protected><RevenueDashboard /></Protected>} />
-                <Route path="/coupons" element={<Protected><Coupons /></Protected>} />
-                <Route path="/refunds" element={<Protected><Refunds /></Protected>} />
+                <Route path="/revenue" element={<Navigate to="/finance-analytics" replace />} />
+                <Route path="/coupons" element={<Navigate to="/finance-analytics" replace />} />
+                <Route path="/refunds" element={<Navigate to="/finance-analytics" replace />} />
                 <Route path="/webhooks" element={<Protected><WebhooksDashboard /></Protected>} />
                 <Route path="/api-docs" element={<Protected><ApiDocs /></Protected>} />
                 <Route path="/security/sessions" element={<Protected><Sessions /></Protected>} />
@@ -177,7 +178,7 @@ const App = () => (
                 <Route path="/backups" element={<Protected><Backups /></Protected>} />
                 <Route path="/automations" element={<Protected><AutomationBuilder /></Protected>} />
                 <Route path="/security/login-history" element={<Protected><LoginHistory /></Protected>} />
-                <Route path="/agent-logs" element={<Protected><AgentLogs /></Protected>} />
+                <Route path="/agent-logs" element={<Navigate to="/audit-logs" replace />} />
                 <Route path="/workflow-map" element={<Protected><WorkflowMap /></Protected>} />
                 <Route path="/permissions" element={<Protected><Permissions /></Protected>} />
                 <Route path="/user-management" element={<Protected><UserManagement /></Protected>} />

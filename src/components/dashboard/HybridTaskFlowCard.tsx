@@ -1,6 +1,7 @@
 import { MoreHorizontal, Plus, ChevronRight, Filter, X, Calendar, LayoutGrid, AlertCircle } from "lucide-react";
 import { useState, useMemo, useEffect } from "react";
 import { tasksApi, aiApi } from "@/services/system";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import CalendarView from "@/components/shared/CalendarView";
 import ExportButton from "@/components/shared/ExportButton";
@@ -68,9 +69,21 @@ const HybridTaskFlowCard = () => {
         },
       });
       setTasks((p) => [row as any, ...p]);
+      // Send in-app notification to assignee if specified
+      if (newAssignee.trim()) {
+        supabase.from("notifications" as any).insert({
+          assignee_ref: newAssignee.trim(),
+          task_id: (row as any).id,
+          title: "New Task Assigned",
+          message: `You have been assigned: "${newTitle}"`,
+          is_read: false,
+        }).then(); // fire-and-forget
+        toast.success(`Task added · ${category} — 🔔 Notification sent to ${newAssignee}`);
+      } else {
+        toast.success(`Task added · ${category}`);
+      }
       setNewTitle(""); setNewDesc(""); setNewAssignee(""); setNewDueDate("");
       setNewPriority("medium"); setAdding(null);
-      toast.success(`Task added · ${category}`);
     } catch (e: any) { toast.error(e.message); }
   };
 

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { ArrowLeft, User, Shield, ScrollText, Globe, Plug, Database, Lock, FileText, Bell, ChevronRight, Plus, Trash2, Edit, Upload, Key, Webhook, Copy, ToggleLeft, ToggleRight, Clock, AlertTriangle, CreditCard } from "lucide-react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { ArrowLeft, User, Shield, ScrollText, Globe, Plug, Database, Lock, FileText, Bell, ChevronRight, Plus, Trash2, Edit, Upload, Key, Webhook, Copy, ToggleLeft, ToggleRight, Clock, AlertTriangle, CreditCard, BookOpen, Search, Zap, Bot } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,6 +19,31 @@ import { InstallAndPush } from "@/components/settings/InstallAndPush";
 import NotificationRulesManager from "@/components/settings/NotificationRulesManager";
 import BillingPlansManager from "@/components/settings/BillingPlansManager";
 import { supabase } from "@/integrations/supabase/client";
+
+const helpSections = [
+  { icon: Zap, title: "Getting Started", topics: [
+    { q: "How do I add my first brand?", a: "Click the + next to Brands in the sidebar, fill in name, industry, logo and click Save." },
+    { q: "How do I invite team members?", a: "Go to User Management → Invitations, enter email and role. They'll receive an invite link." },
+    { q: "How do I use Command Palette?", a: "Press Ctrl+K (Windows) or ⌘K (Mac) anywhere in the app to search and navigate quickly." },
+  ]},
+  { icon: Shield, title: "Security", topics: [
+    { q: "How do I enable 2FA?", a: "Go to Settings → Profile & Security → Two-Factor Authentication, scan the QR with Google Authenticator." },
+    { q: "What is IP Whitelisting?", a: "Restrict admin access to specific IP ranges. Found in Security → IP Whitelist." },
+  ]},
+  { icon: CreditCard, title: "Billing", topics: [
+    { q: "How do I create a coupon?", a: "Go to Finance Analytics → Coupons → New Coupon." },
+    { q: "How do refunds work?", a: "Customers request refunds from their portal. You approve/reject from Finance Analytics → Refunds." },
+    { q: "What payment methods are supported?", a: "Stripe, Paddle, manual bank transfer, and crypto. Configure in Payment Gateways." },
+  ]},
+  { icon: Database, title: "Data & API", topics: [
+    { q: "How do I export data?", a: "Every list page has an Export button (CSV/PDF) at the top right." },
+    { q: "Where do I get an API key?", a: "Settings → API Hub. Create with a label and use in your integrations." },
+  ]},
+  { icon: Bot, title: "AI Features", topics: [
+    { q: "How does the AI Assistant work?", a: "Bottom-right floating button — ask anything about your data or operations." },
+    { q: "What are AI Insights?", a: "On Finance Analytics, use AI-powered analysis to understand trends." },
+  ]},
+];
 
 const settingsSections = [
   { id: "profile", icon: User, label: "Profile & Security", desc: "Account settings, password, 2FA" },
@@ -44,10 +69,49 @@ const allPermissions = ["Add", "Edit", "Delete", "View", "Manage Users", "Manage
 
 const logLevelColors: Record<string, string> = { info: "bg-nile/20 text-nile", warning: "bg-primary/20 text-primary", error: "bg-blood-red/20 text-blood-red" };
 
+function HelpCenter() {
+  const [q, setQ] = useState("");
+  const filtered = helpSections.map(s => ({
+    ...s,
+    topics: s.topics.filter(t => !q || t.q.toLowerCase().includes(q.toLowerCase()) || t.a.toLowerCase().includes(q.toLowerCase()))
+  })).filter(s => s.topics.length > 0);
+  return (
+    <div className="space-y-4">
+      <div className="relative">
+        <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+        <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search help topics…" className="w-full pl-9 pr-3 py-2 text-sm bg-secondary/30 border border-border rounded-md text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/50" />
+      </div>
+      {filtered.map(section => (
+        <div key={section.title} className="space-y-2">
+          <div className="flex items-center gap-2 text-xs font-display text-muted-foreground">
+            <section.icon className="w-3.5 h-3.5" /> {section.title}
+          </div>
+          {section.topics.map(topic => (
+            <details key={topic.q} className="group border border-border/50 rounded-md overflow-hidden">
+              <summary className="flex items-center justify-between px-3 py-2 text-xs cursor-pointer hover:bg-secondary/40 list-none">
+                <span className="font-body text-foreground">{topic.q}</span>
+                <ChevronRight className="w-3.5 h-3.5 text-muted-foreground group-open:rotate-90 transition-transform" />
+              </summary>
+              <div className="px-3 pb-3 pt-1 text-xs text-muted-foreground bg-secondary/20">{topic.a}</div>
+            </details>
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 const Settings = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const [activeSection, setActiveSection] = useState("profile");
+
+  // Auto-navigate to section from query param (e.g. /settings?section=notifications)
+  useEffect(() => {
+    const s = searchParams.get("section");
+    if (s) setActiveSection(s);
+  }, [searchParams]);
 
   // Profile
   const [displayName, setDisplayName] = useState("Pharaoh Admin");
@@ -592,6 +656,13 @@ const Settings = () => {
             </div>
             <div className="pt-4 border-t border-border">
               <NotificationRulesManager />
+            </div>
+            {/* ── HELP CENTER ──────────────────────────────────────────── */}
+            <div className="pt-4 border-t border-border space-y-4">
+              <h3 className="font-display text-xs text-primary flex items-center gap-2">
+                <BookOpen className="w-4 h-4" /> HELP CENTER
+              </h3>
+              <HelpCenter />
             </div>
           </div>
         );
