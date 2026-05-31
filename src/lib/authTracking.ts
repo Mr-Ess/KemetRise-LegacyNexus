@@ -36,17 +36,13 @@ export const trackFailedLogin = async (email: string) => {
     .then(() => {}); // fire-and-forget, ignore errors silently
 };
 
-// Client-side throttle: max 5 failed attempts per email per 15 min
+// Server-side rate limit: calls SECURITY DEFINER RPC to avoid exposing all emails via RLS
 export const checkRateLimit = async (email: string): Promise<{ allowed: boolean; waitMin?: number }> => {
   try {
-    const since = new Date(Date.now() - 15 * 60 * 1000).toISOString();
-    const { count, error } = await supabase
-      .from("failed_login_attempts")
-      .select("*", { count: "exact", head: true })
-      .eq("email", email)
-      .gte("attempted_at", since);
+    const { data, error } = await supabase.rpc("check_login_rate_limit", { p_email: email });
     if (error) return { allowed: true }; // fail open — can't check, allow attempt
-    if ((count || 0) >= 5) return { allowed: false, waitMin: 15 };
+    const row = Array.isArray(data) ? data[0] : data;
+    if (row?.is_blocked) return { allowed: false, waitMin: 15 };
     return { allowed: true };
   } catch {
     return { allowed: true }; // fail open
