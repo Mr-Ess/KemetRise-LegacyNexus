@@ -37,9 +37,21 @@ export default function SystemLogs() {
   const loadAgentLogs = async () => {
     setAgentLoading(true);
     try {
+      // 1. Try tenant-scoped query first
       let data = await tenantDb.select("agent_logs", { orderBy: "created_at", ascending: false, limit: 500 }) as any[];
+
+      // 2. If empty, try direct supabase (covers rows with different/null user_id)
       if (!data?.length) {
-        // Fallback: read AI agent messages from chat_messages via user's conversations
+        const { data: direct } = await supabase
+          .from("agent_logs")
+          .select("*")
+          .order("created_at", { ascending: false })
+          .limit(500);
+        if (direct?.length) data = direct;
+      }
+
+      // 3. If still empty, fallback to chat_messages (AI assistant replies)
+      if (!data?.length) {
         const convData = await tenantDb.select("chat_conversations", { orderBy: "created_at", ascending: false }) as any[];
         const convIds = convData.map((c: any) => c.id).filter(Boolean);
         if (convIds.length > 0) {
@@ -65,7 +77,14 @@ export default function SystemLogs() {
           }
         }
       }
-      setAgentLogs(data || []);
+
+      // Normalize nulls for display
+      setAgentLogs((data || []).map((r: any) => ({
+        ...r,
+        action_taken: r.action_taken || r.log_details?.action || r.log_details?.message || "—",
+        agent_name: r.agent_name || r.agent_code || "Agent",
+        status: r.status || "completed",
+      })));
     } catch { /* keep existing */ } finally { setAgentLoading(false); }
   };
 
