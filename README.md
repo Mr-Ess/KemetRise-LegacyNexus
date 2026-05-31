@@ -1,3 +1,3 @@
-# Welcome to your Lovable project
+# KemetRise : Legacy Nexus
 
 TODO: Document your project here

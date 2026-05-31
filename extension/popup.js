@@ -1,4 +1,4 @@
-const BASE = "https://id-preview--6cd71b4b-51c0-42a4-aeec-64e237c43ccd.lovable.app";
+const BASE = window.location.origin;
 document.querySelectorAll(".btn").forEach(b => {
   b.addEventListener("click", () => chrome.tabs.create({ url: BASE + b.dataset.path }));
 });

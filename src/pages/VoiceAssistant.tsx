@@ -458,7 +458,7 @@ export default function VoiceAssistant() {
         </Card>
 
         <p className="text-xs text-muted-foreground text-center mt-4">
-          يستخدم Web Speech API + Lovable AI Gateway
+          يستخدم Web Speech API + KemetRise : Legacy Nexus AI Gateway
         </p>
       </div>
     </div>
