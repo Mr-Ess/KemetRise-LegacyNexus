@@ -17,12 +17,25 @@ import ExportButton from "@/components/shared/ExportButton";
 import { SavedViews } from "@/components/shared/SavedViews";
 
 type DocFile = { id: string; name: string; category: string };
-type Employee = { id: string; name: string; type: "Human" | "AI Agent"; position: string; branch: string; brandId?: string | null; status: "Active" | "Inactive"; tasks: string; email: string; phone: string; specialization: string; responsiblePerson: string; files: DocFile[];
-  agent_code?: string; agent_version?: string; system_prompt?: string; team_category?: string; role?: string; is_aggregator?: boolean;
+type Employee = {
+  id: string; name: string; type: "Human" | "AI Agent"; position: string; branch: string;
+  brandId?: string | null; status: "Active" | "Inactive"; tasks: string;
+  email: string; phone: string; specialization: string; responsiblePerson: string;
+  role?: string; department?: string; bio?: string; avatar_url?: string;
+  availability?: "online" | "offline" | "busy"; reports_to?: string; instructions?: string;
+  files: DocFile[];
+  agent_code?: string; agent_version?: string; system_prompt?: string;
+  team_category?: string; is_aggregator?: boolean;
 };
 
-const emptyForm: Omit<Employee, "id"> = { name: "", type: "Human", position: "", branch: "", brandId: null, status: "Active", tasks: "", email: "", phone: "", specialization: "", responsiblePerson: "", files: [],
-  agent_code: "", agent_version: "", system_prompt: "", team_category: "", role: "", is_aggregator: false };
+const emptyForm: Omit<Employee, "id"> = {
+  name: "", type: "Human", position: "", branch: "", brandId: null,
+  status: "Active", tasks: "", email: "", phone: "", specialization: "",
+  responsiblePerson: "", role: "", department: "", bio: "", avatar_url: "",
+  availability: "offline", reports_to: "", instructions: "", files: [],
+  agent_code: "", agent_version: "", system_prompt: "", team_category: "",
+  is_aggregator: false,
+};
 const statusToDb = (s: string) => s === "Active" ? "active" : "inactive";
 
 const Employees = () => {
@@ -40,13 +53,19 @@ const Employees = () => {
     specialization:    r.specialization    ?? r.data?.specialization    ?? "",
     tasks:             r.tasks             ?? r.data?.tasks             ?? "",
     responsiblePerson: r.responsible_person ?? r.data?.responsiblePerson ?? "",
+    role:              r.role              ?? r.data?.role              ?? "",
+    department:        r.department        ?? r.data?.department        ?? "",
+    bio:               r.bio               ?? r.data?.bio               ?? "",
+    avatar_url:        r.avatar_url        ?? r.data?.avatar_url        ?? "",
+    availability:      r.availability      ?? r.data?.availability      ?? "offline",
+    reports_to:        r.reports_to        ?? r.data?.reports_to        ?? "",
+    instructions:      r.instructions      ?? r.data?.instructions      ?? "",
     brandId:           r.brand_id          ?? r.data?.brandId           ?? null,
     status:            r.status === "inactive" ? "Inactive" : "Active",
     agent_code:        r.agent_code        ?? r.data?.agent_code        ?? "",
     agent_version:     r.agent_version     ?? r.data?.agent_version     ?? "",
     system_prompt:     r.system_prompt     ?? r.data?.system_prompt     ?? "",
     team_category:     r.team_category     ?? r.data?.team_category     ?? "",
-    role:              r.role              ?? r.data?.role              ?? "",
     is_aggregator:     r.is_aggregator     ?? r.data?.is_aggregator     ?? false,
     type: (r.employee_type === "AI" || r.employee_type === "AI Agent" || r.data?.type === "AI Agent") ? "AI Agent" : "Human",
   })), [rows]);
@@ -75,11 +94,17 @@ const Employees = () => {
       specialization:     form.specialization || null,
       tasks:              form.tasks          || null,
       responsible_person: form.responsiblePerson || null,
+      role:               form.role           || null,
+      department:         form.department     || null,
+      bio:                form.bio            || null,
+      avatar_url:         form.avatar_url     || null,
+      availability:       form.availability   || "offline",
+      reports_to:         form.reports_to     || null,
+      instructions:       form.instructions   || null,
       agent_code:         form.agent_code     || null,
       agent_version:      form.agent_version  || null,
       system_prompt:      form.system_prompt  || null,
       team_category:      form.team_category  || null,
-      role:               form.role           || null,
       is_aggregator:      !!form.is_aggregator,
       data:               form,
     };
@@ -172,11 +197,31 @@ const Employees = () => {
             </div>
             <BrandSelector value={form.brandId} onChange={(id) => setForm(p => ({ ...p, brandId: id }))} />
             <ResponsiblePerson value={form.responsiblePerson} onChange={v => setForm(p => ({ ...p, responsiblePerson: v }))} />
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2"><Label>Role</Label><Input value={form.role || ""} onChange={e => setForm(p => ({ ...p, role: e.target.value }))} placeholder="Manager..." className="bg-secondary border-border text-foreground" /></div>
+              <div className="space-y-2"><Label>Department</Label><Input value={form.department || ""} onChange={e => setForm(p => ({ ...p, department: e.target.value }))} placeholder="Marketing..." className="bg-secondary border-border text-foreground" /></div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label>Availability</Label>
+                <select value={form.availability || "offline"} onChange={e => setForm(p => ({ ...p, availability: e.target.value as Employee["availability"] }))} className="w-full rounded-md bg-secondary border border-border px-3 py-2 text-sm font-body text-foreground">
+                  <option value="online">Online</option>
+                  <option value="offline">Offline</option>
+                  <option value="busy">Busy</option>
+                </select>
+              </div>
+              <div className="space-y-2"><Label>Reports To</Label><Input value={form.reports_to || ""} onChange={e => setForm(p => ({ ...p, reports_to: e.target.value }))} placeholder="Manager name..." className="bg-secondary border-border text-foreground" /></div>
+            </div>
+            <div className="space-y-2"><Label>Avatar URL</Label><Input value={form.avatar_url || ""} onChange={e => setForm(p => ({ ...p, avatar_url: e.target.value }))} placeholder="https://..." className="bg-secondary border-border text-foreground" /></div>
+            <div className="space-y-2"><Label>Bio</Label><Textarea value={form.bio || ""} onChange={e => setForm(p => ({ ...p, bio: e.target.value }))} rows={2} placeholder="Short bio..." className="bg-secondary border-border text-foreground" /></div>
             {form.type === "Human" && (
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-2"><Label>Email</Label><Input value={form.email} onChange={e => setForm(p => ({ ...p, email: e.target.value }))} className="bg-secondary border-border text-foreground" /></div>
                 <div className="space-y-2"><Label>Phone</Label><Input value={form.phone} onChange={e => setForm(p => ({ ...p, phone: e.target.value }))} className="bg-secondary border-border text-foreground" /></div>
               </div>
+            )}
+            {form.type === "Human" && (
+              <div className="space-y-2"><Label>Instructions</Label><Textarea value={form.instructions || ""} onChange={e => setForm(p => ({ ...p, instructions: e.target.value }))} rows={2} placeholder="Special instructions..." className="bg-secondary border-border text-foreground" /></div>
             )}
             {form.type === "AI Agent" && (
               <div className="space-y-3 p-3 rounded-md border border-nile/30 bg-nile/5">
