@@ -58,6 +58,7 @@ const Coupons = lazy(() => import("./pages/Coupons.tsx"));
 const Refunds = lazy(() => import("./pages/Refunds.tsx"));
 const WebhooksDashboard = lazy(() => import("./pages/WebhooksDashboard.tsx"));
 const ApiDocs = lazy(() => import("./pages/ApiDocs.tsx"));
+const DeveloperHub = lazy(() => import("./pages/DeveloperHub.tsx"));
 const Materials = lazy(() => import("./pages/Materials.tsx"));
 const Inventory = lazy(() => import("./pages/Inventory.tsx"));
 const CrmInteractions = lazy(() => import("./pages/CrmInteractions.tsx"));
@@ -144,8 +145,8 @@ const App = () => (
                 <Route path="/revenue" element={<Navigate to="/finance-analytics" replace />} />
                 <Route path="/coupons" element={<Navigate to="/finance-analytics" replace />} />
                 <Route path="/refunds" element={<Navigate to="/finance-analytics" replace />} />
-                <Route path="/webhooks" element={<Protected><WebhooksDashboard /></Protected>} />
-                <Route path="/api-docs" element={<Protected><ApiDocs /></Protected>} />
+                <Route path="/webhooks" element={<Navigate to="/api-docs" replace />} />
+                <Route path="/api-docs" element={<Protected><DeveloperHub /></Protected>} />
                 <Route path="/security/sessions" element={<Protected><Sessions /></Protected>} />
                 <Route path="/security/ip-whitelist" element={<Protected><IPWhitelist /></Protected>} />
                 <Route path="/security/sso" element={<Protected><SSO /></Protected>} />
@@ -156,20 +157,20 @@ const App = () => (
                 <Route path="/landing" element={<Landing />} />
                 <Route path="/blog" element={<Blog />} />
                 <Route path="/blog/:slug" element={<Blog />} />
-                <Route path="/materials" element={<Protected><Materials /></Protected>} />
-                <Route path="/inventory" element={<Protected><Inventory /></Protected>} />
-                <Route path="/crm-interactions" element={<Protected><CrmInteractions /></Protected>} />
-                <Route path="/marketing" element={<Protected><MarketingCampaigns /></Protected>} />
-                <Route path="/logistics" element={<Protected><Logistics /></Protected>} />
-                <Route path="/legal-vault" element={<Protected><LegalVault /></Protected>} />
-                <Route path="/assets" element={<Protected><Assets /></Protected>} />
-                <Route path="/payment-gateways" element={<Protected><PaymentGateways /></Protected>} />
-                <Route path="/artistic-production" element={<Protected><ArtisticProduction /></Protected>} />
-                <Route path="/import-export" element={<Protected><ImportExport /></Protected>} />
+                <Route path="/materials"          element={<Navigate to="/operations" replace />} />
+                <Route path="/inventory"          element={<Navigate to="/operations" replace />} />
+                <Route path="/crm-interactions"   element={<Protected><CrmInteractions /></Protected>} />
+                <Route path="/marketing"          element={<Protected><MarketingCampaigns /></Protected>} />
+                <Route path="/logistics"          element={<Navigate to="/operations" replace />} />
+                <Route path="/legal-vault"        element={<Protected><LegalVault /></Protected>} />
+                <Route path="/assets"             element={<Navigate to="/operations" replace />} />
+                <Route path="/payment-gateways"   element={<Protected><PaymentGateways /></Protected>} />
+                <Route path="/artistic-production" element={<Navigate to="/operations" replace />} />
+                <Route path="/import-export"      element={<Navigate to="/operations" replace />} />
                 <Route path="/clients" element={<Navigate to="/customers" replace />} />
                 <Route path="/finance-analytics" element={<Protected><FinanceAnalytics /></Protected>} />
                 <Route path="/heirs" element={<Navigate to="/digital-inheritance" replace />} />
-                <Route path="/affiliated-agents" element={<Protected><AffiliatedAgents /></Protected>} />
+                <Route path="/affiliated-agents" element={<Navigate to="/affiliates" replace />} />
                 <Route path="/notification-rules" element={<Protected><NotificationRules /></Protected>} />
                 <Route path="/help" element={<Protected><Help /></Protected>} />
                 <Route path="/voice" element={<Protected><VoiceAssistant /></Protected>} />

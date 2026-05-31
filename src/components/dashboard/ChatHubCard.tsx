@@ -115,24 +115,40 @@ const ChatHubCard = () => {
   const [attachOpen, setAttachOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Load real employees + AI agents from DB and merge with static list
+  // Load real employees from DB and merge with static AI agents
   useEffect(() => {
     (async () => {
       try {
-        const rows = await tenantDb.select("employees", { orderBy: "created_at", ascending: false, limit: 20 });
-        const dbAgents: Agent[] = (rows as any[]).map((emp) => ({
-          id: emp.id,
-          name: emp.name || emp.data?.name || "Employee",
-          icon: emp.agent_type === "ai" || emp.data?.agent_type === "ai" ? Bot : UserIcon,
-          color: emp.agent_type === "ai" || emp.data?.agent_type === "ai" ? "text-scarab" : "text-papyrus",
-          type: (emp.agent_type === "ai" || emp.data?.agent_type === "ai") ? "AI" as AgentType : "Human" as AgentType,
-          status: (emp.status === "active" ? "online" : emp.status === "busy" ? "busy" : "offline") as AgentStatus,
-          role: emp.data?.role || emp.data?.department || "Team Member",
-          avatar: emp.data?.avatar_url || undefined,
-          system: emp.data?.system_prompt || undefined,
-        }));
+        const rows = await tenantDb.select("employees", { orderBy: "created_at", ascending: false, limit: 50 });
+        const dbAgents: Agent[] = (rows as any[])
+          .filter(emp => {
+            // Only include active/online employees
+            const st = (emp.status || emp.data?.status || "").toLowerCase();
+            return st !== "inactive";
+          })
+          .map((emp) => {
+            const d = emp.data || {};
+            const isAI = emp.agent_type === "ai" || d.type === "AI Agent" || d.agent_type === "ai";
+            const rawStatus = (emp.status || d.status || "Active").toLowerCase();
+            const avail = (d.availability || (rawStatus === "active" ? "online" : rawStatus === "busy" ? "busy" : "offline")) as AgentStatus;
+            return {
+              id: emp.id,
+              name: emp.name || d.name || "Employee",
+              icon: isAI ? Bot : UserIcon,
+              color: isAI ? "text-scarab" : "text-papyrus",
+              type: isAI ? ("AI" as AgentType) : ("Human" as AgentType),
+              status: avail,
+              role: d.position || d.role || d.department || "Team Member",
+              avatar: d.avatar_url || emp.avatar_url || undefined,
+              system: d.system_prompt || d.instructions || undefined,
+              // Extra info for display in sidebar
+              _email: d.email || emp.email || undefined,
+              _phone: d.phone || emp.phone || undefined,
+              _department: d.department || d.team_category || undefined,
+            } as any;
+          });
         setAgents([...STATIC_AI_AGENTS, ...dbAgents]);
-      } catch { /* ignore — static agents remain */ }
+      } catch { /* static agents remain as fallback */ }
     })();
   }, []);
 
@@ -408,10 +424,17 @@ const ChatHubCard = () => {
           </div>
           <div className="flex-1 min-w-0 flex flex-col">
             <p className="text-sm font-display font-bold text-primary">{currentAgent.name} <span className="text-muted-foreground font-body font-normal text-xs">({currentAgent.role})</span></p>
-            <div className="flex items-center gap-1.5 mb-2">
+            <div className="flex items-center gap-1.5 mb-1">
               <span className={`w-2 h-2 rounded-full ${statusColor(currentAgent.status)}`} />
               <span className="text-[10px] text-muted-foreground">{currentAgent.type} • {currentAgent.status}</span>
+              {(currentAgent as any)._department && <span className="text-[10px] text-muted-foreground">• {(currentAgent as any)._department}</span>}
             </div>
+            {((currentAgent as any)._email || (currentAgent as any)._phone) && (
+              <div className="flex gap-2 mb-2">
+                {(currentAgent as any)._email && <a href={`mailto:${(currentAgent as any)._email}`} className="text-[10px] text-muted-foreground hover:text-primary truncate">{(currentAgent as any)._email}</a>}
+                {(currentAgent as any)._phone && <a href={`tel:${(currentAgent as any)._phone}`} className="text-[10px] text-primary shrink-0">{(currentAgent as any)._phone}</a>}
+              </div>
+            )}
             <div ref={scrollRef} className="space-y-2 max-h-[140px] overflow-y-auto flex-1">
               {(messages[activeAgent] || []).map((m) => (
                 <div key={m.id} className={`px-3 py-2 rounded-lg text-xs ${m.role === "user" ? "bg-nile/10 ml-4" : "bg-secondary"}`}>
