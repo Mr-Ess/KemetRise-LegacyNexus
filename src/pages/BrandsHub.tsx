@@ -7,6 +7,7 @@ import {
   Upload, Save, User, Megaphone, FileText, Pencil, X, Link2, Cpu, MessageSquare,
   Paperclip, ScrollText, ShieldCheck, Shield, Bot, Layers, Network, List, Play,
   RefreshCw, Copy, GitBranch, TrendingUp, Award, Activity, ChevronDown, ChevronUp,
+  Code as CodeIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -522,6 +523,219 @@ function EntityTab({ items, loading, create, update, remove, title, columns, fie
           </DialogFooter>
         </DialogContent>
       </Dialog>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════ DEVELOPER HUB TAB ═══════ */
+
+const DEV_BASE = `${import.meta.env.VITE_SUPABASE_URL || "https://your-project.supabase.co"}/rest/v1`;
+
+const DEV_ENDPOINTS = [
+  { method: "GET",  path: "/brands",               desc: "List your brands",       scope: "owner" },
+  { method: "POST", path: "/brands",               desc: "Create a brand",         scope: "owner" },
+  { method: "GET",  path: "/customers",            desc: "List customers",         scope: "owner" },
+  { method: "GET",  path: "/invoices",             desc: "List invoices",          scope: "owner" },
+  { method: "POST", path: "/invoices",             desc: "Create invoice",         scope: "owner" },
+  { method: "GET",  path: "/subscriptions",        desc: "List subscriptions",     scope: "owner" },
+  { method: "POST", path: "/coupons",              desc: "Create coupon",          scope: "owner" },
+  { method: "GET",  path: "/payment_transactions", desc: "List transactions",      scope: "owner" },
+  { method: "GET",  path: "/audit_logs",           desc: "Audit history",          scope: "owner" },
+  { method: "GET",  path: "/affiliates",           desc: "List affiliates",        scope: "owner" },
+  { method: "POST", path: "/affiliates",           desc: "Create affiliate",       scope: "owner" },
+  { method: "GET",  path: "/projects",             desc: "List projects",          scope: "owner" },
+  { method: "GET",  path: "/services",             desc: "List services",          scope: "owner" },
+  { method: "GET",  path: "/branches",             desc: "List branches",          scope: "owner" },
+];
+
+function DevCodeBlock({ children }: { children: string }) {
+  return (
+    <div className="relative">
+      <pre className="bg-secondary/60 border border-border rounded-md p-3 text-xs font-mono overflow-x-auto whitespace-pre-wrap">{children}</pre>
+      <button
+        onClick={() => { navigator.clipboard.writeText(children); toast.success("Copied!"); }}
+        className="absolute top-2 right-2 p-1 rounded hover:bg-background/50 text-muted-foreground hover:text-foreground transition-colors"
+      >
+        <Copy className="w-3.5 h-3.5"/>
+      </button>
+    </div>
+  );
+}
+
+function DeveloperHubTab() {
+  return (
+    <div className="space-y-4">
+      {/* Header */}
+      <div className="flex items-center gap-3 p-4 bg-primary/5 border border-primary/20 rounded-lg">
+        <div className="p-2 bg-primary/10 rounded-lg"><CodeIcon className="w-5 h-5 text-primary"/></div>
+        <div>
+          <h3 className="font-display text-sm font-bold">REST API Documentation</h3>
+          <p className="text-[11px] text-muted-foreground">جميع الطلبات تحتاج Authorization header — Base URL: <span className="font-mono text-primary text-[10px]">{DEV_BASE}</span></p>
+        </div>
+      </div>
+
+      <Tabs defaultValue="quickstart">
+        <TabsList className="grid w-full grid-cols-4 max-w-lg mb-4">
+          <TabsTrigger value="quickstart" className="text-xs">Quick Start</TabsTrigger>
+          <TabsTrigger value="endpoints"  className="text-xs">Endpoints</TabsTrigger>
+          <TabsTrigger value="webhooks"   className="text-xs">Webhooks</TabsTrigger>
+          <TabsTrigger value="errors"     className="text-xs">Errors</TabsTrigger>
+        </TabsList>
+
+        {/* Quick Start */}
+        <TabsContent value="quickstart" className="space-y-3">
+          <Card className="p-4 space-y-3">
+            <h4 className="font-display text-sm font-bold flex items-center gap-2"><span className="w-5 h-5 rounded-full bg-primary/20 text-primary text-[10px] flex items-center justify-center font-bold">1</span>Get an API Key</h4>
+            <p className="text-xs text-muted-foreground">Settings → API Keys → Create. Copy the secret (shown once).</p>
+          </Card>
+          <Card className="p-4 space-y-3">
+            <h4 className="font-display text-sm font-bold flex items-center gap-2"><span className="w-5 h-5 rounded-full bg-primary/20 text-primary text-[10px] flex items-center justify-center font-bold">2</span>Authenticate</h4>
+            <DevCodeBlock>{`curl ${DEV_BASE}/brands \\
+  -H "apikey: YOUR_API_KEY" \\
+  -H "Authorization: Bearer YOUR_API_KEY"`}</DevCodeBlock>
+          </Card>
+          <Card className="p-4 space-y-3">
+            <h4 className="font-display text-sm font-bold flex items-center gap-2"><span className="w-5 h-5 rounded-full bg-primary/20 text-primary text-[10px] flex items-center justify-center font-bold">3</span>Make a request (JavaScript)</h4>
+            <DevCodeBlock>{`fetch("${DEV_BASE}/invoices", {
+  headers: {
+    "apikey": "YOUR_API_KEY",
+    "Authorization": "Bearer YOUR_API_KEY",
+    "Content-Type": "application/json"
+  }
+}).then(r => r.json()).then(console.log);`}</DevCodeBlock>
+          </Card>
+          <Card className="p-4 space-y-3">
+            <h4 className="font-display text-sm font-bold flex items-center gap-2"><span className="w-5 h-5 rounded-full bg-primary/20 text-primary text-[10px] flex items-center justify-center font-bold">4</span>Python example</h4>
+            <DevCodeBlock>{`import requests
+
+resp = requests.get(
+    "${DEV_BASE}/brands",
+    headers={
+        "apikey": "YOUR_API_KEY",
+        "Authorization": "Bearer YOUR_API_KEY"
+    }
+)
+print(resp.json())`}</DevCodeBlock>
+          </Card>
+        </TabsContent>
+
+        {/* Endpoints */}
+        <TabsContent value="endpoints">
+          <Card className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-secondary/50 text-[11px] font-display uppercase tracking-wider">
+                <tr>
+                  <th className="text-left p-3">Method</th>
+                  <th className="text-left p-3">Endpoint</th>
+                  <th className="text-left p-3">Description</th>
+                  <th className="text-left p-3">Scope</th>
+                </tr>
+              </thead>
+              <tbody>
+                {DEV_ENDPOINTS.map((e, i) => (
+                  <tr key={i} className="border-t border-border hover:bg-secondary/20 transition-colors">
+                    <td className="p-3">
+                      <Badge variant={e.method === "GET" ? "outline" : "default"} className="text-[10px]">{e.method}</Badge>
+                    </td>
+                    <td className="p-3 font-mono text-xs text-primary">{e.path}</td>
+                    <td className="p-3 text-xs">{e.desc}</td>
+                    <td className="p-3 text-xs text-muted-foreground">{e.scope}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </Card>
+          <div className="mt-4 space-y-3">
+            <h4 className="font-display text-xs font-bold text-muted-foreground uppercase tracking-wider">Filtering &amp; Pagination</h4>
+            <DevCodeBlock>{`# Filter by column value
+GET ${DEV_BASE}/brands?status=eq.active
+
+# Pagination (offset-based)
+GET ${DEV_BASE}/invoices?offset=0&limit=20
+
+# Order results
+GET ${DEV_BASE}/customers?order=created_at.desc
+
+# Select specific columns
+GET ${DEV_BASE}/brands?select=id,name,status`}</DevCodeBlock>
+          </div>
+        </TabsContent>
+
+        {/* Webhooks */}
+        <TabsContent value="webhooks" className="space-y-3">
+          <Card className="p-4 space-y-3">
+            <h4 className="font-display text-sm font-bold">Event Format</h4>
+            <DevCodeBlock>{`POST <your-webhook-url>
+Content-Type: application/json
+
+{
+  "event": "insert.invoices",
+  "audit": {
+    "id": "uuid",
+    "action": "INSERT invoices",
+    "table_name": "invoices",
+    "record_id": "uuid",
+    "created_at": "2026-..."
+  }
+}`}</DevCodeBlock>
+            <p className="text-xs text-muted-foreground">Configure endpoints at Settings → Webhooks.</p>
+          </Card>
+          <Card className="p-4 space-y-3">
+            <h4 className="font-display text-sm font-bold">Supported Events</h4>
+            <div className="flex flex-wrap gap-2">
+              {["insert.*","update.*","delete.*","insert.invoices","insert.brands","update.customers","delete.projects","*"].map(ev=>(
+                <Badge key={ev} variant="outline" className="font-mono text-[10px]">{ev}</Badge>
+              ))}
+            </div>
+          </Card>
+          <Card className="p-4 space-y-3">
+            <h4 className="font-display text-sm font-bold">Verify Webhook (Node.js)</h4>
+            <DevCodeBlock>{`const crypto = require("crypto");
+
+function verify(secret, body, sig) {
+  const hash = crypto
+    .createHmac("sha256", secret)
+    .update(body)
+    .digest("hex");
+  return \`sha256=\${hash}\` === sig;
+}`}</DevCodeBlock>
+          </Card>
+        </TabsContent>
+
+        {/* Errors */}
+        <TabsContent value="errors">
+          <Card className="p-4 space-y-3">
+            <h4 className="font-display text-sm font-bold mb-3">HTTP Status Codes</h4>
+            <div className="space-y-2.5 text-sm">
+              {[
+                { code:"200", label:"OK",           desc:"Request succeeded",           variant:"default"     as const },
+                { code:"201", label:"Created",       desc:"Resource created",            variant:"outline"     as const },
+                { code:"400", label:"Bad Request",   desc:"Invalid parameters",          variant:"destructive" as const },
+                { code:"401", label:"Unauthorized",  desc:"Missing / invalid API key",   variant:"destructive" as const },
+                { code:"403", label:"Forbidden",     desc:"RLS blocked the request",     variant:"destructive" as const },
+                { code:"404", label:"Not Found",     desc:"Resource does not exist",     variant:"destructive" as const },
+                { code:"429", label:"Rate Limited",  desc:"Too many requests",           variant:"destructive" as const },
+                { code:"500", label:"Server Error",  desc:"Unexpected internal error",   variant:"destructive" as const },
+              ].map(({ code, label, desc, variant }) => (
+                <div key={code} className="flex items-center gap-3">
+                  <Badge variant={variant} className="w-10 justify-center text-[10px] font-mono shrink-0">{code}</Badge>
+                  <span className="font-medium w-24 shrink-0 text-xs">{label}</span>
+                  <span className="text-muted-foreground text-xs">{desc}</span>
+                </div>
+              ))}
+            </div>
+          </Card>
+          <Card className="p-4 mt-3 space-y-2">
+            <h4 className="font-display text-sm font-bold">Error Response Body</h4>
+            <DevCodeBlock>{`{
+  "code": "PGRST301",
+  "details": null,
+  "hint": null,
+  "message": "JWT expired"
+}`}</DevCodeBlock>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
@@ -1264,6 +1478,7 @@ export default function BrandsHub() {
             <TabsTrigger value="partners"   className="text-xs"><Handshake className="w-3.5 h-3.5 mr-1"/>Partners ({partnerCount})</TabsTrigger>
             <TabsTrigger value="employees"  className="text-xs"><Users className="w-3.5 h-3.5 mr-1"/>Employees ({empCount})</TabsTrigger>
             <TabsTrigger value="affiliates-hub" className="text-xs"><UserCheck className="w-3.5 h-3.5 mr-1"/>Affiliates Hub</TabsTrigger>
+            <TabsTrigger value="developer-hub"  className="text-xs"><CodeIcon className="w-3.5 h-3.5 mr-1"/>Developer Hub</TabsTrigger>
             <TabsTrigger value="users"      className="text-xs"><Shield className="w-3.5 h-3.5 mr-1"/>Users</TabsTrigger>
             <TabsTrigger value="workflow"   className="text-xs"><GitBranch className="w-3.5 h-3.5 mr-1"/>Workflows</TabsTrigger>
           </TabsList>
@@ -1356,6 +1571,10 @@ export default function BrandsHub() {
 
           <TabsContent value="affiliates-hub" className="mt-2">
             <AffiliatesHubTab activeBrandId={activeBrandId} brands={brands}/>
+          </TabsContent>
+
+          <TabsContent value="developer-hub" className="mt-2">
+            <DeveloperHubTab/>
           </TabsContent>
 
           <TabsContent value="users" className="mt-2">
