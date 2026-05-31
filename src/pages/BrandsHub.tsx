@@ -536,14 +536,14 @@ type AffiliateRow = {
 };
 type AgentRow = {
   id: string; agent_name: string; commission_rate: number;
-  total_sales: number; status: string; affiliate_id: string; notes: string;
+  total_sales: number; status: string; affiliate_id: string; brand_id: string; notes: string;
 };
 const emptyAff = (): Omit<AffiliateRow,"id"> => ({
   name:"",code:"",commission:"",referrals:0,status:"Active",region:"",
   email:"",phone:"",notes:"",responsiblePerson:"",humanCount:0,aiCount:0,files:[],
 });
 const emptyAgent = (): Omit<AgentRow,"id"> => ({
-  agent_name:"",commission_rate:0.05,total_sales:0,status:"active",affiliate_id:"",notes:"",
+  agent_name:"",commission_rate:0.05,total_sales:0,status:"active",affiliate_id:"",brand_id:"",notes:"",
 });
 
 function CommissionBar({ rate }: { rate: number }) {
@@ -652,12 +652,14 @@ function AffiliatesHubTab({ activeBrandId, brands }: { activeBrandId: string|nul
   const [agentOpen,setAgentOpen]      = React.useState(false);
   const [agentEditId,setAgentEditId]  = React.useState<string|null>(null);
   const [agentSearch,setAgentSearch]  = React.useState("");
-  const [agentStatus,setAgentStatus]  = React.useState("all");
+  const [agentStatus,setAgentStatus]      = React.useState("all");
   const [agentAffFilter,setAgentAffFilter] = React.useState("all");
+  const [agentBrandFilter,setAgentBrandFilter] = React.useState(activeBrandId||"all");
+  React.useEffect(()=>{ setAgentBrandFilter(activeBrandId||"all"); },[activeBrandId]);
   const [agentForm,setAgentForm]      = React.useState<Omit<AgentRow,"id">>(emptyAgent());
 
   const openAgentEdit = (a: AgentRow) => { const { id, ...rest } = a; setAgentForm(rest); setAgentEditId(a.id); setAgentOpen(true); };
-  const openAgentNew  = (defaultAff="") => { setAgentEditId(null); setAgentForm({ ...emptyAgent(), affiliate_id: defaultAff }); setAgentOpen(true); };
+  const openAgentNew  = (defaultAff="", defaultBrand="") => { setAgentEditId(null); setAgentForm({ ...emptyAgent(), affiliate_id: defaultAff, brand_id: defaultBrand||activeBrandId||"" }); setAgentOpen(true); };
   const saveAgent = async () => {
     if (!agentForm.agent_name.trim()) { toast.error("Agent name required"); return; }
     try {
@@ -672,6 +674,7 @@ function AffiliatesHubTab({ activeBrandId, brands }: { activeBrandId: string|nul
   };
   const filteredAgents = React.useMemo(() => {
     let list = agents;
+    if (agentBrandFilter!=="all") list = list.filter(a=>a.brand_id===agentBrandFilter);
     if (agentStatus!=="all") list = list.filter(a=>a.status===agentStatus);
     if (agentAffFilter!=="all") list = list.filter(a=>a.affiliate_id===agentAffFilter);
     if (agentSearch.trim())
@@ -680,7 +683,7 @@ function AffiliatesHubTab({ activeBrandId, brands }: { activeBrandId: string|nul
         affiliateName(a.affiliate_id).toLowerCase().includes(agentSearch.toLowerCase())
       );
     return list;
-  }, [agents, agentStatus, agentAffFilter, agentSearch, items]);
+  }, [agents, agentBrandFilter, agentStatus, agentAffFilter, agentSearch, items]);
 
   const commissionRows = React.useMemo(() =>
     items.map(af => {
@@ -860,7 +863,7 @@ function AffiliatesHubTab({ activeBrandId, brands }: { activeBrandId: string|nul
                     <div className="border-t border-border bg-secondary/30 px-4 py-3">
                       <div className="flex items-center justify-between mb-2">
                         <p className="text-[10px] font-display text-muted-foreground uppercase tracking-wider">Linked Agents ({linkedAgents.length})</p>
-                        <Button size="sm" variant="outline" className="h-6 text-[10px]" onClick={()=>openAgentNew(a.id)}><Plus className="w-3 h-3 mr-1"/>Add Agent</Button>
+                        <Button size="sm" variant="outline" className="h-6 text-[10px]" onClick={()=>openAgentNew(a.id,(a as any).brand_id||"")}><Plus className="w-3 h-3 mr-1"/>Add Agent</Button>
                       </div>
                       <div className="space-y-1.5">
                         {linkedAgents.map(ag=>(
@@ -893,17 +896,23 @@ function AffiliatesHubTab({ activeBrandId, brands }: { activeBrandId: string|nul
             <select value={agentStatus} onChange={e=>setAgentStatus(e.target.value)} className="h-8 text-xs rounded-md bg-secondary border border-border px-2 text-foreground">
               <option value="all">All Status</option><option value="active">Active</option><option value="inactive">Inactive</option><option value="suspended">Suspended</option>
             </select>
+{brands.length>0&&(
+              <select value={agentBrandFilter} onChange={e=>setAgentBrandFilter(e.target.value)} className="h-8 text-xs rounded-md bg-primary/20 border border-primary/40 px-2 text-foreground max-w-[160px] font-semibold">
+                <option value="all">All Brands</option>{brands.map(b=><option key={b.id} value={b.id}>{b.name}</option>)}
+              </select>
+            )}
             <select value={agentAffFilter} onChange={e=>setAgentAffFilter(e.target.value)} className="h-8 text-xs rounded-md bg-secondary border border-border px-2 text-foreground max-w-[160px]">
               <option value="all">All Affiliates</option>{items.map(a=><option key={a.id} value={a.id}>{a.name}</option>)}
             </select>
             <ExportButton data={filteredAgents as any[]} filename="affiliated-agents" title="Agents"/>
-            <Button className="gap-1 font-display text-xs" onClick={()=>openAgentNew()}><Plus className="w-4 h-4"/>Add Agent</Button>
+            <Button className="gap-1 font-display text-xs" onClick={()=>openAgentNew("",activeBrandId||"")}><Plus className="w-4 h-4"/>Add Agent</Button>
           </div>
           <Card className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-secondary/50 text-[11px] font-display uppercase tracking-wider">
                 <tr>
-                  <th className="text-left p-3">Name</th><th className="text-left p-3">Commission</th>
+                  <th className="text-left p-3">Name</th><th className="text-left p-3">Brand</th>
+                  <th className="text-left p-3">Commission</th>
                   <th className="text-left p-3">Sales</th><th className="text-left p-3">Earned</th>
                   <th className="text-left p-3">Status</th><th className="text-left p-3">Affiliate</th>
                   <th className="p-3"/>
@@ -915,6 +924,7 @@ function AffiliatesHubTab({ activeBrandId, brands }: { activeBrandId: string|nul
                   :filteredAgents.map(a=>(
                   <tr key={a.id} className="border-t border-border hover:bg-secondary/20 transition-colors">
                     <td className="p-3 font-semibold">{a.agent_name}</td>
+                    <td className="p-3 text-xs">{a.brand_id?<span className="px-2 py-0.5 rounded bg-primary/10 text-primary text-[10px] font-medium">{brands.find(b=>b.id===a.brand_id)?.name||"—"}</span>:<span className="text-muted-foreground">—</span>}</td>
                     <td className="p-3"><CommissionBar rate={a.commission_rate||0}/></td>
                     <td className="p-3 font-bold text-emerald-400 font-mono">${(a.total_sales||0).toLocaleString()}</td>
                     <td className="p-3 font-mono text-amber-400">${((a.total_sales||0)*(a.commission_rate||0)).toFixed(2)}</td>
@@ -980,6 +990,14 @@ function AffiliatesHubTab({ activeBrandId, brands }: { activeBrandId: string|nul
               <div><Label>Commission Rate</Label><Input type="number" step="0.01" min="0" max="1" value={agentForm.commission_rate} onChange={e=>setAgentForm(p=>({...p,commission_rate:+e.target.value}))}/><p className="text-[10px] text-muted-foreground mt-0.5">= {((agentForm.commission_rate||0)*100).toFixed(1)}%</p></div>
               <div><Label>Total Sales ($)</Label><Input type="number" value={agentForm.total_sales} onChange={e=>setAgentForm(p=>({...p,total_sales:+e.target.value}))}/>{agentForm.total_sales>0&&<p className="text-[10px] text-amber-400 mt-0.5">Earns: ${((agentForm.total_sales||0)*(agentForm.commission_rate||0)).toFixed(2)}</p>}</div>
             </div>
+            {brands.length>0&&(
+              <div className="rounded-lg border-2 border-primary/40 bg-primary/5 p-3 space-y-1">
+                <p className="text-[10px] font-display font-bold text-primary uppercase tracking-wider flex items-center gap-1.5"><Crown className="w-3.5 h-3.5"/>Brand Linkage</p>
+                <select value={agentForm.brand_id} onChange={e=>setAgentForm(p=>({...p,brand_id:e.target.value}))} className="w-full rounded-md bg-secondary border border-border px-3 py-2 text-sm text-foreground">
+                  <option value="">— No Brand —</option>{brands.map(b=><option key={b.id} value={b.id}>{b.name}</option>)}
+                </select>
+              </div>
+            )}
             <div className="grid grid-cols-2 gap-3">
               <div><Label>Status</Label><select value={agentForm.status} onChange={e=>setAgentForm(p=>({...p,status:e.target.value}))} className="w-full mt-1 rounded-md bg-secondary border border-border px-3 py-2 text-sm text-foreground"><option value="active">Active</option><option value="inactive">Inactive</option><option value="suspended">Suspended</option></select></div>
               <div><Label>Parent Affiliate</Label><select value={agentForm.affiliate_id} onChange={e=>setAgentForm(p=>({...p,affiliate_id:e.target.value}))} className="w-full mt-1 rounded-md bg-secondary border border-border px-3 py-2 text-sm text-foreground"><option value="">— None —</option>{items.map(a=><option key={a.id} value={a.id}>{a.name}</option>)}</select></div>
