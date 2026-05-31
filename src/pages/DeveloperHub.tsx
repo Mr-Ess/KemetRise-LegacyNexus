@@ -1,6 +1,6 @@
 ﻿import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Webhook, Code as CodeIcon, Plus, Trash2, RefreshCw, Copy, Activity, Book, Shield, Zap } from "lucide-react";
+import { ArrowLeft, Webhook, Code as CodeIcon, Plus, Trash2, RefreshCw, Copy, Activity, Book, Shield, Zap, Globe, Save, Chrome, Download, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { tenantDb } from "@/lib/tenantDb";
 import { supabase } from "@/integrations/supabase/client";
 import { apiKeysApi } from "@/services/entities";
+import { getTenantScope } from "@/lib/tenantScope";
 import { toast } from "sonner";
 import ExportButton from "@/components/shared/ExportButton";
 
@@ -55,6 +56,27 @@ export default function DeveloperHub() {
   const [keyLabel, setKeyLabel] = useState("");
   const [newKey, setNewKey] = useState<string|null>(null);
 
+  // White Label state
+  const [wl, setWl] = useState<any>({
+    brand_name:"", logo_url:"", primary_color:"#d4af37", accent_color:"#8b0000",
+    custom_domain:"", hide_branding:false,
+  });
+  const [wlLoading, setWlLoading] = useState(true);
+
+  const loadWl = async () => {
+    try { const rows = await tenantDb.select("white_label",{limit:1}); if(rows[0]) setWl(rows[0]); }
+    catch {}
+    finally { setWlLoading(false); }
+  };
+  const saveWl = async () => {
+    try {
+      const scope = await getTenantScope();
+      const payload = { ...wl, user_id:scope.userId, client_id:scope.clientId, brand_id:scope.brandId, user_name:scope.userName, updated_at:new Date().toISOString() };
+      await tenantDb.upsert("white_label", payload as any, { onConflict: scope.brandId?"brand_id":"user_id" });
+      toast.success("Branding saved");
+    } catch { toast.error("Not signed in"); }
+  };
+
   const loadAll = async () => {
     const [h, d, k] = await Promise.all([
       tenantDb.select("webhooks", { orderBy:"created_at", ascending:false }).catch(()=>[]),
@@ -63,7 +85,7 @@ export default function DeveloperHub() {
     ]);
     setHooks(h as any[]); setDeliveries(d as any[]); setApiKeys(k as any[]);
   };
-  useEffect(() => { loadAll(); }, []);
+  useEffect(() => { loadAll(); loadWl(); }, []);
 
   const createHook = async () => {
     if (!hookForm.label || !hookForm.url) return toast.error("Label & URL required");
@@ -118,11 +140,13 @@ export default function DeveloperHub() {
         </div>
 
         <Tabs defaultValue="docs">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="docs"><Book className="w-3.5 h-3.5 mr-1"/>API Reference</TabsTrigger>
             <TabsTrigger value="keys"><Shield className="w-3.5 h-3.5 mr-1"/>API Keys</TabsTrigger>
             <TabsTrigger value="webhooks"><Webhook className="w-3.5 h-3.5 mr-1"/>Webhooks ({hooks.length})</TabsTrigger>
             <TabsTrigger value="deliveries"><Activity className="w-3.5 h-3.5 mr-1"/>Deliveries ({deliveries.length})</TabsTrigger>
+            <TabsTrigger value="whitelabel"><Globe className="w-3.5 h-3.5 mr-1"/>White Label</TabsTrigger>
+            <TabsTrigger value="extension"><Chrome className="w-3.5 h-3.5 mr-1"/>Extension</TabsTrigger>
           </TabsList>
 
           {/* ── API REFERENCE ─────────────────────────────────────── */}
@@ -292,6 +316,140 @@ export default function DeveloperHub() {
                 </tbody>
               </table>
             </Card>
+          </TabsContent>
+
+          {/* ── WHITE LABEL ───────────────────────────────────────── */}
+          <TabsContent value="whitelabel" className="mt-4">
+            {wlLoading ? (
+              <div className="text-center py-8 text-muted-foreground text-sm">Loading branding settings…</div>
+            ) : (
+              <div className="max-w-2xl space-y-4">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="p-2 rounded-lg bg-primary/10"><Globe className="w-5 h-5 text-primary"/></div>
+                  <div>
+                    <h2 className="font-display text-sm text-primary">White Label Branding</h2>
+                    <p className="text-xs text-muted-foreground">Customize the platform with your own brand identity for your customers.</p>
+                  </div>
+                </div>
+
+                {/* Preview banner */}
+                <Card className="p-4 overflow-hidden relative" style={{ borderColor: wl.primary_color || "#d4af37" }}>
+                  <div className="absolute top-0 left-0 w-1 h-full" style={{ background: wl.primary_color || "#d4af37" }}/>
+                  <div className="pl-4 flex items-center gap-4">
+                    {wl.logo_url
+                      ? <img src={wl.logo_url} alt="logo" className="w-10 h-10 rounded object-contain bg-secondary"/>
+                      : <div className="w-10 h-10 rounded bg-secondary flex items-center justify-center text-xs text-muted-foreground">Logo</div>
+                    }
+                    <div>
+                      <p className="font-bold text-sm">{wl.brand_name || "Your Brand Name"}</p>
+                      <p className="text-xs text-muted-foreground">{wl.custom_domain || "app.yourdomain.com"}</p>
+                    </div>
+                    <div className="ml-auto flex gap-2">
+                      <div className="w-6 h-6 rounded-full border-2 border-border" style={{ background: wl.primary_color }}/>
+                      <div className="w-6 h-6 rounded-full border-2 border-border" style={{ background: wl.accent_color }}/>
+                    </div>
+                  </div>
+                </Card>
+
+                <Card className="p-5 space-y-4">
+                  <div><Label>Brand Name</Label><Input value={wl.brand_name||""} onChange={e=>setWl({...wl,brand_name:e.target.value})} placeholder="Acme Corp" className="mt-1"/></div>
+                  <div><Label>Logo URL</Label><Input value={wl.logo_url||""} onChange={e=>setWl({...wl,logo_url:e.target.value})} placeholder="https://cdn.example.com/logo.png" className="mt-1"/></div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label>Primary Color</Label>
+                      <div className="flex gap-2 mt-1">
+                        <Input type="color" value={wl.primary_color||"#d4af37"} onChange={e=>setWl({...wl,primary_color:e.target.value})} className="w-16 h-10 p-1 cursor-pointer"/>
+                        <Input value={wl.primary_color||""} onChange={e=>setWl({...wl,primary_color:e.target.value})}/>
+                      </div>
+                    </div>
+                    <div>
+                      <Label>Accent Color</Label>
+                      <div className="flex gap-2 mt-1">
+                        <Input type="color" value={wl.accent_color||"#8b0000"} onChange={e=>setWl({...wl,accent_color:e.target.value})} className="w-16 h-10 p-1 cursor-pointer"/>
+                        <Input value={wl.accent_color||""} onChange={e=>setWl({...wl,accent_color:e.target.value})}/>
+                      </div>
+                    </div>
+                  </div>
+                  <div><Label>Custom Domain</Label><Input value={wl.custom_domain||""} onChange={e=>setWl({...wl,custom_domain:e.target.value})} placeholder="app.yourdomain.com" className="mt-1"/></div>
+                  <div className="flex items-center justify-between p-3 border border-border rounded-md">
+                    <div>
+                      <p className="text-sm font-medium">Hide "Powered by KemetRise"</p>
+                      <p className="text-xs text-muted-foreground">Premium plan required</p>
+                    </div>
+                    <Switch checked={!!wl.hide_branding} onCheckedChange={v=>setWl({...wl,hide_branding:v})}/>
+                  </div>
+                  <Button onClick={saveWl} className="w-full font-display"><Save className="w-4 h-4 mr-2"/>Save Branding</Button>
+                </Card>
+              </div>
+            )}
+          </TabsContent>
+
+          {/* ── EXTENSION ────────────────────────────────────────── */}
+          <TabsContent value="extension" className="mt-4">
+            <div className="max-w-2xl space-y-4">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-2 rounded-lg bg-primary/10"><Chrome className="w-5 h-5 text-primary"/></div>
+                <div>
+                  <h2 className="font-display text-sm text-primary">Browser Extension</h2>
+                  <p className="text-xs text-muted-foreground">Quick-access KemetRise from any tab — Chrome, Edge, Brave, Arc, Opera.</p>
+                </div>
+              </div>
+
+              <Card className="p-6 text-center bg-gradient-to-br from-primary/5 to-transparent">
+                <Chrome className="w-16 h-16 text-primary mx-auto mb-4 opacity-80"/>
+                <h3 className="font-display text-lg text-primary mb-2">KemetRise Quick Access</h3>
+                <p className="text-sm text-muted-foreground mb-6">Works in Chrome, Edge, Brave, Arc, and Opera.</p>
+                <div className="flex justify-center gap-3">
+                  <Button onClick={()=>{
+                    fetch("/kemetrise-extension.zip")
+                      .then(r=>{if(!r.ok)throw new Error("File not found");return r.blob();})
+                      .then(blob=>{
+                        const a=document.createElement("a"); a.href=URL.createObjectURL(blob);
+                        a.download="kemetrise-extension.zip"; a.click(); URL.revokeObjectURL(a.href);
+                        toast.success("Download started");
+                      }).catch(e=>toast.error(e.message));
+                  }}>
+                    <Download className="w-4 h-4 mr-2"/>Download Extension
+                  </Button>
+                </div>
+              </Card>
+
+              <Card className="p-5">
+                <h3 className="font-display text-sm text-primary mb-4">Installation Steps</h3>
+                <ol className="space-y-3">
+                  {[
+                    "Unzip the downloaded file.",
+                    'Open "chrome://extensions" in Chrome (or Edge, Brave, Arc).',
+                    "Enable Developer mode (toggle in top-right corner).",
+                    'Click "Load unpacked" and select the unzipped folder.',
+                    "The KemetRise icon will appear in your toolbar — click to open.",
+                  ].map((s,i)=>(
+                    <li key={i} className="flex items-start gap-3">
+                      <div className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">{i+1}</div>
+                      <span className="text-sm">{s}</span>
+                    </li>
+                  ))}
+                </ol>
+              </Card>
+
+              <Card className="p-5">
+                <h3 className="font-display text-sm text-primary mb-3">Extension Capabilities</h3>
+                <div className="grid grid-cols-2 gap-2">
+                  {[
+                    {icon:Check,label:"One-click login"},
+                    {icon:Check,label:"Quick task creation"},
+                    {icon:Check,label:"Notification badge"},
+                    {icon:Check,label:"Clipboard shortcuts"},
+                    {icon:Check,label:"Offline mode support"},
+                    {icon:Check,label:"Dark / light theme sync"},
+                  ].map(f=>(
+                    <div key={f.label} className="flex items-center gap-2 text-sm">
+                      <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0"/>{f.label}
+                    </div>
+                  ))}
+                </div>
+              </Card>
+            </div>
           </TabsContent>
         </Tabs>
       </div>

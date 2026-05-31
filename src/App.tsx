@@ -150,19 +150,19 @@ const App = () => (
                 <Route path="/security/sessions" element={<Protected><Sessions /></Protected>} />
                 <Route path="/security/ip-whitelist" element={<Protected><IPWhitelist /></Protected>} />
                 <Route path="/security/sso" element={<Protected><SSO /></Protected>} />
-                <Route path="/white-label" element={<Protected><WhiteLabel /></Protected>} />
+                <Route path="/white-label" element={<Navigate to="/api-docs" replace />} />
                 <Route path="/marketplace" element={<Protected><Marketplace /></Protected>} />
                 <Route path="/referrals" element={<Protected><Referrals /></Protected>} />
-                <Route path="/extension" element={<Protected><BrowserExtension /></Protected>} />
+                <Route path="/extension" element={<Navigate to="/api-docs" replace />} />
                 <Route path="/landing" element={<Landing />} />
                 <Route path="/blog" element={<Blog />} />
                 <Route path="/blog/:slug" element={<Blog />} />
                 <Route path="/materials"          element={<Navigate to="/operations" replace />} />
                 <Route path="/inventory"          element={<Navigate to="/operations" replace />} />
-                <Route path="/crm-interactions"   element={<Protected><CrmInteractions /></Protected>} />
-                <Route path="/marketing"          element={<Protected><MarketingCampaigns /></Protected>} />
+                <Route path="/crm-interactions"   element={<Navigate to="/operations" replace />} />
+                <Route path="/marketing"          element={<Navigate to="/operations" replace />} />
                 <Route path="/logistics"          element={<Navigate to="/operations" replace />} />
-                <Route path="/legal-vault"        element={<Protected><LegalVault /></Protected>} />
+                <Route path="/legal-vault"        element={<Navigate to="/operations" replace />} />
                 <Route path="/assets"             element={<Navigate to="/operations" replace />} />
                 <Route path="/payment-gateways"   element={<Protected><PaymentGateways /></Protected>} />
                 <Route path="/artistic-production" element={<Navigate to="/operations" replace />} />
