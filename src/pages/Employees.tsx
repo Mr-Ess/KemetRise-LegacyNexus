@@ -23,6 +23,7 @@ type Employee = {
   email: string; phone: string; specialization: string; responsiblePerson: string;
   role?: string; department?: string; bio?: string; avatar_url?: string;
   availability?: "online" | "offline" | "busy"; reports_to?: string; instructions?: string;
+  workflow_id?: string; metadata?: Record<string, any>;
   files: DocFile[];
   agent_code?: string; agent_version?: string; system_prompt?: string;
   team_category?: string; is_aggregator?: boolean;
@@ -32,7 +33,9 @@ const emptyForm: Omit<Employee, "id"> = {
   name: "", type: "Human", position: "", branch: "", brandId: null,
   status: "Active", tasks: "", email: "", phone: "", specialization: "",
   responsiblePerson: "", role: "", department: "", bio: "", avatar_url: "",
-  availability: "offline", reports_to: "", instructions: "", files: [],
+  availability: "offline", reports_to: "", instructions: "",
+  workflow_id: "", metadata: {},
+  files: [],
   agent_code: "", agent_version: "", system_prompt: "", team_category: "",
   is_aggregator: false,
 };
@@ -60,6 +63,8 @@ const Employees = () => {
     availability:      r.availability      ?? r.data?.availability      ?? "offline",
     reports_to:        r.reports_to        ?? r.data?.reports_to        ?? "",
     instructions:      r.instructions      ?? r.data?.instructions      ?? "",
+    workflow_id:       r.workflow_id        ?? r.data?.workflow_id        ?? "",
+    metadata:          r.metadata          ?? r.data?.metadata          ?? {},
     brandId:           r.brand_id          ?? r.data?.brandId           ?? null,
     status:            r.status === "inactive" ? "Inactive" : "Active",
     agent_code:        r.agent_code        ?? r.data?.agent_code        ?? "",
@@ -101,6 +106,8 @@ const Employees = () => {
       availability:       form.availability   || "offline",
       reports_to:         form.reports_to     || null,
       instructions:       form.instructions   || null,
+      workflow_id:         form.workflow_id    || null,
+      metadata:            form.metadata       || {},
       agent_code:         form.agent_code     || null,
       agent_version:      form.agent_version  || null,
       system_prompt:      form.system_prompt  || null,
@@ -246,6 +253,17 @@ const Employees = () => {
               <select value={form.status} onChange={e => setForm(p => ({ ...p, status: e.target.value as Employee["status"] }))} className="w-full rounded-md bg-secondary border border-border px-3 py-2 text-sm font-body text-foreground"><option>Active</option><option>Inactive</option></select>
             </div>
             <div className="space-y-2"><Label>Tasks</Label><Textarea value={form.tasks} onChange={e => setForm(p => ({ ...p, tasks: e.target.value }))} className="bg-secondary border-border text-foreground" placeholder="Comma-separated tasks" /></div>
+            <div className="space-y-2"><Label>Workflow ID</Label><Input value={form.workflow_id || ""} onChange={e => setForm(p => ({ ...p, workflow_id: e.target.value }))} placeholder="WF-001" className="bg-secondary border-border text-foreground" /></div>
+            <div className="space-y-2">
+              <Label>Metadata (JSON)</Label>
+              <Textarea
+                value={form.metadata ? JSON.stringify(form.metadata, null, 2) : "{}"}
+                onChange={e => { try { setForm(p => ({ ...p, metadata: JSON.parse(e.target.value) })); } catch { setForm(p => ({ ...p, metadata: e.target.value as any })); } }}
+                rows={3}
+                placeholder={"{ \"key\": \"value\" }"}
+                className="bg-secondary border-border text-foreground font-mono text-xs"
+              />
+            </div>
             <EntityFileUpload files={form.files} onChange={files => setForm(p => ({ ...p, files }))} ownerKind="employee" ownerId={editId || undefined} />
             <EntityApiHub entityName={form.name || "New Employee"} ownerKind="employee" ownerId={editId || undefined} />
           </div>
