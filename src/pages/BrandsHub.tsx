@@ -8,6 +8,7 @@ import {
   Paperclip, ScrollText, ShieldCheck, Shield, Bot, Layers, Network, List, Play,
   RefreshCw, Copy, GitBranch, TrendingUp, Award, Activity, ChevronDown, ChevronUp,
   Code as CodeIcon, Webhook, Book, Zap, Chrome, Download, Check,
+  Share2, Gift, BarChart3, RotateCcw, Tag,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -41,6 +42,7 @@ import { toast } from "sonner";
 import { tenantDb } from "@/lib/tenantDb";
 import { apiKeysApi } from "@/services/entities";
 import { getTenantScope } from "@/lib/tenantScope";
+import { couponsApi, invoicesApi, paymentsApi } from "@/services/billing";
 
 /* ─── helpers ───────────────────────────────────────────────── */
 const statusBadge = (s: string) => {
@@ -774,6 +776,344 @@ function CommissionBar({ rate }: { rate: number }) {
   );
 }
 
+/* ─── Referrals Tab ──────────────────────────────────────────── */
+function ReferralsTab({ activeBrandId, brands }: { activeBrandId: string|null; brands: any[] }) {
+  const [ref, setRef] = React.useState<any>(null);
+  const [copied, setCopied] = React.useState(false);
+  const [brandId, setBrandId] = React.useState(activeBrandId || "");
+
+  React.useEffect(() => { setBrandId(activeBrandId || ""); }, [activeBrandId]);
+
+  React.useEffect(() => {
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const rows = await tenantDb.select("referrals" as any, { eq: { user_id: user.id }, limit: 1 });
+      const data = (rows as any[])[0] || null;
+      if (data) { setRef(data); return; }
+      const code = "KEMET-" + Math.random().toString(36).slice(2, 8).toUpperCase();
+      const created = await tenantDb.insert("referrals" as any, { user_id: user.id, code, brand_id: brandId || null } as any, { includeClientId: false, includeBrandId: false } as any);
+      setRef(created as any);
+    })();
+  }, []);
+
+  const link = ref ? `${window.location.origin}/auth?ref=${ref.code}` : "";
+  const copy = () => {
+    navigator.clipboard.writeText(link);
+    setCopied(true);
+    toast.success("Link copied");
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-3 p-3 bg-secondary/30 rounded-lg border border-border">
+        <Share2 className="w-4 h-4 text-primary shrink-0" />
+        <div className="flex-1">
+          <Label className="text-xs text-muted-foreground">Link to Brand</Label>
+          <Select value={brandId} onValueChange={setBrandId}>
+            <SelectTrigger className="h-8 text-xs mt-1"><SelectValue placeholder="Select brand…" /></SelectTrigger>
+            <SelectContent>{brands.map(b => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}</SelectContent>
+          </Select>
+        </div>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card className="p-5"><Users className="w-5 h-5 text-primary mb-2"/><div className="text-3xl font-display">{ref?.total_referred ?? 0}</div><div className="text-xs text-muted-foreground">Total Referred</div></Card>
+        <Card className="p-5"><DollarSign className="w-5 h-5 text-primary mb-2"/><div className="text-3xl font-display">${ref?.total_earned ?? 0}</div><div className="text-xs text-muted-foreground">Total Earned</div></Card>
+        <Card className="p-5"><Gift className="w-5 h-5 text-primary mb-2"/><div className="text-3xl font-display">${ref?.reward_amount ?? 10}</div><div className="text-xs text-muted-foreground">Per Referral</div></Card>
+      </div>
+      <Card className="p-6">
+        <h2 className="font-display text-lg text-primary mb-4">Your Referral Link</h2>
+        <div className="flex gap-2">
+          <Input readOnly value={link} className="font-mono text-xs" />
+          <Button onClick={copy}>{copied ? <Check className="w-4 h-4 mr-2"/> : <Copy className="w-4 h-4 mr-2"/>}{copied ? "Copied" : "Copy"}</Button>
+        </div>
+        {brandId && <p className="text-xs text-muted-foreground mt-2">Linked to brand: <span className="text-primary">{brands.find(b => b.id === brandId)?.name}</span></p>}
+      </Card>
+    </div>
+  );
+}
+
+/* ─── Reports Tab ────────────────────────────────────────────── */
+const REPORT_TABLES = ["brands","branches","employees","customers","projects","services","tasks","marketing_campaigns","finance_analytics","transactions","affiliates","success_partners","audit_logs"];
+
+function ReportsTab({ activeBrandId }: { activeBrandId: string|null }) {
+  const [table, setTable] = React.useState("projects");
+  const [rows, setRows] = React.useState<any[]>([]);
+  const [loading, setLoading] = React.useState(false);
+
+  React.useEffect(() => {
+    setLoading(true);
+    tenantDb.select(table as any, { limit: 500, orderBy: "created_at", ascending: false })
+      .then(data => { setRows((data as any[]) || []); setLoading(false); })
+      .catch(() => setLoading(false));
+  }, [table]);
+
+  const cols = React.useMemo(() => rows[0] ? Object.keys(rows[0]).slice(0, 6) : [], [rows]);
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <div className="flex items-center gap-2">
+          <BarChart3 className="w-5 h-5 text-primary"/>
+          <h2 className="font-display text-lg tracking-wider text-primary">REPORTS BUILDER</h2>
+        </div>
+        <div className="flex items-center gap-2">
+          <Select value={table} onValueChange={setTable}>
+            <SelectTrigger className="w-48"><SelectValue/></SelectTrigger>
+            <SelectContent>{REPORT_TABLES.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
+          </Select>
+          <ExportButton data={rows} filename={`${table}-report`}/>
+        </div>
+      </div>
+      <div className="grid grid-cols-3 gap-3">
+        {([["Total Rows", rows.length], ["Columns", cols.length], ["Source", table]] as [string, string|number][]).map(([l, v]) => (
+          <div key={l} className="bg-card border border-border rounded-lg p-3">
+            <p className="text-[10px] font-display text-muted-foreground tracking-wider">{l}</p>
+            <p className="text-xl font-display text-primary mt-1">{v}</p>
+          </div>
+        ))}
+      </div>
+      <div className="bg-card border border-border rounded-lg overflow-auto">
+        {loading ? <p className="p-6 text-center text-muted-foreground">Loading...</p> : (
+          <table className="w-full text-xs">
+            <thead className="bg-secondary/50">
+              <tr>{cols.map(c => <th key={c} className="text-left p-2 font-display text-primary tracking-wider">{c}</th>)}</tr>
+            </thead>
+            <tbody>
+              {rows.slice(0, 100).map((r, i) => (
+                <tr key={i} className="border-t border-border/50 hover:bg-secondary/30">
+                  {cols.map(c => <td key={c} className="p-2 text-foreground truncate max-w-[200px]">{String(r[c] ?? "—").slice(0, 60)}</td>)}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ─── Finance Analytics Tab ──────────────────────────────────── */
+function FinanceAnalyticsTab() {
+  const [analytics, setAnalytics] = React.useState<any[]>([]);
+  const [invoices, setInvoices] = React.useState<any[]>([]);
+  const [payments, setPayments] = React.useState<any[]>([]);
+  const [refunds, setRefunds] = React.useState<any[]>([]);
+  const [coupons, setCoupons] = React.useState<any[]>([]);
+  const [tab, setTab] = React.useState("revenue");
+  const [refundFilter, setRefundFilter] = React.useState("all");
+  const [activeRefund, setActiveRefund] = React.useState<any>(null);
+  const [refundNotes, setRefundNotes] = React.useState("");
+  const [couponOpen, setCouponOpen] = React.useState(false);
+  const [couponEditId, setCouponEditId] = React.useState<string|null>(null);
+  const [couponForm, setCouponForm] = React.useState({ code: "", discount_type: "percent", discount_value: "", expires_at: "", max_uses: "" });
+
+  const loadAll = React.useCallback(async () => {
+    const [inv, pay, ref, coup, anal] = await Promise.all([
+      invoicesApi.list(),
+      paymentsApi.list(),
+      tenantDb.select("refund_requests" as any, { limit: 200 }),
+      couponsApi.list(),
+      tenantDb.select("finance_analytics" as any, { limit: 200 }),
+    ]);
+    setInvoices((inv as any[]) || []);
+    setPayments((pay as any[]) || []);
+    setRefunds((ref as any[]) || []);
+    setCoupons((coup as any[]) || []);
+    setAnalytics((anal as any[]) || []);
+  }, []);
+
+  React.useEffect(() => { loadAll(); }, [loadAll]);
+
+  const kpis = React.useMemo(() => ({
+    totalRevenue: payments.reduce((s, p) => s + (Number(p.amount) || 0), 0),
+    totalRefunded: refunds.filter(r => r.status === "approved").reduce((s, r) => s + (Number(r.amount) || 0), 0),
+    pendingRefunds: refunds.filter(r => r.status === "pending").length,
+    activeCoupons: coupons.filter(c => c.is_active).length,
+  }), [payments, refunds, coupons]);
+
+  const saveCoupon = async () => {
+    const payload = { ...couponForm, discount_value: Number(couponForm.discount_value), max_uses: couponForm.max_uses ? Number(couponForm.max_uses) : null, is_active: true };
+    if (couponEditId) { await couponsApi.update(couponEditId, payload); }
+    else { await couponsApi.create(payload); }
+    setCouponOpen(false); setCouponEditId(null);
+    setCouponForm({ code: "", discount_type: "percent", discount_value: "", expires_at: "", max_uses: "" });
+    loadAll();
+  };
+
+  const removeCoupon = async (id: string) => { await couponsApi.remove(id); loadAll(); };
+
+  const updateRefund = async (id: string, status: "approved"|"rejected") => {
+    await tenantDb.update("refund_requests" as any, id, { status, admin_notes: refundNotes } as any);
+    setActiveRefund(null); setRefundNotes(""); loadAll();
+  };
+
+  const filteredRefunds = refundFilter === "all" ? refunds : refunds.filter(r => r.status === refundFilter);
+
+  return (
+    <div className="space-y-4">
+      {/* KPI Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        {[
+          { label: "Total Revenue", value: `$${kpis.totalRevenue.toLocaleString()}`, icon: <DollarSign className="w-4 h-4"/> },
+          { label: "Total Refunded", value: `$${kpis.totalRefunded.toLocaleString()}`, icon: <RotateCcw className="w-4 h-4"/> },
+          { label: "Pending Refunds", value: kpis.pendingRefunds, icon: <Activity className="w-4 h-4"/> },
+          { label: "Active Coupons", value: kpis.activeCoupons, icon: <Tag className="w-4 h-4"/> },
+        ].map(k => (
+          <Card key={k.label} className="p-4">
+            <div className="flex items-center gap-2 text-primary mb-1">{k.icon}<span className="text-xs text-muted-foreground">{k.label}</span></div>
+            <div className="text-2xl font-display">{k.value}</div>
+          </Card>
+        ))}
+      </div>
+
+      <Tabs value={tab} onValueChange={setTab}>
+        <TabsList className="flex flex-wrap h-auto gap-1 bg-secondary/50">
+          <TabsTrigger value="revenue" className="text-xs">Revenue</TabsTrigger>
+          <TabsTrigger value="analytics" className="text-xs">Analytics</TabsTrigger>
+          <TabsTrigger value="refunds" className="text-xs">Refunds</TabsTrigger>
+          <TabsTrigger value="coupons" className="text-xs">Coupons</TabsTrigger>
+        </TabsList>
+
+        {/* Revenue */}
+        <TabsContent value="revenue" className="mt-3">
+          <div className="bg-card border border-border rounded-lg overflow-auto">
+            <table className="w-full text-xs">
+              <thead className="bg-secondary/50"><tr>
+                {["Date","Amount","Method","Status","Reference"].map(h => <th key={h} className="text-left p-2 font-display text-primary tracking-wider">{h}</th>)}
+              </tr></thead>
+              <tbody>{payments.map((p, i) => (
+                <tr key={i} className="border-t border-border/50 hover:bg-secondary/30">
+                  <td className="p-2">{p.created_at ? new Date(p.created_at).toLocaleDateString() : "—"}</td>
+                  <td className="p-2 text-emerald-400">${Number(p.amount || 0).toLocaleString()}</td>
+                  <td className="p-2">{p.payment_method || "—"}</td>
+                  <td className="p-2"><Badge className="text-[10px]">{p.status || "—"}</Badge></td>
+                  <td className="p-2 font-mono text-muted-foreground">{String(p.reference || p.id || "").slice(0, 20)}</td>
+                </tr>
+              ))}</tbody>
+            </table>
+          </div>
+        </TabsContent>
+
+        {/* Analytics */}
+        <TabsContent value="analytics" className="mt-3">
+          <div className="bg-card border border-border rounded-lg overflow-auto">
+            <table className="w-full text-xs">
+              <thead className="bg-secondary/50"><tr>
+                {["Period","Revenue","Expenses","Profit","Growth"].map(h => <th key={h} className="text-left p-2 font-display text-primary tracking-wider">{h}</th>)}
+              </tr></thead>
+              <tbody>{analytics.map((a, i) => (
+                <tr key={i} className="border-t border-border/50 hover:bg-secondary/30">
+                  <td className="p-2">{a.period || a.month || a.created_at ? new Date(a.created_at || a.period || a.month).toLocaleDateString() : "—"}</td>
+                  <td className="p-2 text-emerald-400">${Number(a.revenue || a.total_revenue || 0).toLocaleString()}</td>
+                  <td className="p-2 text-red-400">${Number(a.expenses || a.total_expenses || 0).toLocaleString()}</td>
+                  <td className="p-2">${Number(a.profit || a.net_profit || 0).toLocaleString()}</td>
+                  <td className="p-2">{a.growth_rate ? `${a.growth_rate}%` : "—"}</td>
+                </tr>
+              ))}</tbody>
+            </table>
+          </div>
+        </TabsContent>
+
+        {/* Refunds */}
+        <TabsContent value="refunds" className="mt-3 space-y-3">
+          <div className="flex gap-2">
+            {["all","pending","approved","rejected"].map(f => (
+              <Button key={f} variant={refundFilter === f ? "default" : "outline"} size="sm" className="text-xs capitalize" onClick={() => setRefundFilter(f)}>{f}</Button>
+            ))}
+          </div>
+          <div className="bg-card border border-border rounded-lg overflow-auto">
+            <table className="w-full text-xs">
+              <thead className="bg-secondary/50"><tr>
+                {["Date","Amount","Reason","Status","Actions"].map(h => <th key={h} className="text-left p-2 font-display text-primary tracking-wider">{h}</th>)}
+              </tr></thead>
+              <tbody>{filteredRefunds.map((r, i) => (
+                <tr key={i} className="border-t border-border/50 hover:bg-secondary/30">
+                  <td className="p-2">{r.created_at ? new Date(r.created_at).toLocaleDateString() : "—"}</td>
+                  <td className="p-2">${Number(r.amount || 0).toLocaleString()}</td>
+                  <td className="p-2 max-w-[150px] truncate">{r.reason || "—"}</td>
+                  <td className="p-2"><Badge className="text-[10px]">{r.status || "pending"}</Badge></td>
+                  <td className="p-2">{r.status === "pending" && <Button size="sm" variant="outline" className="text-xs h-6" onClick={() => { setActiveRefund(r); setRefundNotes(""); }}>Review</Button>}</td>
+                </tr>
+              ))}</tbody>
+            </table>
+          </div>
+        </TabsContent>
+
+        {/* Coupons */}
+        <TabsContent value="coupons" className="mt-3 space-y-3">
+          <div className="flex justify-end">
+            <Button size="sm" className="text-xs" onClick={() => { setCouponEditId(null); setCouponForm({ code: "", discount_type: "percent", discount_value: "", expires_at: "", max_uses: "" }); setCouponOpen(true); }}>
+              <Plus className="w-3.5 h-3.5 mr-1"/>New Coupon
+            </Button>
+          </div>
+          <div className="bg-card border border-border rounded-lg overflow-auto">
+            <table className="w-full text-xs">
+              <thead className="bg-secondary/50"><tr>
+                {["Code","Type","Value","Expires","Uses","Active","Actions"].map(h => <th key={h} className="text-left p-2 font-display text-primary tracking-wider">{h}</th>)}
+              </tr></thead>
+              <tbody>{coupons.map((c, i) => (
+                <tr key={i} className="border-t border-border/50 hover:bg-secondary/30">
+                  <td className="p-2 font-mono">{c.code}</td>
+                  <td className="p-2 capitalize">{c.discount_type}</td>
+                  <td className="p-2">{c.discount_type === "percent" ? `${c.discount_value}%` : `$${c.discount_value}`}</td>
+                  <td className="p-2">{c.expires_at ? new Date(c.expires_at).toLocaleDateString() : "—"}</td>
+                  <td className="p-2">{c.current_uses ?? 0}/{c.max_uses ?? "∞"}</td>
+                  <td className="p-2"><Badge className={c.is_active ? "bg-emerald-500/20 text-emerald-400" : "bg-muted text-muted-foreground"}>{c.is_active ? "Active" : "Off"}</Badge></td>
+                  <td className="p-2 flex gap-1">
+                    <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={() => { setCouponEditId(c.id); setCouponForm({ code: c.code, discount_type: c.discount_type, discount_value: String(c.discount_value), expires_at: c.expires_at || "", max_uses: c.max_uses ? String(c.max_uses) : "" }); setCouponOpen(true); }}><Pencil className="w-3 h-3"/></Button>
+                    <Button size="sm" variant="ghost" className="h-6 w-6 p-0 text-destructive" onClick={() => removeCoupon(c.id)}><Trash2 className="w-3 h-3"/></Button>
+                  </td>
+                </tr>
+              ))}</tbody>
+            </table>
+          </div>
+        </TabsContent>
+      </Tabs>
+
+      {/* Refund Review Dialog */}
+      <Dialog open={!!activeRefund} onOpenChange={o => { if (!o) setActiveRefund(null); }}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Review Refund Request</DialogTitle></DialogHeader>
+          <div className="space-y-3 text-sm">
+            <div><span className="text-muted-foreground">Amount: </span><strong>${Number(activeRefund?.amount || 0).toLocaleString()}</strong></div>
+            <div><span className="text-muted-foreground">Reason: </span>{activeRefund?.reason || "—"}</div>
+            <div>
+              <Label className="text-xs">Admin Notes</Label>
+              <Textarea className="mt-1 text-xs" rows={3} value={refundNotes} onChange={e => setRefundNotes(e.target.value)} placeholder="Optional notes…"/>
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="destructive" size="sm" onClick={() => updateRefund(activeRefund.id, "rejected")}>Reject</Button>
+            <Button size="sm" onClick={() => updateRefund(activeRefund.id, "approved")}>Approve</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Coupon Dialog */}
+      <Dialog open={couponOpen} onOpenChange={setCouponOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>{couponEditId ? "Edit Coupon" : "New Coupon"}</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <div><Label className="text-xs">Code</Label><Input className="mt-1 text-xs" value={couponForm.code} onChange={e => setCouponForm(f => ({...f, code: e.target.value}))} placeholder="SAVE20"/></div>
+            <div><Label className="text-xs">Type</Label>
+              <Select value={couponForm.discount_type} onValueChange={v => setCouponForm(f => ({...f, discount_type: v}))}>
+                <SelectTrigger className="mt-1 text-xs"><SelectValue/></SelectTrigger>
+                <SelectContent><SelectItem value="percent">Percent</SelectItem><SelectItem value="fixed">Fixed</SelectItem></SelectContent>
+              </Select>
+            </div>
+            <div><Label className="text-xs">Value</Label><Input className="mt-1 text-xs" type="number" value={couponForm.discount_value} onChange={e => setCouponForm(f => ({...f, discount_value: e.target.value}))} placeholder="20"/></div>
+            <div><Label className="text-xs">Expires At</Label><Input className="mt-1 text-xs" type="date" value={couponForm.expires_at} onChange={e => setCouponForm(f => ({...f, expires_at: e.target.value}))}/></div>
+            <div><Label className="text-xs">Max Uses</Label><Input className="mt-1 text-xs" type="number" value={couponForm.max_uses} onChange={e => setCouponForm(f => ({...f, max_uses: e.target.value}))} placeholder="Unlimited"/></div>
+          </div>
+          <DialogFooter><Button size="sm" onClick={saveCoupon}>Save</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
 function AffiliatesHubTab({ activeBrandId, brands }: { activeBrandId: string|null; brands: any[] }) {
   const { items: rows, create, update, remove } = useEntities("affiliates");
 
@@ -1481,6 +1821,9 @@ export default function BrandsHub() {
             <TabsTrigger value="employees"  className="text-xs"><Users className="w-3.5 h-3.5 mr-1"/>Employees ({empCount})</TabsTrigger>
             <TabsTrigger value="affiliates-hub" className="text-xs"><UserCheck className="w-3.5 h-3.5 mr-1"/>Affiliates Hub</TabsTrigger>
             <TabsTrigger value="developer-hub"  className="text-xs"><CodeIcon className="w-3.5 h-3.5 mr-1"/>Developer Hub</TabsTrigger>
+            <TabsTrigger value="referrals"  className="text-xs"><Share2 className="w-3.5 h-3.5 mr-1"/>Referrals</TabsTrigger>
+            <TabsTrigger value="reports"    className="text-xs"><BarChart3 className="w-3.5 h-3.5 mr-1"/>Reports</TabsTrigger>
+            <TabsTrigger value="finance"    className="text-xs"><TrendingUp className="w-3.5 h-3.5 mr-1"/>Finance</TabsTrigger>
             <TabsTrigger value="users"      className="text-xs"><Shield className="w-3.5 h-3.5 mr-1"/>Users</TabsTrigger>
             <TabsTrigger value="workflow"   className="text-xs"><GitBranch className="w-3.5 h-3.5 mr-1"/>Workflows</TabsTrigger>
           </TabsList>
@@ -1577,6 +1920,18 @@ export default function BrandsHub() {
 
           <TabsContent value="developer-hub" className="mt-2">
             <DeveloperHubTab/>
+          </TabsContent>
+
+          <TabsContent value="referrals" className="mt-2">
+            <ReferralsTab activeBrandId={activeBrandId} brands={brands}/>
+          </TabsContent>
+
+          <TabsContent value="reports" className="mt-2">
+            <ReportsTab activeBrandId={activeBrandId}/>
+          </TabsContent>
+
+          <TabsContent value="finance" className="mt-2">
+            <FinanceAnalyticsTab/>
           </TabsContent>
 
           <TabsContent value="users" className="mt-2">
