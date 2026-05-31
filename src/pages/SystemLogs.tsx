@@ -34,6 +34,41 @@ export default function SystemLogs() {
   const [agentQ, setAgentQ] = useState("");
   const [agentStatus, setAgentStatus] = useState("all");
 
+  const loadAgentLogs = async () => {
+    setAgentLoading(true);
+    try {
+      let data = await tenantDb.select("agent_logs", { orderBy: "created_at", ascending: false, limit: 500 }) as any[];
+      if (!data?.length) {
+        // Fallback: read AI agent messages from chat_messages via user's conversations
+        const convData = await tenantDb.select("chat_conversations", { orderBy: "created_at", ascending: false }) as any[];
+        const convIds = convData.map((c: any) => c.id).filter(Boolean);
+        if (convIds.length > 0) {
+          const { data: msgs } = await supabase
+            .from("chat_messages")
+            .select("id, role, content, metadata, created_at, conversation_id")
+            .eq("role", "assistant")
+            .in("conversation_id", convIds)
+            .order("created_at", { ascending: false })
+            .limit(300);
+          if (msgs?.length) {
+            data = msgs.map((m: any) => ({
+              id: m.id,
+              agent_code: (m.metadata?.agent_id || m.metadata?.agentId || "AI-AGENT").toString().toUpperCase(),
+              agent_name: m.metadata?.agent_name || m.metadata?.agentName || "AI Agent",
+              action_taken: m.content?.slice(0, 200) || "—",
+              status: "completed",
+              task_id: m.conversation_id,
+              error_message: null,
+              created_at: m.created_at,
+              _source: "chat",
+            }));
+          }
+        }
+      }
+      setAgentLogs(data || []);
+    } catch { /* keep existing */ } finally { setAgentLoading(false); }
+  };
+
   // ── Sessions ────────────────────────────────────────────────────
   const [sessions, setSessions] = useState<any[]>([]);
   const [sessionsLoading, setSessionsLoading] = useState(true);
@@ -42,12 +77,31 @@ export default function SystemLogs() {
     if (!user) return;
     setSessionsLoading(true);
     try {
-      const data = await tenantDb.select("user_sessions", { eq: { revoked: false }, orderBy: "last_active", ascending: false });
+      // Try user_sessions first
+      let data = await tenantDb.select("user_sessions", { eq: { revoked: false }, orderBy: "last_active", ascending: false }) as any[];
+      if (!data?.length) {
+        // Fallback: login_history — written on every login, read-only display
+        const { data: hist } = await supabase
+          .from("login_history")
+          .select("*")
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: false })
+          .limit(20);
+        data = (hist || []).map((h: any) => ({
+          ...h,
+          last_active: h.created_at,
+          revoked: false,
+          session_token: `hist-${h.id}`,
+          _readonly: true,
+        }));
+      }
       setSessions(data || []);
     } finally { setSessionsLoading(false); }
   };
 
   const revokeSession = async (id: string) => {
+    const s = sessions.find(x => x.id === id);
+    if (s?._readonly) return toast.info("Login history entries cannot be revoked");
     try { await tenantDb.update("user_sessions", { revoked: true }, { id }); }
     catch { return toast.error("Failed to revoke session"); }
     toast.success("Session revoked");
@@ -66,8 +120,7 @@ export default function SystemLogs() {
 
   useEffect(() => {
     auditApi.list(500).then(d => setAuditLogs(d as any[])).finally(() => setAuditLoading(false));
-    tenantDb.select("agent_logs", { orderBy: "created_at", ascending: false, limit: 500 })
-      .then(d => setAgentLogs(d as any[])).finally(() => setAgentLoading(false));
+    loadAgentLogs();
     loadSessions();
   }, [user]);
 
@@ -203,7 +256,7 @@ export default function SystemLogs() {
                     ) : filteredAgent.map(l => (
                       <tr key={l.id} className="border-t border-border hover:bg-secondary/20">
                         <td className="p-3 text-xs text-muted-foreground whitespace-nowrap">{new Date(l.created_at).toLocaleString()}</td>
-                        <td className="p-3 font-mono text-xs text-primary">{l.agent_code}</td>
+                        <td className="p-3 font-mono text-xs text-primary">{l.agent_code}{l._source === "chat" ? <span className="ml-1 text-[9px] text-muted-foreground">(chat)</span> : ""}</td>
                         <td className="p-3 text-xs">{l.action_taken}</td>
                         <td className="p-3">
                           <Badge variant={l.status === "failed" ? "destructive" : l.status === "completed" ? "default" : "secondary"}>
@@ -224,7 +277,9 @@ export default function SystemLogs() {
           {/* ── SESSIONS ───────────────────────────────────────────────── */}
           <TabsContent value="sessions" className="space-y-3 mt-4">
             <div className="flex items-center justify-between flex-wrap gap-2">
-              <p className="text-sm text-muted-foreground">Active sessions for your account across all devices.</p>
+              <p className="text-sm text-muted-foreground">
+                {sessions.some(s => s._readonly) ? "Login history for your account." : "Active sessions for your account across all devices."}
+              </p>
               <AlertDialog>
                 <AlertDialogTrigger asChild>
                   <Button variant="destructive" size="sm" className="gap-1.5"><LogOut className="w-3.5 h-3.5"/>Revoke All Others</Button>
