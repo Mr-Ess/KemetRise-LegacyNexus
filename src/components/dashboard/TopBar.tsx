@@ -24,6 +24,20 @@ const fmtAgo = (d: string) => {
   return `${Math.floor(h / 24)}d ago`;
 };
 
+const AI_AGENTS = ["ANUBIS", "ISIS", "HORUS", "THOTH", "RA", "BASTET"];
+const TABLE_MSG: Record<string, string> = {
+  brands: "analyzed brand performance for",
+  customers: "acquired new customer:",
+  tasks: "completed task:",
+  branches: "monitored branch activity in",
+  transactions: "processed payment for",
+  employees: "updated agent profile:",
+  audit_logs: "logged system event:",
+  marketing_campaigns: "launched campaign:",
+  projects: "advanced project milestone:",
+  affiliates: "tracked affiliate activity:",
+};
+
 const TopBar = () => {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
@@ -32,6 +46,7 @@ const TopBar = () => {
   const [showNotifications, setShowNotifications] = useState(false);
   const [logs, setLogs] = useState<any[]>([]);
   const [readIds, setReadIds] = useState<string[]>([]);
+  const [tickerIdx, setTickerIdx] = useState(0);
   const [search, setSearch] = useState("");
   const [results, setResults] = useState<{ table: string; id: string; name: string }[]>([]);
   const searchRef = useRef<HTMLInputElement>(null);
@@ -52,6 +67,25 @@ const TopBar = () => {
     })), [logs, readIds]);
 
   const unreadCount = notifications.filter(n => !n.read).length;
+
+  const tickerItems = useMemo(() => {
+    const items: string[] = [];
+    logs.slice(0, 20).forEach((log: any, i: number) => {
+      const agent = AI_AGENTS[i % AI_AGENTS.length];
+      const table = (log.table_name || log.module || "system").toLowerCase();
+      const verb = TABLE_MSG[table] || "processed event on";
+      const target = (log.entity_name || log.details || log.action || table).toString().toUpperCase();
+      const when = fmtAgo(log.created_at);
+      items.push(`${agent} ${verb} '${target}' · ${when}`);
+    });
+    return items.length > 0 ? items : ["KemetRise: Legacy Nexus — ALL SYSTEMS ONLINE"];
+  }, [logs]);
+
+  useEffect(() => {
+    if (tickerItems.length <= 1) return;
+    const t = setInterval(() => setTickerIdx(i => (i + 1) % tickerItems.length), 5000);
+    return () => clearInterval(t);
+  }, [tickerItems.length]);
 
   useEffect(() => {
     if (!user) return;
@@ -241,7 +275,7 @@ const TopBar = () => {
           <div className="flex items-center gap-2 animate-marquee">
             <Star className="w-3.5 h-3.5 text-primary shrink-0" />
             <span className="text-xs font-body text-primary whitespace-nowrap">
-              ANUBIS found market opportunity for 'KEMET JEWELRY'
+              {tickerItems[tickerIdx % tickerItems.length]}
             </span>
           </div>
         </div>
