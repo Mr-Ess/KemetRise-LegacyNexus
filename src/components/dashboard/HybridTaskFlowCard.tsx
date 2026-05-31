@@ -1,4 +1,4 @@
-import { MoreHorizontal, Plus, ChevronRight, Filter, X, Calendar, LayoutGrid } from "lucide-react";
+import { MoreHorizontal, Plus, ChevronRight, Filter, X, Calendar, LayoutGrid, AlertCircle } from "lucide-react";
 import { useState, useMemo, useEffect } from "react";
 import { tasksApi, aiApi } from "@/services/system";
 import { toast } from "sonner";
@@ -32,6 +32,10 @@ const HybridTaskFlowCard = () => {
   const [adding, setAdding] = useState<string | null>(null);
   const [newTitle, setNewTitle] = useState("");
   const [newAgent, setNewAgent] = useState<"AI" | "Human">("Human");
+  const [newPriority, setNewPriority] = useState<"low" | "medium" | "high" | "critical">("medium");
+  const [newDesc, setNewDesc] = useState("");
+  const [newAssignee, setNewAssignee] = useState("");
+  const [newDueDate, setNewDueDate] = useState("");
   const [view, setView] = useState<"kanban" | "calendar">("kanban");
 
   useEffect(() => {
@@ -55,10 +59,17 @@ const HybridTaskFlowCard = () => {
       } catch { /* fallback */ }
       const row = await tasksApi.create({
         title: newTitle, status, agent_kind: newAgent === "AI" ? "ai" : "human",
-        assignee: newAgent, metadata: { category },
+        assignee: newAssignee || newAgent,
+        metadata: {
+          category,
+          priority: newPriority,
+          description: newDesc,
+          due_date: newDueDate || null,
+        },
       });
       setTasks((p) => [row as any, ...p]);
-      setNewTitle(""); setAdding(null);
+      setNewTitle(""); setNewDesc(""); setNewAssignee(""); setNewDueDate("");
+      setNewPriority("medium"); setAdding(null);
       toast.success(`Task added · ${category}`);
     } catch (e: any) { toast.error(e.message); }
   };
@@ -130,12 +141,23 @@ const HybridTaskFlowCard = () => {
                 <button onClick={() => setAdding(col.key)} className="text-muted-foreground hover:text-primary"><Plus className="w-3 h-3" /></button>
               </div>
               {adding === col.key && (
-                <div className="mb-2 bg-secondary/70 rounded-md p-2 border border-primary/30 space-y-1">
-                  <input autoFocus value={newTitle} onChange={(e) => setNewTitle(e.target.value)} onKeyDown={(e) => e.key === "Enter" && addTask(col.key)} placeholder="Task title..." className="w-full bg-background text-xs px-2 py-1 rounded border border-border text-foreground" />
+                <div className="mb-2 bg-secondary/70 rounded-md p-2 border border-primary/30 space-y-1.5">
+                  <input autoFocus value={newTitle} onChange={(e) => setNewTitle(e.target.value)} onKeyDown={(e) => e.key === "Enter" && addTask(col.key)} placeholder="Task title…" className="w-full bg-background text-xs px-2 py-1 rounded border border-border text-foreground" />
+                  <textarea value={newDesc} onChange={(e) => setNewDesc(e.target.value)} placeholder="Description (optional)…" rows={2} className="w-full bg-background text-xs px-2 py-1 rounded border border-border text-foreground resize-none" />
+                  <div className="grid grid-cols-2 gap-1">
+                    <input value={newAssignee} onChange={(e) => setNewAssignee(e.target.value)} placeholder="Assignee…" className="bg-background text-xs px-2 py-1 rounded border border-border text-foreground" />
+                    <input type="date" value={newDueDate} onChange={(e) => setNewDueDate(e.target.value)} className="bg-background text-xs px-2 py-1 rounded border border-border text-foreground" />
+                  </div>
                   <div className="flex gap-1">
                     <select value={newAgent} onChange={(e) => setNewAgent(e.target.value as any)} className="text-[10px] bg-background border border-border rounded px-1 flex-1 text-foreground"><option>Human</option><option>AI</option></select>
+                    <select value={newPriority} onChange={(e) => setNewPriority(e.target.value as any)} className="text-[10px] bg-background border border-border rounded px-1 flex-1 text-foreground">
+                      <option value="low">Low</option>
+                      <option value="medium">Medium</option>
+                      <option value="high">High</option>
+                      <option value="critical">Critical</option>
+                    </select>
                     <button onClick={() => addTask(col.key)} className="text-[10px] px-2 bg-primary text-primary-foreground rounded">Add</button>
-                    <button onClick={() => { setAdding(null); setNewTitle(""); }} className="text-muted-foreground"><X className="w-3 h-3" /></button>
+                    <button onClick={() => { setAdding(null); setNewTitle(""); setNewDesc(""); setNewAssignee(""); setNewDueDate(""); }} className="text-muted-foreground"><X className="w-3 h-3" /></button>
                   </div>
                 </div>
               )}
@@ -143,15 +165,31 @@ const HybridTaskFlowCard = () => {
                 {colTasks.map((task) => (
                   <div key={task.id} className="bg-secondary/50 rounded-md p-2.5 border border-border/50 group">
                     <div className="flex items-start justify-between gap-1">
-                      <p className="text-xs font-body text-foreground leading-snug mb-2 flex-1">{task.title}</p>
+                      <p className="text-xs font-body text-foreground leading-snug mb-1.5 flex-1">{task.title}</p>
                       <button onClick={() => removeTask(task.id)} className="opacity-0 group-hover:opacity-100 text-destructive"><X className="w-3 h-3" /></button>
                     </div>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-1">
+                    {task.metadata?.description && (
+                      <p className="text-[10px] text-muted-foreground mb-1.5 line-clamp-2">{task.metadata.description}</p>
+                    )}
+                    <div className="flex items-center justify-between flex-wrap gap-1">
+                      <div className="flex items-center gap-1 flex-wrap">
                         <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[8px] font-bold ${task.agent_kind === "ai" ? "bg-nile/20 text-nile" : "bg-primary/20 text-primary"}`}>
                           {task.agent_kind === "ai" ? "⚙️" : "👤"}
                         </div>
                         {task.metadata?.category && <span className="text-[8px] px-1.5 py-0.5 rounded bg-secondary border border-border/50 text-muted-foreground capitalize">{task.metadata.category}</span>}
+                        {task.metadata?.priority && (
+                          <span className={`text-[8px] px-1.5 py-0.5 rounded border capitalize ${
+                            task.metadata.priority === "critical" ? "bg-destructive/10 border-destructive/30 text-destructive" :
+                            task.metadata.priority === "high" ? "bg-orange-500/10 border-orange-500/30 text-orange-500" :
+                            task.metadata.priority === "medium" ? "bg-yellow-500/10 border-yellow-500/30 text-yellow-600" :
+                            "bg-secondary border-border/50 text-muted-foreground"
+                          }`}>{task.metadata.priority}</span>
+                        )}
+                        {task.metadata?.due_date && (
+                          <span className="text-[8px] px-1.5 py-0.5 rounded bg-secondary border border-border/50 text-muted-foreground">
+                            📅 {task.metadata.due_date}
+                          </span>
+                        )}
                       </div>
                       <select value={task.status} onChange={(e) => moveTask(task.id, e.target.value)} className="text-[9px] bg-transparent border border-border/50 rounded text-muted-foreground">
                         {statusColumns.map((s) => <option key={s.key} value={s.key}>{s.title}</option>)}

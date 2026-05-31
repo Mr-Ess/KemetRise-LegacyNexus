@@ -68,13 +68,36 @@ export default function Auth() {
   const signUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setBusy(true);
-    const { error } = await supabase.auth.signUp({
+    // Check for referral code in URL (e.g. /auth?ref=KEMET-XXXXXX)
+    const refCode = new URLSearchParams(window.location.search).get("ref");
+    const { data: signUpData, error } = await supabase.auth.signUp({
       email, password,
       options: { emailRedirectTo: `${window.location.origin}/`, data: { display_name: name } },
     });
     setBusy(false);
-    if (error) toast.error(error.message);
-    else toast.success("Account created. Check your email to verify.");
+    if (error) { toast.error(error.message); return; }
+    toast.success("Account created. Check your email to verify.");
+
+    // Credit referrer if a valid code was provided
+    if (refCode && signUpData.user) {
+      try {
+        const { data: refs } = await supabase
+          .from("referrals")
+          .select("id, total_referred, total_earned, reward_amount")
+          .eq("referral_code", refCode)
+          .limit(1);
+        const ref = refs?.[0];
+        if (ref) {
+          await supabase
+            .from("referrals")
+            .update({
+              total_referred: (ref.total_referred || 0) + 1,
+              total_earned: (ref.total_earned || 0) + (ref.reward_amount || 0),
+            })
+            .eq("id", ref.id);
+        }
+      } catch { /* non-blocking */ }
+    }
   };
 
   const google = async () => {

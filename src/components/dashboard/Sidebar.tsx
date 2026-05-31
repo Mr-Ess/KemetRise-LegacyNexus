@@ -81,6 +81,7 @@ const Sidebar = ({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => 
     { icon: GitBranch, label: "Workflow Map", path: "/workflow-map" },
     { icon: FileText, label: "Agent Logs", path: "/agent-logs" },
     { icon: Shield, label: "Permissions", path: "/permissions" },
+    { icon: Users, label: "User Management", path: "/user-management" },
   ];
 
   

@@ -21,13 +21,11 @@ type Agent = {
   system?: string;
 };
 
-const agents: Agent[] = [
+const STATIC_AI_AGENTS: Agent[] = [
   { id: "anubis", name: "Anubis", icon: Bot, color: "text-primary", type: "AI", status: "online", role: "AI Data Analyst", avatar: anubisAvatar, system: "You are Anubis, an Egyptian-themed AI data analyst. Be concise and insightful." },
   { id: "isis", name: "Isis", icon: Cpu, color: "text-scarab", type: "AI", status: "online", role: "AI Legal Assistant", system: "You are Isis, an AI legal assistant. Be precise and formal." },
   { id: "horus", name: "Horus", icon: Bot, color: "text-nile", type: "AI", status: "busy", role: "AI Strategy", system: "You are Horus, a strategic AI advisor. Think in frameworks." },
   { id: "hathor", name: "Hathor", icon: Bot, color: "text-primary", type: "AI", status: "offline", role: "AI Creative", system: "You are Hathor, a creative AI director." },
-  { id: "khaled", name: "Khaled M.", icon: Bot, color: "text-papyrus", type: "Human", status: "online", role: "Branch Manager" },
-  { id: "ahmed", name: "Ahmed S.", icon: Bot, color: "text-papyrus", type: "Human", status: "busy", role: "Legal Advisor" },
 ];
 
 type DbMessage = { id: string; role: string; content: string; metadata?: any };
@@ -97,6 +95,7 @@ const Attachment = ({ meta }: { meta: any }) => {
 };
 
 const ChatHubCard = () => {
+  const [agents, setAgents] = useState<Agent[]>(STATIC_AI_AGENTS);
   const [activeAgent, setActiveAgent] = useState("anubis");
   const [conversations, setConversations] = useState<Record<string, string>>({});
   const [messages, setMessages] = useState<Record<string, DbMessage[]>>({});
@@ -115,6 +114,27 @@ const ChatHubCard = () => {
   const imageInputRef = useRef<HTMLInputElement>(null);
   const [attachOpen, setAttachOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Load real employees + AI agents from DB and merge with static list
+  useEffect(() => {
+    (async () => {
+      try {
+        const rows = await tenantDb.select("employees", { orderBy: "created_at", ascending: false, limit: 20 });
+        const dbAgents: Agent[] = (rows as any[]).map((emp) => ({
+          id: emp.id,
+          name: emp.name || emp.data?.name || "Employee",
+          icon: emp.agent_type === "ai" || emp.data?.agent_type === "ai" ? Bot : UserIcon,
+          color: emp.agent_type === "ai" || emp.data?.agent_type === "ai" ? "text-scarab" : "text-papyrus",
+          type: (emp.agent_type === "ai" || emp.data?.agent_type === "ai") ? "AI" as AgentType : "Human" as AgentType,
+          status: (emp.status === "active" ? "online" : emp.status === "busy" ? "busy" : "offline") as AgentStatus,
+          role: emp.data?.role || emp.data?.department || "Team Member",
+          avatar: emp.data?.avatar_url || undefined,
+          system: emp.data?.system_prompt || undefined,
+        }));
+        setAgents([...STATIC_AI_AGENTS, ...dbAgents]);
+      } catch { /* ignore — static agents remain */ }
+    })();
+  }, []);
 
   // Load or create conversations per agent
   useEffect(() => {

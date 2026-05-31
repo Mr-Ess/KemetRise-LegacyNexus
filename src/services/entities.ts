@@ -88,6 +88,44 @@ export const keyPersonsApi = {
   },
 };
 
+// ===== Responsible Personnel (polymorphic, owner_kind/owner_id pattern) =====
+export const responsiblePersonnelApi = {
+  async list(owner_kind: OwnerKind, owner_id: string) {
+    return await tenantDb.select("responsible_personnel" as any, {
+      eq: { owner_kind, owner_id },
+      orderBy: "priority",
+      ascending: true,
+    });
+  },
+  async create(owner_kind: OwnerKind, owner_id: string, item: {
+    person_name: string;
+    person_role?: string;
+    responsibility_type?: string;
+    priority?: number;
+    notes?: string;
+    contact_info?: Record<string, any>;
+  }) {
+    return await tenantDb.insert("responsible_personnel" as any, {
+      owner_kind, owner_id,
+      person_name: item.person_name,
+      person_role: item.person_role || null,
+      responsibility_type: item.responsibility_type || "primary",
+      priority: item.priority ?? 0,
+      notes: item.notes || null,
+      contact_info: item.contact_info || {},
+    });
+  },
+  async update(id: string, patch: Partial<{
+    person_name: string; person_role: string; responsibility_type: string;
+    priority: number; notes: string; contact_info: Record<string, any>;
+  }>) {
+    return await tenantDb.update("responsible_personnel" as any, patch as any, { id });
+  },
+  async remove(id: string) {
+    await tenantDb.remove("responsible_personnel" as any, { id });
+  },
+};
+
 export const apiKeysApi = {
   async list(owner_kind: OwnerKind, owner_id: string) {
     return await tenantDb.select("api_keys", {
