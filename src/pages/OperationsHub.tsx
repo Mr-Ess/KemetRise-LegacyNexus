@@ -1,10 +1,12 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   ArrowLeft, Plus, Trash2, Edit, Search, Package, Truck, BarChart2,
   MessageCircle, Megaphone, ScrollText, ShieldAlert, Box, Factory,
   TrendingUp, DollarSign, AlertTriangle, Lock, Calendar, Download,
-  RefreshCw
+  RefreshCw, Heart, Users, Shield, Key, FileText, Clock, Zap,
+  BookOpen, UserCheck, Activity, CheckCircle, XCircle, Timer,
+  Landmark, Globe, Phone, Mail, GitBranch, Eye, EyeOff, Copy,
 } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -19,6 +21,9 @@ import { useExtTable } from "@/hooks/useExtTable";
 import { ExtTable } from "@/services/extended";
 import { EmptyState, EntityListSkeleton } from "@/components/shared/EntitySkeleton";
 import ExportButton from "@/components/shared/ExportButton";
+import { dmsApi, heirsApi, type Heir } from "@/services/system";
+import { tenantDb } from "@/lib/tenantDb";
+import { toast } from "sonner";
 
 /* ─── Generic field / column types ───────────────────────────────────────── */
 type FieldDef  = { key: string; label: string; type?: "text"|"number"|"date"|"textarea"|"boolean" };
@@ -319,6 +324,453 @@ function useCount(table: ExtTable) {
   return items.length;
 }
 
+/* ─── DMS Status Badge ───────────────────────────────────────────────────── */
+function DmsStatusBadge({ active, triggered }: { active: boolean; triggered: boolean }) {
+  if (triggered) return <Badge className="bg-red-500/20 border-red-500 text-red-400 animate-pulse">⚡ PROTOCOL ACTIVE</Badge>;
+  if (active)    return <Badge className="bg-emerald-500/20 border-emerald-500 text-emerald-400">✓ Monitoring</Badge>;
+  return              <Badge variant="outline" className="text-muted-foreground">Inactive</Badge>;
+}
+
+/* ─── Legacy Protocol Panel ──────────────────────────────────────────────── */
+function LegacyProtocolPanel() {
+  const [dms,      setDms]      = useState<any>(null);
+  const [heirs,    setHeirs]    = useState<Heir[]>([]);
+  const [legalDocs,setLegalDocs]= useState<any[]>([]);
+  const [assets,   setAssets]   = useState<any[]>([]);
+  const [loading,  setLoading]  = useState(true);
+  const [heirOpen, setHeirOpen] = useState(false);
+  const [editHeirId,setEditHeirId] = useState<string|null>(null);
+  const [heirForm, setHeirForm] = useState<Heir>({ id:"", name:"", email:"", phone:"", relation:"" });
+  const [showTransfer, setShowTransfer] = useState(false);
+
+  const load = async () => {
+    setLoading(true);
+    try {
+      const [d, h, l, a] = await Promise.all([
+        dmsApi.get(),
+        heirsApi.list(),
+        tenantDb.select("legal_vault",      { orderBy:"created_at", ascending:false, limit:100 }),
+        tenantDb.select("assets_management",{ orderBy:"created_at", ascending:false, limit:100 }),
+      ]);
+      setDms(d); setHeirs(h);
+      setLegalDocs(l as any[]); setAssets(a as any[]);
+    } catch (e: any) { toast.error(e.message); }
+    finally { setLoading(false); }
+  };
+
+  useEffect(() => { load(); }, []);
+
+  const saveHeir = async () => {
+    if (!heirForm.name.trim() || !heirForm.email.trim()) { toast.error("Name & email required"); return; }
+    try {
+      await heirsApi.upsert(editHeirId ? { ...heirForm, id: editHeirId } : { ...heirForm, id: "" });
+      toast.success("Heir saved");
+      setHeirOpen(false); setEditHeirId(null);
+      setHeirForm({ id:"", name:"", email:"", phone:"", relation:"" });
+      setHeirs(await heirsApi.list());
+    } catch (e: any) { toast.error(e.message); }
+  };
+
+  const removeHeir = async (id: string) => {
+    if (!confirm("Remove this heir?")) return;
+    try { await heirsApi.remove(id); setHeirs(await heirsApi.list()); toast.success("Removed"); }
+    catch (e: any) { toast.error(e.message); }
+  };
+
+  const sendHeartbeat = async () => {
+    try { await dmsApi.heartbeat(); setDms(await dmsApi.get()); toast.success("Heartbeat sent ✓"); }
+    catch (e: any) { toast.error(e.message); }
+  };
+
+  const copyTransferSummary = () => {
+    const lines = [
+      "═══════════════════════════════════════",
+      "    KEMETRISE : LEGACY NEXUS",
+      "    DIGITAL INHERITANCE TRANSFER MANIFEST",
+      "═══════════════════════════════════════",
+      `Generated: ${new Date().toLocaleString()}`,
+      "",
+      "── AUTHORIZED HEIRS ────────────────────",
+      ...heirs.map((h,i) => `${i+1}. ${h.name} <${h.email}>${h.relation ? ` [${h.relation}]` : ""}${h.phone ? ` • ${h.phone}` : ""}`),
+      "",
+      "── LEGAL DOCUMENTS TO TRANSFER ─────────",
+      ...legalDocs.map((d,i) => `${i+1}. [${d.doc_type||"DOC"}] ${d.doc_title}${d.expiry_date ? ` (expires ${new Date(d.expiry_date).toLocaleDateString()})` : ""}${d.is_encrypted ? " 🔒" : ""}`),
+      "",
+      "── DIGITAL ASSETS ───────────────────────",
+      ...assets.map((a,i) => `${i+1}. ${a.asset_name} — $${Number(a.value||0).toLocaleString()}${a.location ? ` @ ${a.location}` : ""}`),
+      "",
+      `TOTAL ASSET VALUE: $${assets.reduce((s,a)=>s+(a.value||0),0).toLocaleString()}`,
+      "═══════════════════════════════════════",
+    ].join("\n");
+    navigator.clipboard.writeText(lines).then(() => toast.success("Transfer manifest copied to clipboard"));
+  };
+
+  // derived
+  const dmsDeadline = dms?.deadline_days ?? 3;
+  const lastBeat    = dms?.last_heartbeat ? new Date(dms.last_heartbeat) : null;
+  const hoursAgo    = lastBeat ? Math.floor((Date.now() - lastBeat.getTime()) / 3600000) : null;
+  const isTriggered = hoursAgo !== null && hoursAgo >= dmsDeadline * 24;
+  const isActive    = !!dms?.active;
+  const totalAssetValue = assets.reduce((s, a) => s + (a.value || 0), 0);
+  const encryptedDocs   = legalDocs.filter(d => d.is_encrypted).length;
+  const expiringDocs    = legalDocs.filter(d => d.expiry_date && Math.floor((new Date(d.expiry_date).getTime() - Date.now()) / 86400000) < 30).length;
+
+  if (loading) return <EntityListSkeleton/>;
+
+  return (
+    <div className="space-y-6">
+
+      {/* ── Emergency Status Banner ── */}
+      {isTriggered && (
+        <div className="rounded-lg border-2 border-red-500 bg-red-500/10 p-4 flex items-center gap-3 animate-pulse">
+          <Zap className="w-6 h-6 text-red-400 shrink-0"/>
+          <div>
+            <p className="font-display text-sm text-red-400 font-bold">⚡ EMERGENCY PROTOCOL TRIGGERED</p>
+            <p className="text-xs text-muted-foreground">No heartbeat in {hoursAgo}h — Legacy transfer protocol is active. Heirs will receive notifications.</p>
+          </div>
+          <Button size="sm" className="ml-auto bg-red-500 hover:bg-red-600 text-white" onClick={sendHeartbeat}>
+            <Heart className="w-4 h-4 mr-1"/>Send Heartbeat
+          </Button>
+        </div>
+      )}
+
+      {/* ── KPI Row ── */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+        <KpiCard icon={Users}      label="Heirs"           value={heirs.length}          color="primary"/>
+        <KpiCard icon={ScrollText} label="Legal Docs"      value={legalDocs.length}      sub={`${encryptedDocs} encrypted`} color="blue"/>
+        <KpiCard icon={Landmark}   label="Digital Assets"  value={assets.length}         sub={`$${totalAssetValue.toLocaleString()}`} color="emerald"/>
+        <KpiCard icon={AlertTriangle} label="Expiring Docs" value={expiringDocs}          color={expiringDocs > 0 ? "amber" : "emerald"}/>
+        <KpiCard icon={Timer}      label="Deadline"        value={`${dmsDeadline}d`}     sub={hoursAgo !== null ? `Last beat ${hoursAgo}h ago` : "No beat yet"} color={isTriggered ? "red" : "emerald"}/>
+        <KpiCard icon={Shield}     label="Status"          value={isTriggered ? "⚡" : isActive ? "✓" : "—"} sub={isTriggered ? "TRIGGERED" : isActive ? "Monitoring" : "Inactive"} color={isTriggered ? "red" : isActive ? "emerald" : "primary"}/>
+      </div>
+
+      <div className="grid lg:grid-cols-3 gap-4">
+
+        {/* ── DMS Panel ── */}
+        <Card className={`border ${isTriggered ? "border-red-500/60" : "border-border"}`}>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm flex items-center gap-2">
+              <Heart className={`w-4 h-4 ${isTriggered ? "text-red-400 animate-pulse" : "text-emerald-400"}`}/>
+              Dead Man's Switch
+              <DmsStatusBadge active={isActive} triggered={isTriggered}/>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="space-y-2 text-xs">
+              <div className="flex justify-between border-b pb-2">
+                <span className="text-muted-foreground">Protocol Active</span>
+                <span className={`font-bold ${isActive ? "text-emerald-400" : "text-muted-foreground"}`}>{isActive ? "Yes" : "No"}</span>
+              </div>
+              <div className="flex justify-between border-b pb-2">
+                <span className="text-muted-foreground">Deadline</span>
+                <span className="font-bold">{dmsDeadline} days</span>
+              </div>
+              <div className="flex justify-between border-b pb-2">
+                <span className="text-muted-foreground">Last Heartbeat</span>
+                <span className={`font-bold ${isTriggered ? "text-red-400" : ""}`}>
+                  {lastBeat ? `${hoursAgo}h ago` : "Never"}
+                </span>
+              </div>
+              {lastBeat && (
+                <div className="flex justify-between pb-1">
+                  <span className="text-muted-foreground">Timestamp</span>
+                  <span className="text-[10px]">{lastBeat.toLocaleString()}</span>
+                </div>
+              )}
+            </div>
+            {/* Progress bar */}
+            {isActive && hoursAgo !== null && (
+              <div className="space-y-1">
+                <div className="flex justify-between text-[10px] text-muted-foreground">
+                  <span>Heartbeat health</span>
+                  <span>{Math.min(100, Math.round((hoursAgo / (dmsDeadline * 24)) * 100))}% elapsed</span>
+                </div>
+                <div className="h-1.5 bg-secondary rounded-full overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all ${isTriggered ? "bg-red-500" : hoursAgo > dmsDeadline * 18 ? "bg-amber-500" : "bg-emerald-500"}`}
+                    style={{ width: `${Math.min(100, Math.round((hoursAgo / (dmsDeadline * 24)) * 100))}%` }}
+                  />
+                </div>
+              </div>
+            )}
+            <Button size="sm" className="w-full gap-2" onClick={sendHeartbeat}>
+              <Heart className="w-4 h-4"/>Send Heartbeat Now
+            </Button>
+            <Button size="sm" variant="outline" className="w-full gap-2" onClick={() => window.location.href = "/settings?section=emergency"}>
+              <Shield className="w-4 h-4"/>Configure Protocol
+            </Button>
+          </CardContent>
+        </Card>
+
+        {/* ── Heirs Panel ── */}
+        <Card>
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm flex items-center gap-2">
+                <Users className="w-4 h-4 text-primary"/>
+                Digital Heirs
+                <Badge variant="outline" className="text-[10px]">{heirs.length}</Badge>
+              </CardTitle>
+              <Button size="sm" variant="outline" className="gap-1 text-xs h-7" onClick={() => { setEditHeirId(null); setHeirForm({ id:"", name:"", email:"", phone:"", relation:"" }); setHeirOpen(true); }}>
+                <Plus className="w-3 h-3"/>Add
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {heirs.length === 0 ? (
+              <p className="text-xs text-muted-foreground text-center py-6">No heirs registered yet.</p>
+            ) : (
+              <div className="space-y-2 max-h-[280px] overflow-auto pr-1">
+                {heirs.map(h => (
+                  <div key={h.id} className="flex items-center gap-2 p-2 rounded-md bg-secondary/30 border border-border/50">
+                    <div className="w-7 h-7 rounded-full bg-primary/15 flex items-center justify-center shrink-0">
+                      <UserCheck className="w-3.5 h-3.5 text-primary"/>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-semibold truncate">{h.name}</p>
+                      <p className="text-[10px] text-muted-foreground truncate">{h.email}</p>
+                      {h.relation && <p className="text-[9px] text-primary">{h.relation}</p>}
+                    </div>
+                    <div className="flex gap-1 shrink-0">
+                      <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={() => { setEditHeirId(h.id); setHeirForm(h); setHeirOpen(true); }}><Edit className="w-3 h-3"/></Button>
+                      <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={() => removeHeir(h.id)}><Trash2 className="w-3 h-3 text-destructive"/></Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* ── Transfer Summary Panel ── */}
+        <Card className="border-primary/30">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm flex items-center gap-2">
+              <GitBranch className="w-4 h-4 text-primary"/>
+              Transfer Manifest
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="space-y-2 text-xs">
+              <div className="flex justify-between border-b pb-2">
+                <span className="text-muted-foreground">Authorized Heirs</span>
+                <span className="font-bold text-primary">{heirs.length}</span>
+              </div>
+              <div className="flex justify-between border-b pb-2">
+                <span className="text-muted-foreground">Legal Documents</span>
+                <span className="font-bold">{legalDocs.length}</span>
+              </div>
+              <div className="flex justify-between border-b pb-2">
+                <span className="text-muted-foreground">Digital Assets</span>
+                <span className="font-bold">{assets.length}</span>
+              </div>
+              <div className="flex justify-between border-b pb-2">
+                <span className="text-muted-foreground">Total Asset Value</span>
+                <span className="font-bold text-emerald-400">${totalAssetValue.toLocaleString()}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Encryption Status</span>
+                <span className={`font-bold ${encryptedDocs > 0 ? "text-blue-400" : "text-muted-foreground"}`}>
+                  {encryptedDocs}/{legalDocs.length} encrypted
+                </span>
+              </div>
+            </div>
+            <div className="pt-1 space-y-2">
+              <Button size="sm" className="w-full gap-2" variant="outline" onClick={copyTransferSummary}>
+                <Copy className="w-4 h-4"/>Copy Manifest
+              </Button>
+              <Button size="sm" className="w-full gap-2" variant="outline" onClick={() => setShowTransfer(true)}>
+                <Eye className="w-4 h-4"/>Preview Transfer
+              </Button>
+              <Button size="sm" className="w-full gap-2" variant="outline" onClick={() => { const e = new Blob([JSON.stringify({ heirs, legalDocs, assets, generated: new Date().toISOString() }, null, 2)], { type: "application/json" }); const a = document.createElement("a"); a.href = URL.createObjectURL(e); a.download = "legacy-manifest.json"; a.click(); }}>
+                <Download className="w-4 h-4"/>Export JSON
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* ── Legal Documents assigned to heirs ── */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm flex items-center gap-2">
+            <ScrollText className="w-4 h-4 text-blue-400"/>
+            Legal Vault — Documents to Transfer
+            <Badge variant="outline" className="text-[10px]">{legalDocs.length}</Badge>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {legalDocs.length === 0 ? (
+            <p className="text-xs text-muted-foreground text-center py-6">No legal documents in vault. <button className="text-primary underline" onClick={() => window.location.href = "/legal-vault"}>Add documents →</button></p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead className="bg-secondary/40">
+                  <tr>
+                    <th className="text-left p-2">Document</th>
+                    <th className="text-left p-2">Type</th>
+                    <th className="text-left p-2">Expiry</th>
+                    <th className="p-2 text-center">🔒</th>
+                    <th className="p-2 text-center">Status</th>
+                    <th className="p-2"/>
+                  </tr>
+                </thead>
+                <tbody>
+                  {legalDocs.map(doc => {
+                    const days = doc.expiry_date ? Math.floor((new Date(doc.expiry_date).getTime() - Date.now()) / 86400000) : null;
+                    const expired = days !== null && days < 0;
+                    const expiring = days !== null && !expired && days < 30;
+                    return (
+                      <tr key={doc.id} className="border-t border-border hover:bg-secondary/20">
+                        <td className="p-2 font-medium max-w-[200px] truncate">{doc.doc_title}</td>
+                        <td className="p-2"><Badge variant="outline" className="text-[10px]">{doc.doc_type || "—"}</Badge></td>
+                        <td className="p-2">
+                          {days === null ? <span className="text-muted-foreground">—</span>
+                            : expired ? <Badge variant="destructive" className="text-[10px]">Expired</Badge>
+                            : expiring ? <Badge variant="outline" className="text-[10px] border-amber-500 text-amber-400">{days}d left</Badge>
+                            : <span>{new Date(doc.expiry_date).toLocaleDateString()}</span>}
+                        </td>
+                        <td className="p-2 text-center">{doc.is_encrypted ? <Lock className="w-3.5 h-3.5 text-emerald-400 mx-auto"/> : <span className="text-muted-foreground">—</span>}</td>
+                        <td className="p-2 text-center">
+                          {expired ? <XCircle className="w-3.5 h-3.5 text-red-400 mx-auto"/> : <CheckCircle className="w-3.5 h-3.5 text-emerald-400 mx-auto"/>}
+                        </td>
+                        <td className="p-2">
+                          {doc.file_url && <a href={doc.file_url} target="_blank" rel="noreferrer" className="text-primary underline text-[10px] flex items-center gap-1"><Download className="w-3 h-3"/>View</a>}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* ── Digital Assets ── */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm flex items-center gap-2">
+            <Landmark className="w-4 h-4 text-emerald-400"/>
+            Digital Assets to Inherit
+            <Badge variant="outline" className="text-[10px]">{assets.length}</Badge>
+            <span className="ml-auto text-xs font-normal text-emerald-400">${totalAssetValue.toLocaleString()} total</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {assets.length === 0 ? (
+            <p className="text-xs text-muted-foreground text-center py-6">No assets registered. <button className="text-primary underline" onClick={() => window.location.href = "/assets"}>Add assets →</button></p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead className="bg-secondary/40">
+                  <tr>
+                    <th className="text-left p-2">Asset</th>
+                    <th className="text-left p-2">Value</th>
+                    <th className="text-left p-2">Location</th>
+                    <th className="text-left p-2">Purchase Date</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {assets.map(a => (
+                    <tr key={a.id} className="border-t border-border hover:bg-secondary/20">
+                      <td className="p-2 font-medium">{a.asset_name}</td>
+                      <td className="p-2 text-emerald-400 font-bold">${Number(a.value || 0).toLocaleString()}</td>
+                      <td className="p-2 text-muted-foreground">{a.location || "—"}</td>
+                      <td className="p-2 text-muted-foreground">{a.purchase_date ? new Date(a.purchase_date).toLocaleDateString() : "—"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* ── Heir Form Dialog ── */}
+      <Dialog open={heirOpen} onOpenChange={setHeirOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>{editHeirId ? "Edit Heir" : "Add Digital Heir"}</DialogTitle></DialogHeader>
+          <div className="space-y-3 py-2">
+            <div className="space-y-1"><Label>Full Name *</Label><Input value={heirForm.name} onChange={e => setHeirForm(p => ({...p, name: e.target.value}))} placeholder="e.g. Sara Ahmed"/></div>
+            <div className="space-y-1"><Label>Email *</Label><Input type="email" value={heirForm.email} onChange={e => setHeirForm(p => ({...p, email: e.target.value}))} placeholder="heir@email.com"/></div>
+            <div className="space-y-1"><Label>Phone</Label><Input value={heirForm.phone||""} onChange={e => setHeirForm(p => ({...p, phone: e.target.value}))} placeholder="+20 100 000 0000"/></div>
+            <div className="space-y-1"><Label>Relation</Label><Input value={heirForm.relation||""} onChange={e => setHeirForm(p => ({...p, relation: e.target.value}))} placeholder="e.g. Son, Daughter, Lawyer"/></div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setHeirOpen(false)}>Cancel</Button>
+            <Button onClick={saveHeir}>Save Heir</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Transfer Preview Dialog ── */}
+      <Dialog open={showTransfer} onOpenChange={setShowTransfer}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-auto">
+          <DialogHeader><DialogTitle className="flex items-center gap-2"><GitBranch className="w-4 h-4 text-primary"/>Legacy Transfer Preview</DialogTitle></DialogHeader>
+          <div className="space-y-4 text-sm">
+            <div>
+              <p className="font-display text-xs text-muted-foreground uppercase tracking-wider mb-2">Authorized Heirs ({heirs.length})</p>
+              {heirs.length === 0 ? <p className="text-xs text-muted-foreground italic">No heirs registered</p> : (
+                <div className="space-y-1">
+                  {heirs.map(h => (
+                    <div key={h.id} className="flex items-center gap-2 p-2 bg-secondary/30 rounded text-xs">
+                      <UserCheck className="w-3.5 h-3.5 text-primary shrink-0"/>
+                      <span className="font-semibold">{h.name}</span>
+                      <span className="text-muted-foreground">{h.email}</span>
+                      {h.relation && <Badge variant="outline" className="text-[9px]">{h.relation}</Badge>}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div>
+              <p className="font-display text-xs text-muted-foreground uppercase tracking-wider mb-2">Legal Documents ({legalDocs.length})</p>
+              {legalDocs.length === 0 ? <p className="text-xs text-muted-foreground italic">No documents in vault</p> : (
+                <div className="space-y-1">
+                  {legalDocs.map(d => (
+                    <div key={d.id} className="flex items-center gap-2 p-2 bg-secondary/30 rounded text-xs">
+                      <FileText className="w-3.5 h-3.5 text-blue-400 shrink-0"/>
+                      <span>{d.doc_title}</span>
+                      {d.doc_type && <Badge variant="outline" className="text-[9px]">{d.doc_type}</Badge>}
+                      {d.is_encrypted && <Lock className="w-3 h-3 text-emerald-400"/>}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div>
+              <p className="font-display text-xs text-muted-foreground uppercase tracking-wider mb-2">Digital Assets ({assets.length})</p>
+              {assets.length === 0 ? <p className="text-xs text-muted-foreground italic">No assets registered</p> : (
+                <div className="space-y-1">
+                  {assets.map(a => (
+                    <div key={a.id} className="flex items-center justify-between p-2 bg-secondary/30 rounded text-xs">
+                      <div className="flex items-center gap-2">
+                        <Landmark className="w-3.5 h-3.5 text-emerald-400 shrink-0"/>
+                        <span>{a.asset_name}</span>
+                        {a.location && <span className="text-muted-foreground">@ {a.location}</span>}
+                      </div>
+                      <span className="font-bold text-emerald-400">${Number(a.value||0).toLocaleString()}</span>
+                    </div>
+                  ))}
+                  <div className="flex justify-between p-2 border-t border-border font-bold text-xs">
+                    <span>Total Value</span>
+                    <span className="text-emerald-400">${totalAssetValue.toLocaleString()}</span>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={copyTransferSummary}><Copy className="w-4 h-4 mr-1"/>Copy Manifest</Button>
+            <Button onClick={() => setShowTransfer(false)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
 /* ─── Main Component ──────────────────────────────────────────────────────── */
 export default function OperationsHub() {
   const navigate = useNavigate();
@@ -330,6 +782,8 @@ export default function OperationsHub() {
   const crmCount= useCount("crm_interactions");
   const mktCount= useCount("marketing_campaigns");
   const legalCount = useCount("legal_vault");
+  const heirCount  = useCount("digital_inheritance");
+  const assetCount = useCount("assets_management");
 
   // Legal expiry warning (reuse items from a hook)
   const { items: legalItems } = useExtTable("legal_vault");
@@ -355,7 +809,7 @@ export default function OperationsHub() {
           <div className="p-2 rounded-lg bg-primary/10"><Factory className="w-6 h-6 text-primary"/></div>
           <div>
             <h1 className="font-display text-xl text-primary">OPERATIONS HUB</h1>
-            <p className="text-xs text-muted-foreground">Inventory · Logistics · Finance · CRM · Marketing · Legal Vault</p>
+            <p className="text-xs text-muted-foreground">Inventory · Logistics · Finance · CRM · Marketing · Legal Vault · Digital Inheritance · Emergency Protocol</p>
           </div>
         </div>
 
@@ -368,11 +822,12 @@ export default function OperationsHub() {
             <TabsTrigger value="crm"        className="text-xs"><MessageCircle className="w-3.5 h-3.5 mr-1"/>CRM</TabsTrigger>
             <TabsTrigger value="marketing"  className="text-xs"><Megaphone className="w-3.5 h-3.5 mr-1"/>Marketing</TabsTrigger>
             <TabsTrigger value="legal"      className="text-xs"><ScrollText className="w-3.5 h-3.5 mr-1"/>Legal Vault{expiringSoon>0&&<Badge variant="destructive" className="ml-1 text-[9px] px-1">{expiringSoon}</Badge>}</TabsTrigger>
+            <TabsTrigger value="legacy"     className="text-xs"><Heart className="w-3.5 h-3.5 mr-1"/>Legacy Protocol</TabsTrigger>
           </TabsList>
 
           {/* ═══════════════════════════════════ OVERVIEW ══ */}
           <TabsContent value="overview">
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-3">
               <KpiCard icon={Package}     label="Materials"      value={mCount}      color="primary"/>
               <KpiCard icon={Box}         label="Suppliers"      value={sCount}      color="blue"/>
               <KpiCard icon={Truck}       label="Shipments"      value={lsCount}     color="emerald"/>
@@ -380,8 +835,12 @@ export default function OperationsHub() {
               <KpiCard icon={Megaphone}   label="Campaigns"      value={mktCount}    sub={`${activeCampaigns} active`} color="amber"/>
               <KpiCard icon={ScrollText}  label="Legal Docs"     value={legalCount}  sub={expiringSoon>0?`${expiringSoon} expiring`:"All valid"} color={expiringSoon>0?"red":"emerald"}/>
             </div>
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-              <Card>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-6">
+              <KpiCard icon={Users}   label="Digital Heirs"   value={heirCount}  color="primary"/>
+              <KpiCard icon={Landmark} label="Assets Managed" value={assetCount} color="emerald"/>
+              <KpiCard icon={Heart}   label="Legacy Protocol" value={heirCount > 0 ? "ARMED" : "SETUP"} color={heirCount > 0 ? "emerald" : "amber"}/>
+            </div>
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">              <Card>
                 <CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-2"><Megaphone className="w-4 h-4 text-amber-400"/>Marketing Summary</CardTitle></CardHeader>
                 <CardContent className="space-y-2">
                   <div className="flex justify-between text-xs border-b pb-1.5"><span className="text-muted-foreground">Total Campaigns</span><span className="font-bold">{mktCount}</span></div>
@@ -475,6 +934,11 @@ export default function OperationsHub() {
               fields={LEGAL_FIELDS} columns={LEGAL_COLS}
               emptyHint="Upload your first legal document"
             />
+          </TabsContent>
+
+          {/* ══════════════════════════ LEGACY PROTOCOL ══ */}
+          <TabsContent value="legacy" className="mt-2">
+            <LegacyProtocolPanel/>
           </TabsContent>
 
         </Tabs>
