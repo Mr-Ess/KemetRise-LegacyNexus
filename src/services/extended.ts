@@ -28,9 +28,10 @@ const isTenantScopedTable = (table: ExtTable) => TENANT_SCOPED_TABLES.includes(t
 export const extApi = {
   async list(table: ExtTable, opts?: { eq?: Record<string, any>; order?: string }) {
     const eqFilters = { ...(opts?.eq || {}) };
-    // Tables without created_at use "id" as fallback order
+    // Tables without created_at use a fallback order column
     const TABLES_WITHOUT_CREATED_AT: ExtTable[] = ["inventory", "affiliated_agents", "import_export", "assets_management"];
-    const defaultOrder = TABLES_WITHOUT_CREATED_AT.includes(table) ? "id" : "created_at";
+    const TABLE_ORDER_OVERRIDE: Partial<Record<ExtTable, string>> = { crm_interactions: "interaction_date" };
+    const defaultOrder = TABLE_ORDER_OVERRIDE[table] ?? (TABLES_WITHOUT_CREATED_AT.includes(table) ? "id" : "created_at");
     return await tenantDb.select(table as any, {
       eq: eqFilters,
       orderBy: opts?.order || defaultOrder,
