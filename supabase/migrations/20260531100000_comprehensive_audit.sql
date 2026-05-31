@@ -54,6 +54,7 @@ CREATE INDEX IF NOT EXISTS idx_rp_brand       ON public.responsible_personnel(br
 CREATE INDEX IF NOT EXISTS idx_rp_user        ON public.responsible_personnel(user_id);
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.responsible_personnel TO authenticated;
 GRANT ALL ON public.responsible_personnel TO service_role;
+DROP TRIGGER IF EXISTS trg_rp_updated ON public.responsible_personnel;
 CREATE TRIGGER trg_rp_updated BEFORE UPDATE ON public.responsible_personnel
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
@@ -237,6 +238,7 @@ CREATE INDEX IF NOT EXISTS idx_wfstep_name  ON public.workflow_steps(workflow_na
 CREATE INDEX IF NOT EXISTS idx_wfstep_brand ON public.workflow_steps(brand_id);
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.workflow_steps TO authenticated;
 GRANT ALL ON public.workflow_steps TO service_role;
+DROP TRIGGER IF EXISTS trg_wfstep_updated ON public.workflow_steps;
 CREATE TRIGGER trg_wfstep_updated BEFORE UPDATE ON public.workflow_steps
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
@@ -306,6 +308,7 @@ CREATE INDEX IF NOT EXISTS idx_rolep_brand ON public.role_permissions(brand_id);
 CREATE INDEX IF NOT EXISTS idx_rolep_role  ON public.role_permissions(role);
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.role_permissions TO authenticated;
 GRANT ALL ON public.role_permissions TO service_role;
+DROP TRIGGER IF EXISTS trg_rolep_updated ON public.role_permissions;
 CREATE TRIGGER trg_rolep_updated BEFORE UPDATE ON public.role_permissions
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
@@ -340,6 +343,7 @@ CREATE INDEX IF NOT EXISTS idx_sectorp_target ON public.sector_permissions(targe
 CREATE INDEX IF NOT EXISTS idx_sectorp_sector ON public.sector_permissions(sector);
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.sector_permissions TO authenticated;
 GRANT ALL ON public.sector_permissions TO service_role;
+DROP TRIGGER IF EXISTS trg_sectorp_updated ON public.sector_permissions;
 CREATE TRIGGER trg_sectorp_updated BEFORE UPDATE ON public.sector_permissions
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
@@ -375,6 +379,7 @@ CREATE INDEX IF NOT EXISTS idx_agentp_brand ON public.agent_permissions(brand_id
 CREATE INDEX IF NOT EXISTS idx_agentp_code  ON public.agent_permissions(agent_code);
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.agent_permissions TO authenticated;
 GRANT ALL ON public.agent_permissions TO service_role;
+DROP TRIGGER IF EXISTS trg_agentp_updated ON public.agent_permissions;
 CREATE TRIGGER trg_agentp_updated BEFORE UPDATE ON public.agent_permissions
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
