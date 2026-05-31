@@ -36,10 +36,7 @@ const Sidebar = ({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => 
     { icon: Store, label: "Marketplace", path: "/marketplace" },
     { icon: Layers, label: "Operations Hub", path: "/operations" },
     { icon: CreditCard, label: "Payment Gateways", path: "/payment-gateways" },
-    { icon: BarChart3, label: "Reports", path: "/reports" },
-    { icon: TrendingUp, label: "Finance Analytics", path: "/finance-analytics" },
     { icon: FileText, label: "System Logs", path: "/audit-logs" },
-    { icon: Share2, label: "Referrals", path: "/referrals" },
     { icon: Mic, label: "Virtual Assistant", path: "/voice" },
     { icon: Bell, label: "Notifications", path: "/notifications" },
   ];

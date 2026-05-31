@@ -895,7 +895,7 @@ function ReportsTab({ activeBrandId }: { activeBrandId: string|null }) {
 }
 
 /* ─── Finance Analytics Tab ──────────────────────────────────── */
-function FinanceAnalyticsTab() {
+function FinanceAnalyticsTab({ brands }: { brands: any[] }) {
   const [analytics, setAnalytics] = React.useState<any[]>([]);
   const [invoices, setInvoices] = React.useState<any[]>([]);
   const [payments, setPayments] = React.useState<any[]>([]);
@@ -907,7 +907,7 @@ function FinanceAnalyticsTab() {
   const [refundNotes, setRefundNotes] = React.useState("");
   const [couponOpen, setCouponOpen] = React.useState(false);
   const [couponEditId, setCouponEditId] = React.useState<string|null>(null);
-  const [couponForm, setCouponForm] = React.useState({ code: "", discount_type: "percent", discount_value: "", expires_at: "", max_uses: "" });
+  const [couponForm, setCouponForm] = React.useState({ code: "", discount_type: "percent", discount_value: "", expires_at: "", max_uses: "", brand_id: "" });
 
   const loadAll = React.useCallback(async () => {
     const [inv, pay, ref, coup, anal] = await Promise.all([
@@ -938,7 +938,7 @@ function FinanceAnalyticsTab() {
     if (couponEditId) { await couponsApi.update(couponEditId, payload); }
     else { await couponsApi.create(payload); }
     setCouponOpen(false); setCouponEditId(null);
-    setCouponForm({ code: "", discount_type: "percent", discount_value: "", expires_at: "", max_uses: "" });
+    setCouponForm({ code: "", discount_type: "percent", discount_value: "", expires_at: "", max_uses: "", brand_id: "" });
     loadAll();
   };
 
@@ -1062,7 +1062,7 @@ function FinanceAnalyticsTab() {
                   <td className="p-2">{c.current_uses ?? 0}/{c.max_uses ?? "∞"}</td>
                   <td className="p-2"><Badge className={c.is_active ? "bg-emerald-500/20 text-emerald-400" : "bg-muted text-muted-foreground"}>{c.is_active ? "Active" : "Off"}</Badge></td>
                   <td className="p-2 flex gap-1">
-                    <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={() => { setCouponEditId(c.id); setCouponForm({ code: c.code, discount_type: c.discount_type, discount_value: String(c.discount_value), expires_at: c.expires_at || "", max_uses: c.max_uses ? String(c.max_uses) : "" }); setCouponOpen(true); }}><Pencil className="w-3 h-3"/></Button>
+                    <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={() => { setCouponEditId(c.id); setCouponForm({ code: c.code, discount_type: c.discount_type, discount_value: String(c.discount_value), expires_at: c.expires_at || "", max_uses: c.max_uses ? String(c.max_uses) : "", brand_id: c.brand_id || "" }); setCouponOpen(true); }}><Pencil className="w-3 h-3"/></Button>
                     <Button size="sm" variant="ghost" className="h-6 w-6 p-0 text-destructive" onClick={() => removeCoupon(c.id)}><Trash2 className="w-3 h-3"/></Button>
                   </td>
                 </tr>
@@ -1096,6 +1096,13 @@ function FinanceAnalyticsTab() {
         <DialogContent>
           <DialogHeader><DialogTitle>{couponEditId ? "Edit Coupon" : "New Coupon"}</DialogTitle></DialogHeader>
           <div className="space-y-3">
+            <div>
+              <Label className="text-xs">Brand</Label>
+              <Select value={couponForm.brand_id} onValueChange={v => setCouponForm(f => ({...f, brand_id: v}))}>
+                <SelectTrigger className="mt-1 text-xs"><SelectValue placeholder="Select brand…"/></SelectTrigger>
+                <SelectContent>{brands.map(b => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
             <div><Label className="text-xs">Code</Label><Input className="mt-1 text-xs" value={couponForm.code} onChange={e => setCouponForm(f => ({...f, code: e.target.value}))} placeholder="SAVE20"/></div>
             <div><Label className="text-xs">Type</Label>
               <Select value={couponForm.discount_type} onValueChange={v => setCouponForm(f => ({...f, discount_type: v}))}>
@@ -1931,7 +1938,7 @@ export default function BrandsHub() {
           </TabsContent>
 
           <TabsContent value="finance" className="mt-2">
-            <FinanceAnalyticsTab/>
+            <FinanceAnalyticsTab brands={brands}/>
           </TabsContent>
 
           <TabsContent value="users" className="mt-2">
