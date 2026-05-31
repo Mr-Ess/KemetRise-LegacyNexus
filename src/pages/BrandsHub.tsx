@@ -4,7 +4,7 @@ import {
   ArrowLeft, Crown, FolderOpen, Briefcase, Building2, Users, UserCheck, Handshake,
   Plus, Edit, Trash2, Search, ExternalLink, BarChart2,
   MapPin, Globe, Mail, Phone, DollarSign, Package,
-  Upload, Save, User, Megaphone, FileText, Pencil, X, Link2, Cpu,
+  Upload, Save, User, Megaphone, FileText, Pencil, X, Link2, Cpu, MessageSquare,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,7 +21,7 @@ import { useEntities } from "@/hooks/useEntities";
 import { useExtTable } from "@/hooks/useExtTable";
 import ExportButton from "@/components/shared/ExportButton";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import type { Brand, Owner, TeamMember, ProductItem, DocFile, MarketingPlan, SocialLinks } from "@/context/BrandsContext";
+import type { Brand, Owner, TeamMember, ProductItem, DocFile, MarketingPlan, SocialLinks, ResponsiblePersonContact } from "@/context/BrandsContext";
 import StaffMetrics from "@/components/shared/StaffMetrics";
 import { ActivityTimeline } from "@/components/shared/ActivityTimeline";
 import { Comments } from "@/components/shared/Comments";
@@ -759,6 +759,9 @@ function BrandsManageTab() {
   const [marketingPlans, setMarketingPlans] = useState<MarketingPlan[]>([]);
   const [companyProfiles, setCompanyProfiles] = useState<DocFile[]>([]);
   const [socialLinks, setSocialLinks] = useState<SocialLinks>({ website: "", facebook: "", instagram: "", twitter: "", linkedin: "", tiktok: "" });
+  const [responsiblePersonContact, setResponsiblePersonContact] = useState<ResponsiblePersonContact>({ phone: "", email: "", whatsapp: "", linkedin: "", twitter: "" });
+
+  const emptyRpc = (): ResponsiblePersonContact => ({ phone: "", email: "", whatsapp: "", linkedin: "", twitter: "" });
 
   const resetForm = () => {
     setName(""); setAddress(""); setIndustry(""); setLogoUrl("");
@@ -767,6 +770,7 @@ function BrandsManageTab() {
     setTeam([]); setProducts([{ id: crypto.randomUUID(), name: "", description: "" }]);
     setLegalDocs([]); setFinancialDocs([]); setMarketingPlans([]); setCompanyProfiles([]);
     setSocialLinks({ website: "", facebook: "", instagram: "", twitter: "", linkedin: "", tiktok: "" });
+    setResponsiblePersonContact(emptyRpc());
     setEditId(null);
   };
   const openNew = () => { resetForm(); setSheetOpen(true); };
@@ -779,12 +783,13 @@ function BrandsManageTab() {
     setLegalDocs(b.legalDocs); setFinancialDocs(b.financialDocs);
     setMarketingPlans(b.marketingPlans); setCompanyProfiles(b.companyProfiles||[]);
     setSocialLinks(b.socialLinks||{ website:"",facebook:"",instagram:"",twitter:"",linkedin:"",tiktok:"" });
+    setResponsiblePersonContact(b.responsiblePersonContact||emptyRpc());
     setSheetOpen(true);
   }, []);
 
   const handleSubmit = async () => {
     if (!name.trim()) { toast.error("Brand name is required"); return; }
-    const data = { name, address, industry, logoUrl, socialLinks, responsiblePerson, humanCount, aiCount,
+    const data = { name, address, industry, logoUrl, socialLinks, responsiblePerson, responsiblePersonContact, humanCount, aiCount,
       companyProfiles: companyProfiles.filter(d => d.name), owners: owners.filter(o => o.name.trim()),
       team: team.filter(t => t.name.trim()), products: products.filter(p => p.name.trim()),
       legalDocs: legalDocs.filter(d => d.name), financialDocs: financialDocs.filter(d => d.name),
@@ -873,7 +878,7 @@ function BrandsManageTab() {
                   {detail.address&&<div><p className="text-[10px] text-muted-foreground uppercase">Address</p><p>{detail.address}</p></div>}
                   {detail.industry&&<div><p className="text-[10px] text-muted-foreground uppercase">Industry</p><p>{detail.industry}</p></div>}
                   <div><p className="text-[10px] text-muted-foreground uppercase">Created</p><p>{new Date(detail.createdAt).toLocaleDateString()}</p></div>
-                  {detail.responsiblePerson&&<div><p className="text-[10px] text-muted-foreground uppercase">Key Person</p><p>{detail.responsiblePerson}</p></div>}
+                  {detail.responsiblePerson&&<div className="col-span-2"><p className="text-[10px] text-muted-foreground uppercase">Key Person</p><p>{detail.responsiblePerson}</p>{detail.responsiblePersonContact&&Object.values(detail.responsiblePersonContact).some(v=>v)&&(<div className="flex flex-wrap gap-3 mt-1">{detail.responsiblePersonContact.phone&&<span className="flex items-center gap-1 text-xs text-muted-foreground"><Phone className="w-3 h-3"/>{detail.responsiblePersonContact.phone}</span>}{detail.responsiblePersonContact.email&&<span className="flex items-center gap-1 text-xs text-muted-foreground"><Mail className="w-3 h-3"/>{detail.responsiblePersonContact.email}</span>}{detail.responsiblePersonContact.whatsapp&&<span className="flex items-center gap-1 text-xs text-muted-foreground"><MessageSquare className="w-3 h-3"/>{detail.responsiblePersonContact.whatsapp}</span>}{detail.responsiblePersonContact.linkedin&&<a href={detail.responsiblePersonContact.linkedin} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-xs text-primary hover:underline"><Link2 className="w-3 h-3"/>LinkedIn</a>}{detail.responsiblePersonContact.twitter&&<a href={detail.responsiblePersonContact.twitter} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-xs text-primary hover:underline"><Link2 className="w-3 h-3"/>Twitter</a>}</div>)}</div>}
                 </div>
                 {(detail.humanCount||detail.aiCount)?<StaffMetrics humanCount={detail.humanCount||0} aiCount={detail.aiCount||0}/>:null}
                 {Object.values(detail.socialLinks||{}).some(v=>v)&&(<><SH icon={Globe} title="Social & Links"/><div className="flex flex-wrap gap-2">{Object.entries(detail.socialLinks).filter(([,v])=>v).map(([k,v])=><a key={k} href={v as string} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 px-2.5 py-1 bg-secondary rounded-md text-xs text-primary hover:bg-secondary/80 capitalize"><Link2 className="w-3 h-3"/>{k}</a>)}</div></>)}
@@ -943,6 +948,16 @@ function BrandsManageTab() {
                 <div><Label className="text-xs">Business Address</Label><Input value={address} onChange={e=>setAddress(e.target.value)} placeholder="Address" className="mt-1 bg-secondary border-border"/></div>
                 <div><Label className="text-xs">Industry</Label><Input value={industry} onChange={e=>setIndustry(e.target.value)} placeholder="e.g. Jewelry, Tech" className="mt-1 bg-secondary border-border"/></div>
                 <div><Label className="text-xs">Key Person</Label><Input value={responsiblePerson} onChange={e=>setResponsiblePerson(e.target.value)} placeholder="Name" className="mt-1 bg-secondary border-border"/></div>
+              </div>
+              <div className="mt-3 p-3 bg-secondary/30 rounded-md border border-border space-y-2">
+                <p className="text-[11px] text-muted-foreground font-medium">Key Person Contact</p>
+                <div className="grid grid-cols-2 gap-2">
+                  <div><Label className="text-xs">Phone</Label><Input value={responsiblePersonContact.phone} onChange={e=>setResponsiblePersonContact(p=>({...p,phone:e.target.value}))} placeholder="+20…" className="mt-1 bg-secondary border-border text-xs"/></div>
+                  <div><Label className="text-xs">Email</Label><Input value={responsiblePersonContact.email} onChange={e=>setResponsiblePersonContact(p=>({...p,email:e.target.value}))} placeholder="email@…" className="mt-1 bg-secondary border-border text-xs"/></div>
+                  <div><Label className="text-xs">WhatsApp</Label><Input value={responsiblePersonContact.whatsapp} onChange={e=>setResponsiblePersonContact(p=>({...p,whatsapp:e.target.value}))} placeholder="+20…" className="mt-1 bg-secondary border-border text-xs"/></div>
+                  <div><Label className="text-xs">Twitter</Label><Input value={responsiblePersonContact.twitter} onChange={e=>setResponsiblePersonContact(p=>({...p,twitter:e.target.value}))} placeholder="@handle or URL" className="mt-1 bg-secondary border-border text-xs"/></div>
+                  <div className="col-span-2"><Label className="text-xs">LinkedIn</Label><Input value={responsiblePersonContact.linkedin} onChange={e=>setResponsiblePersonContact(p=>({...p,linkedin:e.target.value}))} placeholder="linkedin.com/in/…" className="mt-1 bg-secondary border-border text-xs"/></div>
+                </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div><Label className="text-xs">Human Staff</Label><Input type="number" min={0} value={humanCount} onChange={e=>setHumanCount(+e.target.value)} className="mt-1 bg-secondary border-border"/></div>

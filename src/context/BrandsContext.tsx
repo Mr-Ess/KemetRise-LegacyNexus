@@ -9,6 +9,7 @@ export type ProductItem = { id: string; name: string; description: string; attac
 export type DocFile = { id: string; name: string; url?: string };
 export type MarketingPlan = { id: string; title: string; description: string; attachmentName?: string };
 export type SocialLinks = { website: string; facebook: string; instagram: string; twitter: string; linkedin: string; tiktok: string; };
+export type ResponsiblePersonContact = { phone: string; email: string; whatsapp: string; linkedin: string; twitter: string; };
 
 export type Brand = {
   id: string;
@@ -17,6 +18,7 @@ export type Brand = {
   address: string;
   industry: string;
   responsiblePerson?: string;
+  responsiblePersonContact?: ResponsiblePersonContact;
   humanCount?: number;
   aiCount?: number;
   owners: Owner[];
@@ -53,6 +55,7 @@ const rowToBrand = (r: any): Brand => {
     address: r.address ?? d.address ?? "",
     industry: r.industry ?? d.industry ?? "",
     responsiblePerson: d.responsiblePerson,
+    responsiblePersonContact: d.responsiblePersonContact || { phone:"", email:"", whatsapp:"", linkedin:"", twitter:"" },
     humanCount: r.human_count ?? d.humanCount,
     aiCount: r.ai_count ?? d.aiCount,
     owners: d.owners || [],
