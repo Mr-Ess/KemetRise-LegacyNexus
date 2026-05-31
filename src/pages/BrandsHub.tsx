@@ -6,7 +6,7 @@ import {
   MapPin, Globe, Mail, Phone, DollarSign, Package,
   Upload, Save, User, Megaphone, FileText, Pencil, X, Link2, Cpu, MessageSquare,
   Paperclip, ScrollText, ShieldCheck, Shield, Bot, Layers, Network, List, Play,
-  RefreshCw, Copy, GitBranch,
+  RefreshCw, Copy, GitBranch, TrendingUp, Award, Activity, ChevronDown, ChevronUp,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,6 +31,11 @@ import type { Brand, Owner, TeamMember, ProductItem, DocFile, MarketingPlan, Soc
 import StaffMetrics from "@/components/shared/StaffMetrics";
 import { ActivityTimeline } from "@/components/shared/ActivityTimeline";
 import { Comments } from "@/components/shared/Comments";
+import ApiIntegrationStatus from "@/components/dashboard/ApiIntegrationStatus";
+import EntityFileUpload from "@/components/shared/EntityFileUpload";
+import EntityApiHub from "@/components/shared/EntityApiHub";
+import ResponsiblePerson, { summarizeKeyPersons } from "@/components/shared/ResponsiblePerson";
+import { SavedViews } from "@/components/shared/SavedViews";
 import { toast } from "sonner";
 
 /* ─── helpers ───────────────────────────────────────────────── */
@@ -521,6 +526,558 @@ function EntityTab({ items, loading, create, update, remove, title, columns, fie
   );
 }
 
+/* ═══════════════════════════════════ AFFILIATES HUB TAB ══════ */
+
+type AffiliateRow = {
+  id: string; name: string; code: string; commission: string;
+  referrals: number; status: "Active" | "Inactive"; region: string;
+  email: string; phone: string; notes: string; responsiblePerson: string;
+  humanCount: number; aiCount: number; files: any[];
+};
+type AgentRow = {
+  id: string; agent_name: string; commission_rate: number;
+  total_sales: number; status: string; affiliate_id: string; notes: string;
+};
+const emptyAff = (): Omit<AffiliateRow,"id"> => ({
+  name:"",code:"",commission:"",referrals:0,status:"Active",region:"",
+  email:"",phone:"",notes:"",responsiblePerson:"",humanCount:0,aiCount:0,files:[],
+});
+const emptyAgent = (): Omit<AgentRow,"id"> => ({
+  agent_name:"",commission_rate:0.05,total_sales:0,status:"active",affiliate_id:"",notes:"",
+});
+
+function CommissionBar({ rate }: { rate: number }) {
+  const pct = Math.min((rate||0)*100,100);
+  return (
+    <div className="flex items-center gap-2">
+      <div className="w-20 h-1.5 bg-secondary rounded-full overflow-hidden">
+        <div className="h-full bg-emerald-500 rounded-full" style={{ width:`${pct}%` }}/>
+      </div>
+      <span className="text-xs font-mono">{pct.toFixed(1)}%</span>
+    </div>
+  );
+}
+
+function AffiliatesHubTab({ activeBrandId, brands }: { activeBrandId: string|null; brands: any[] }) {
+  const { items: rows, create, update, remove } = useEntities("affiliates");
+
+  // map rows → typed affiliates (filter by activeBrandId if set)
+  const allItems: AffiliateRow[] = React.useMemo(() => rows.map(r => ({
+    id: r.id,
+    ...emptyAff(),
+    ...(r.data as any),
+    name:              (r as any).name              ?? (r.data as any)?.name              ?? "",
+    code:              (r as any).code              ?? (r.data as any)?.code              ?? "",
+    commission:        (r as any).commission        ?? (r.data as any)?.commission        ?? "",
+    referrals:         (r as any).referrals         ?? (r.data as any)?.referrals         ?? 0,
+    region:            (r as any).region            ?? (r.data as any)?.region            ?? "",
+    email:             (r as any).email             ?? (r.data as any)?.email             ?? "",
+    phone:             (r as any).phone             ?? (r.data as any)?.phone             ?? "",
+    notes:             (r as any).notes             ?? (r.data as any)?.notes             ?? "",
+    humanCount:        (r as any).human_count       ?? (r.data as any)?.humanCount        ?? 0,
+    aiCount:           (r as any).ai_count          ?? (r.data as any)?.aiCount           ?? 0,
+    responsiblePerson: (r as any).responsible_person ?? (r.data as any)?.responsiblePerson ?? "",
+    status:  (r as any).status === "inactive" ? "Inactive" : ((r.data as any)?.status ?? "Active"),
+    brand_id: (r as any).brand_id ?? null,
+  })), [rows]);
+
+  const items: AffiliateRow[] = React.useMemo(
+    () => activeBrandId ? allItems.filter((a: any) => a.brand_id === activeBrandId) : allItems,
+    [allItems, activeBrandId]
+  );
+
+  const [agents, setAgents] = React.useState<AgentRow[]>([]);
+  const loadAgents = () => extApi.list("affiliated_agents",{ order:"id" }).then(d => setAgents(d as AgentRow[])).catch(()=>{});
+  React.useEffect(() => { loadAgents(); }, []);
+
+  // KPIs
+  const activeAffiliates = items.filter(a=>a.status==="Active").length;
+  const activeAgents     = agents.filter(a=>a.status==="active").length;
+  const totalSales       = agents.reduce((s,a)=>s+(a.total_sales||0),0);
+  const totalCommission  = agents.reduce((s,a)=>s+(a.total_sales||0)*(a.commission_rate||0),0);
+  const totalReferrals   = items.reduce((s,a)=>s+(a.referrals||0),0);
+  const topAffiliate     = [...items].sort((a,b)=>b.referrals-a.referrals)[0];
+  const affiliateName    = (id:string) => items.find(a=>a.id===id)?.name ?? (id?"Unknown":"—");
+  const agentCountFor    = (id:string) => agents.filter(a=>a.affiliate_id===id).length;
+
+  // Affiliate form
+  const [showForm,setShowForm]  = React.useState(false);
+  const [editId,setEditId]      = React.useState<string|null>(null);
+  const [deleteId,setDeleteId]  = React.useState<string|null>(null);
+  const [detailId,setDetailId]  = React.useState<string|null>(null);
+  const [statusFilter,setStatusFilter] = React.useState("all");
+  const [affSearch,setAffSearch]  = React.useState("");
+  const [expandedAff,setExpandedAff] = React.useState<string|null>(null);
+  const [form,setForm]            = React.useState<Omit<AffiliateRow,"id">>(emptyAff());
+  const [selectedBrandId,setSelectedBrandId] = React.useState<string>(activeBrandId ?? "");
+
+  React.useEffect(() => { setSelectedBrandId(activeBrandId ?? ""); }, [activeBrandId]);
+
+  const resetForm = () => { setForm(emptyAff()); setEditId(null); setSelectedBrandId(activeBrandId ?? ""); };
+  const openEdit  = (a: AffiliateRow) => {
+    const { id, ...rest } = a; setForm(rest); setEditId(a.id);
+    setSelectedBrandId((a as any).brand_id ?? "");
+    setShowForm(true);
+  };
+
+  const handleSubmit = async () => {
+    if (!form.name.trim()) { toast.error("Name required"); return; }
+    const payload = {
+      name: form.name, status: form.status==="Active"?"active":"inactive",
+      code: form.code||null, commission: form.commission||null,
+      referrals: form.referrals||0, region: form.region||null,
+      email: form.email||null, phone: form.phone||null, notes: form.notes||null,
+      human_count: form.humanCount||0, ai_count: form.aiCount||0,
+      responsible_person: form.responsiblePerson||null,
+      brand_id: selectedBrandId || null,
+      data: form,
+    };
+    if (editId) { await update(editId, payload); toast.success("Updated"); }
+    else        { await create(payload); toast.success("Created"); }
+    setShowForm(false); resetForm();
+  };
+
+  const filteredAffiliates = React.useMemo(() => {
+    let list = statusFilter==="all" ? items : items.filter(a=>a.status===statusFilter);
+    if (affSearch.trim())
+      list = list.filter(a =>
+        a.name.toLowerCase().includes(affSearch.toLowerCase()) ||
+        a.code.toLowerCase().includes(affSearch.toLowerCase()) ||
+        a.region.toLowerCase().includes(affSearch.toLowerCase())
+      );
+    return list;
+  }, [items, statusFilter, affSearch]);
+
+  // Agent form
+  const [agentOpen,setAgentOpen]      = React.useState(false);
+  const [agentEditId,setAgentEditId]  = React.useState<string|null>(null);
+  const [agentSearch,setAgentSearch]  = React.useState("");
+  const [agentStatus,setAgentStatus]  = React.useState("all");
+  const [agentAffFilter,setAgentAffFilter] = React.useState("all");
+  const [agentForm,setAgentForm]      = React.useState<Omit<AgentRow,"id">>(emptyAgent());
+
+  const openAgentEdit = (a: AgentRow) => { const { id, ...rest } = a; setAgentForm(rest); setAgentEditId(a.id); setAgentOpen(true); };
+  const openAgentNew  = (defaultAff="") => { setAgentEditId(null); setAgentForm({ ...emptyAgent(), affiliate_id: defaultAff }); setAgentOpen(true); };
+  const saveAgent = async () => {
+    if (!agentForm.agent_name.trim()) { toast.error("Agent name required"); return; }
+    try {
+      if (agentEditId) await extApi.update("affiliated_agents",agentEditId,agentForm);
+      else             await extApi.create("affiliated_agents",agentForm);
+      toast.success("Saved"); setAgentOpen(false); setAgentEditId(null); loadAgents();
+    } catch (e:any) { toast.error(e.message); }
+  };
+  const removeAgent = async (id:string) => {
+    if (!confirm("Delete this agent?")) return;
+    await extApi.remove("affiliated_agents",id); toast.success("Deleted"); loadAgents();
+  };
+  const filteredAgents = React.useMemo(() => {
+    let list = agents;
+    if (agentStatus!=="all") list = list.filter(a=>a.status===agentStatus);
+    if (agentAffFilter!=="all") list = list.filter(a=>a.affiliate_id===agentAffFilter);
+    if (agentSearch.trim())
+      list = list.filter(a =>
+        a.agent_name.toLowerCase().includes(agentSearch.toLowerCase()) ||
+        affiliateName(a.affiliate_id).toLowerCase().includes(agentSearch.toLowerCase())
+      );
+    return list;
+  }, [agents, agentStatus, agentAffFilter, agentSearch, items]);
+
+  const commissionRows = React.useMemo(() =>
+    items.map(af => {
+      const linked = agents.filter(a=>a.affiliate_id===af.id);
+      const sales  = linked.reduce((s,a)=>s+(a.total_sales||0),0);
+      const owed   = linked.reduce((s,a)=>s+(a.total_sales||0)*(a.commission_rate||0),0);
+      return { ...af, agentCount: linked.length, totalSales: sales, commissionOwed: owed };
+    }).sort((a,b)=>b.commissionOwed-a.commissionOwed),
+  [items, agents]);
+
+  const detail = detailId ? items.find(a=>a.id===detailId) : null;
+
+  // KPI card (local, no sub prop needed — reuse BrandsHub KpiCard which only takes value)
+  const KpiA = ({ icon: Icon, label, value, sub, color="primary" }: any) => {
+    const c: Record<string,string> = {
+      primary:"border-primary text-primary", blue:"border-blue-500 text-blue-400",
+      emerald:"border-emerald-500 text-emerald-400", amber:"border-amber-500 text-amber-400",
+      violet:"border-violet-500 text-violet-400", rose:"border-rose-500 text-rose-400",
+    };
+    return (
+      <Card className={`border-l-4 ${c[color]||c.primary}`}>
+        <CardContent className="p-4 flex items-center gap-3">
+          <Icon className={`w-8 h-8 opacity-70 ${(c[color]||c.primary).split(" ")[1]}`}/>
+          <div>
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{label}</p>
+            <p className="text-2xl font-bold">{value}</p>
+            {sub && <p className="text-[10px] text-muted-foreground">{sub}</p>}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Brand filter pill */}
+      {brands.length > 0 && (
+        <div className="flex items-center gap-2 flex-wrap p-3 bg-secondary/30 rounded-lg border border-border">
+          <Crown className="w-4 h-4 text-primary shrink-0"/>
+          <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider mr-1">Brand:</span>
+          <button onClick={()=>setSelectedBrandId("")} className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${!selectedBrandId?"bg-primary text-primary-foreground":"bg-secondary hover:bg-secondary/80"}`}>All</button>
+          {brands.map(b=>(
+            <button key={b.id} onClick={()=>setSelectedBrandId(b.id===selectedBrandId?"":b.id)} className={`px-3 py-1 rounded-full text-xs font-medium transition-colors flex items-center gap-1 ${selectedBrandId===b.id?"bg-primary text-primary-foreground":"bg-secondary hover:bg-secondary/80"}`}>
+              {b.logoUrl&&<img src={b.logoUrl} alt="" className="w-3 h-3 rounded-full object-cover"/>}{b.name}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* KPIs */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+        <KpiA icon={UserCheck}  label="Affiliates"      value={items.length}                        sub={`${activeAffiliates} active`} color="primary"/>
+        <KpiA icon={Users}      label="Agents"          value={agents.length}                       sub={`${activeAgents} active`}     color="blue"/>
+        <KpiA icon={TrendingUp} label="Total Sales"     value={`$${totalSales.toLocaleString()}`}   sub="all agents"                   color="emerald"/>
+        <KpiA icon={DollarSign} label="Commission"      value={`$${totalCommission.toFixed(0)}`}    sub="pending payout"               color="amber"/>
+        <KpiA icon={Activity}   label="Referrals"       value={totalReferrals}                      sub="from affiliates"              color="violet"/>
+        <KpiA icon={Award}      label="Top Region"      value={topAffiliate?.region||"—"}           sub={topAffiliate?.name||""}       color="rose"/>
+      </div>
+
+      <Tabs defaultValue="overview">
+        <TabsList className="grid w-full grid-cols-4 max-w-xl mb-4">
+          <TabsTrigger value="overview"><BarChart2 className="w-3.5 h-3.5 mr-1"/>Overview</TabsTrigger>
+          <TabsTrigger value="affiliates"><UserCheck className="w-3.5 h-3.5 mr-1"/>Affiliates ({items.length})</TabsTrigger>
+          <TabsTrigger value="agents"><Users className="w-3.5 h-3.5 mr-1"/>Agents ({agents.length})</TabsTrigger>
+          <TabsTrigger value="commissions"><DollarSign className="w-3.5 h-3.5 mr-1"/>Commissions</TabsTrigger>
+        </TabsList>
+
+        {/* ── Overview ── */}
+        <TabsContent value="overview">
+          <div className="grid md:grid-cols-2 gap-6">
+            <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-display flex items-center gap-2"><Award className="w-4 h-4 text-amber-400"/>Top Affiliates by Referrals</CardTitle></CardHeader>
+              <CardContent className="space-y-3">
+                {[...items].sort((a,b)=>b.referrals-a.referrals).slice(0,5).map((a,i)=>(
+                  <div key={a.id} className="flex items-center gap-3">
+                    <span className="text-xs text-muted-foreground w-4">{i+1}</span>
+                    <div className="flex-1">
+                      <div className="flex justify-between text-xs mb-1"><span className="font-medium">{a.name}</span><span className="text-primary">{a.referrals}</span></div>
+                      <div className="w-full h-1.5 bg-secondary rounded-full"><div className="h-full bg-primary rounded-full" style={{width:`${Math.min((a.referrals/([...items].sort((x,y)=>y.referrals-x.referrals)[0]?.referrals||1))*100,100)}%`}}/></div>
+                    </div>
+                  </div>
+                ))}
+                {items.length===0&&<p className="text-xs text-muted-foreground text-center py-4">No affiliates yet</p>}
+              </CardContent>
+            </Card>
+            <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-display flex items-center gap-2"><TrendingUp className="w-4 h-4 text-emerald-400"/>Top Agents by Sales</CardTitle></CardHeader>
+              <CardContent className="space-y-3">
+                {[...agents].sort((a,b)=>(b.total_sales||0)-(a.total_sales||0)).slice(0,5).map((a,i)=>{
+                  const maxS=[...agents].sort((x,y)=>(y.total_sales||0)-(x.total_sales||0))[0]?.total_sales||1;
+                  return (
+                    <div key={a.id} className="flex items-center gap-3">
+                      <span className="text-xs text-muted-foreground w-4">{i+1}</span>
+                      <div className="flex-1">
+                        <div className="flex justify-between text-xs mb-1"><span className="font-medium">{a.agent_name}</span><span className="text-emerald-400">${(a.total_sales||0).toLocaleString()}</span></div>
+                        <div className="w-full h-1.5 bg-secondary rounded-full"><div className="h-full bg-emerald-500 rounded-full" style={{width:`${Math.min(((a.total_sales||0)/maxS)*100,100)}%`}}/></div>
+                      </div>
+                    </div>
+                  );
+                })}
+                {agents.length===0&&<p className="text-xs text-muted-foreground text-center py-4">No agents yet</p>}
+              </CardContent>
+            </Card>
+            <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-display flex items-center gap-2"><Activity className="w-4 h-4 text-blue-400"/>Status Breakdown</CardTitle></CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 gap-6">
+                  <div className="space-y-2"><p className="text-[10px] text-muted-foreground font-display uppercase tracking-wider">Affiliates</p>
+                    <div className="flex justify-between text-xs"><span className="text-emerald-400">● Active</span><span className="font-bold">{activeAffiliates}</span></div>
+                    <div className="flex justify-between text-xs"><span className="text-muted-foreground">● Inactive</span><span>{items.length-activeAffiliates}</span></div>
+                  </div>
+                  <div className="space-y-2"><p className="text-[10px] text-muted-foreground font-display uppercase tracking-wider">Agents</p>
+                    <div className="flex justify-between text-xs"><span className="text-emerald-400">● Active</span><span className="font-bold">{activeAgents}</span></div>
+                    <div className="flex justify-between text-xs"><span className="text-amber-400">● Inactive</span><span>{agents.filter(a=>a.status==="inactive").length}</span></div>
+                    <div className="flex justify-between text-xs"><span className="text-rose-400">● Suspended</span><span>{agents.filter(a=>a.status==="suspended").length}</span></div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-display flex items-center gap-2"><DollarSign className="w-4 h-4 text-amber-400"/>Commission Summary</CardTitle></CardHeader>
+              <CardContent className="space-y-3">
+                <div className="flex justify-between text-sm border-b pb-2"><span className="text-muted-foreground">Total Sales</span><span className="font-bold text-emerald-400">${totalSales.toLocaleString()}</span></div>
+                <div className="flex justify-between text-sm border-b pb-2"><span className="text-muted-foreground">Commission Owed</span><span className="font-bold text-amber-400">${totalCommission.toFixed(2)}</span></div>
+                <div className="flex justify-between text-sm border-b pb-2"><span className="text-muted-foreground">Avg Rate</span><span className="font-bold">{agents.length>0?`${(agents.reduce((s,a)=>s+(a.commission_rate||0),0)/agents.length*100).toFixed(1)}%`:"—"}</span></div>
+                <div className="flex justify-between text-sm"><span className="text-muted-foreground">Unlinked Agents</span><span className={agents.filter(a=>!a.affiliate_id).length>0?"text-amber-400 font-bold":""}>{agents.filter(a=>!a.affiliate_id).length}</span></div>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        {/* ── Affiliates list ── */}
+        <TabsContent value="affiliates">
+          <div className="flex flex-wrap items-center gap-2 mb-3">
+            <div className="relative flex-1 min-w-[200px]"><Search className="absolute left-3 top-2.5 w-3.5 h-3.5 text-muted-foreground"/><Input placeholder="Search affiliates…" className="pl-9 h-8 text-xs" value={affSearch} onChange={e=>setAffSearch(e.target.value)}/></div>
+            <ExportButton data={filteredAffiliates as any[]} filename="affiliates" title="Affiliates"/>
+            <SavedViews page="affiliates" currentFilters={{ statusFilter }} onApply={(f:any)=>setStatusFilter(f.statusFilter??"all")}/>
+            <Button onClick={()=>{resetForm();setShowForm(true);}} className="gap-1 font-display text-xs"><Plus className="w-4 h-4"/>Add Affiliate</Button>
+          </div>
+          <div className="flex items-center gap-2 mb-4">
+            {["all","Active","Inactive"].map(s=>(
+              <button key={s} onClick={()=>setStatusFilter(s)} className={`px-3 py-1 rounded-md text-xs font-display transition-colors ${statusFilter===s?"bg-primary/20 text-primary border border-primary/30":"text-muted-foreground border border-transparent"}`}>{s==="all"?"All":s}</button>
+            ))}
+          </div>
+          <div className="space-y-3">
+            {filteredAffiliates.map(a=>{
+              const isExpanded   = expandedAff===a.id;
+              const linkedAgents = agents.filter(ag=>ag.affiliate_id===a.id);
+              return (
+                <div key={a.id} className="bg-card border border-border rounded-lg overflow-hidden hover:border-primary/30 transition-colors">
+                  <div className="p-4 cursor-pointer" onClick={()=>setDetailId(a.id)}>
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <h3 className="font-display text-sm">{a.name}</h3>
+                          {agentCountFor(a.id)>0&&<Badge variant="outline" className="text-[9px] px-1.5">{agentCountFor(a.id)} agent{agentCountFor(a.id)>1?"s":""}</Badge>}
+                        </div>
+                        {a.responsiblePerson&&<p className="text-[10px] text-primary mt-0.5">Key Person: {summarizeKeyPersons(a.responsiblePerson)}</p>}
+                        <div className="flex items-center gap-3 mt-2 flex-wrap">
+                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-primary/20 text-primary">{a.code}</span>
+                          <span className="text-xs text-emerald-400 font-display">{a.commission}</span>
+                          <span className="text-xs text-muted-foreground">{a.referrals} referrals</span>
+                          {a.region&&<span className="text-xs text-muted-foreground">{a.region}</span>}
+                          <span className={`text-[10px] px-2 py-0.5 rounded-full ${a.status==="Active"?"bg-emerald-500/20 text-emerald-400":"bg-muted text-muted-foreground"}`}>{a.status}</span>
+                        </div>
+                        {a.email&&<p className="text-[10px] text-muted-foreground mt-1">{a.email}{a.phone&&` • ${a.phone}`}</p>}
+                        <div className="mt-2"><StaffMetrics humanCount={a.humanCount} aiCount={a.aiCount}/></div>
+                      </div>
+                      <div className="flex gap-1" onClick={e=>e.stopPropagation()}>
+                        {linkedAgents.length>0&&(
+                          <button onClick={()=>setExpandedAff(isExpanded?null:a.id)} className="p-1.5 rounded-md text-muted-foreground hover:text-blue-400 hover:bg-blue-400/10">
+                            {isExpanded?<ChevronUp className="w-3.5 h-3.5"/>:<ChevronDown className="w-3.5 h-3.5"/>}
+                          </button>
+                        )}
+                        <button onClick={()=>openEdit(a)} className="p-1.5 rounded-md text-muted-foreground hover:text-primary hover:bg-primary/10"><Edit className="w-3.5 h-3.5"/></button>
+                        <button onClick={()=>setDeleteId(a.id)} className="p-1.5 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10"><Trash2 className="w-3.5 h-3.5"/></button>
+                      </div>
+                    </div>
+                  </div>
+                  {isExpanded&&linkedAgents.length>0&&(
+                    <div className="border-t border-border bg-secondary/30 px-4 py-3">
+                      <div className="flex items-center justify-between mb-2">
+                        <p className="text-[10px] font-display text-muted-foreground uppercase tracking-wider">Linked Agents ({linkedAgents.length})</p>
+                        <Button size="sm" variant="outline" className="h-6 text-[10px]" onClick={()=>openAgentNew(a.id)}><Plus className="w-3 h-3 mr-1"/>Add Agent</Button>
+                      </div>
+                      <div className="space-y-1.5">
+                        {linkedAgents.map(ag=>(
+                          <div key={ag.id} className="flex items-center justify-between text-xs bg-card rounded-md px-3 py-1.5 gap-2">
+                            <span className="font-medium w-28 truncate">{ag.agent_name}</span>
+                            <CommissionBar rate={ag.commission_rate||0}/>
+                            <span className="text-emerald-400 w-20 text-right font-mono">${(ag.total_sales||0).toLocaleString()}</span>
+                            <Badge variant={ag.status==="active"?"default":"secondary"} className="text-[9px]">{ag.status}</Badge>
+                            <div className="flex gap-1 ml-1">
+                              <button onClick={()=>openAgentEdit(ag)} className="p-1 rounded hover:bg-primary/10"><Edit className="w-3 h-3 text-muted-foreground"/></button>
+                              <button onClick={()=>removeAgent(ag.id)} className="p-1 rounded hover:bg-destructive/10"><Trash2 className="w-3 h-3 text-destructive"/></button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+            {filteredAffiliates.length===0&&<p className="text-center text-muted-foreground text-sm py-12">No affiliates found</p>}
+          </div>
+          <div className="mt-6"><ApiIntegrationStatus/></div>
+        </TabsContent>
+
+        {/* ── Agents ── */}
+        <TabsContent value="agents">
+          <div className="flex flex-wrap items-center gap-2 mb-4">
+            <div className="relative flex-1 min-w-[180px]"><Search className="absolute left-3 top-2.5 w-3.5 h-3.5 text-muted-foreground"/><Input placeholder="Search agents…" className="pl-9 h-8 text-xs" value={agentSearch} onChange={e=>setAgentSearch(e.target.value)}/></div>
+            <select value={agentStatus} onChange={e=>setAgentStatus(e.target.value)} className="h-8 text-xs rounded-md bg-secondary border border-border px-2 text-foreground">
+              <option value="all">All Status</option><option value="active">Active</option><option value="inactive">Inactive</option><option value="suspended">Suspended</option>
+            </select>
+            <select value={agentAffFilter} onChange={e=>setAgentAffFilter(e.target.value)} className="h-8 text-xs rounded-md bg-secondary border border-border px-2 text-foreground max-w-[160px]">
+              <option value="all">All Affiliates</option>{items.map(a=><option key={a.id} value={a.id}>{a.name}</option>)}
+            </select>
+            <ExportButton data={filteredAgents as any[]} filename="affiliated-agents" title="Agents"/>
+            <Button className="gap-1 font-display text-xs" onClick={()=>openAgentNew()}><Plus className="w-4 h-4"/>Add Agent</Button>
+          </div>
+          <Card className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-secondary/50 text-[11px] font-display uppercase tracking-wider">
+                <tr>
+                  <th className="text-left p-3">Name</th><th className="text-left p-3">Commission</th>
+                  <th className="text-left p-3">Sales</th><th className="text-left p-3">Earned</th>
+                  <th className="text-left p-3">Status</th><th className="text-left p-3">Affiliate</th>
+                  <th className="p-3"/>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredAgents.length===0
+                  ?<tr><td colSpan={7} className="p-12 text-center text-muted-foreground">No agents found</td></tr>
+                  :filteredAgents.map(a=>(
+                  <tr key={a.id} className="border-t border-border hover:bg-secondary/20 transition-colors">
+                    <td className="p-3 font-semibold">{a.agent_name}</td>
+                    <td className="p-3"><CommissionBar rate={a.commission_rate||0}/></td>
+                    <td className="p-3 font-bold text-emerald-400 font-mono">${(a.total_sales||0).toLocaleString()}</td>
+                    <td className="p-3 font-mono text-amber-400">${((a.total_sales||0)*(a.commission_rate||0)).toFixed(2)}</td>
+                    <td className="p-3"><Badge variant={a.status==="active"?"default":a.status==="suspended"?"destructive":"secondary"} className="text-[10px]">{a.status}</Badge></td>
+                    <td className="p-3 text-xs">{a.affiliate_id?<span className="px-2 py-0.5 rounded bg-primary/10 text-primary text-[10px]">{affiliateName(a.affiliate_id)}</span>:<span className="text-muted-foreground">—</span>}</td>
+                    <td className="p-3"><div className="flex gap-1">
+                      <Button size="sm" variant="ghost" onClick={()=>openAgentEdit(a)}><Edit className="w-3.5 h-3.5"/></Button>
+                      <Button size="sm" variant="ghost" onClick={()=>removeAgent(a.id)}><Trash2 className="w-3.5 h-3.5 text-destructive"/></Button>
+                    </div></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </Card>
+        </TabsContent>
+
+        {/* ── Commissions ── */}
+        <TabsContent value="commissions">
+          <div className="flex justify-end mb-3"><ExportButton data={commissionRows as any[]} filename="commission-report" title="Commission Report"/></div>
+          <div className="grid grid-cols-3 gap-3 mb-4">
+            <Card className="p-3 text-center"><p className="text-[10px] text-muted-foreground">Total Sales</p><p className="text-lg font-bold text-emerald-400">${commissionRows.reduce((s,r)=>s+r.totalSales,0).toLocaleString()}</p></Card>
+            <Card className="p-3 text-center"><p className="text-[10px] text-muted-foreground">Commission Owed</p><p className="text-lg font-bold text-amber-400">${commissionRows.reduce((s,r)=>s+r.commissionOwed,0).toFixed(2)}</p></Card>
+            <Card className="p-3 text-center"><p className="text-[10px] text-muted-foreground">With Agents</p><p className="text-lg font-bold text-blue-400">{commissionRows.filter(r=>r.agentCount>0).length}</p></Card>
+          </div>
+          <Card className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-secondary/50 text-[11px] font-display uppercase tracking-wider">
+                <tr>
+                  <th className="text-left p-3">Affiliate</th><th className="text-left p-3">Brand</th>
+                  <th className="text-left p-3">Region</th><th className="text-left p-3">Agents</th>
+                  <th className="text-left p-3">Total Sales</th><th className="text-left p-3">Commission</th>
+                  <th className="text-left p-3">Rate</th><th className="text-left p-3">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {commissionRows.length===0
+                  ?<tr><td colSpan={8} className="p-12 text-center text-muted-foreground">No data yet</td></tr>
+                  :commissionRows.map(r=>(
+                  <tr key={r.id} className="border-t border-border hover:bg-secondary/20 transition-colors">
+                    <td className="p-3 font-semibold">{r.name}</td>
+                    <td className="p-3 text-xs">{brands.find(b=>b.id===(r as any).brand_id)?.name||<span className="text-muted-foreground">—</span>}</td>
+                    <td className="p-3 text-xs text-muted-foreground">{r.region||"—"}</td>
+                    <td className="p-3"><span className="px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400 text-xs">{r.agentCount}</span></td>
+                    <td className="p-3 font-bold text-emerald-400 font-mono">${r.totalSales.toLocaleString()}</td>
+                    <td className="p-3"><span className={`font-bold font-mono ${r.commissionOwed>0?"text-amber-400":"text-muted-foreground"}`}>${r.commissionOwed.toFixed(2)}</span></td>
+                    <td className="p-3 text-xs text-primary">{r.commission||"—"}</td>
+                    <td className="p-3"><Badge variant={r.status==="Active"?"default":"secondary"} className="text-[10px]">{r.status}</Badge></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </Card>
+        </TabsContent>
+      </Tabs>
+
+      {/* ── Agent dialog ── */}
+      <Dialog open={agentOpen} onOpenChange={setAgentOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle className="font-display">{agentEditId?"Edit":"New"} Affiliated Agent</DialogTitle></DialogHeader>
+          <div className="space-y-3 py-2">
+            <div><Label>Agent Name *</Label><Input value={agentForm.agent_name} onChange={e=>setAgentForm(p=>({...p,agent_name:e.target.value}))} placeholder="Agent Cairo-01"/></div>
+            <div className="grid grid-cols-2 gap-3">
+              <div><Label>Commission Rate</Label><Input type="number" step="0.01" min="0" max="1" value={agentForm.commission_rate} onChange={e=>setAgentForm(p=>({...p,commission_rate:+e.target.value}))}/><p className="text-[10px] text-muted-foreground mt-0.5">= {((agentForm.commission_rate||0)*100).toFixed(1)}%</p></div>
+              <div><Label>Total Sales ($)</Label><Input type="number" value={agentForm.total_sales} onChange={e=>setAgentForm(p=>({...p,total_sales:+e.target.value}))}/>{agentForm.total_sales>0&&<p className="text-[10px] text-amber-400 mt-0.5">Earns: ${((agentForm.total_sales||0)*(agentForm.commission_rate||0)).toFixed(2)}</p>}</div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div><Label>Status</Label><select value={agentForm.status} onChange={e=>setAgentForm(p=>({...p,status:e.target.value}))} className="w-full mt-1 rounded-md bg-secondary border border-border px-3 py-2 text-sm text-foreground"><option value="active">Active</option><option value="inactive">Inactive</option><option value="suspended">Suspended</option></select></div>
+              <div><Label>Parent Affiliate</Label><select value={agentForm.affiliate_id} onChange={e=>setAgentForm(p=>({...p,affiliate_id:e.target.value}))} className="w-full mt-1 rounded-md bg-secondary border border-border px-3 py-2 text-sm text-foreground"><option value="">— None —</option>{items.map(a=><option key={a.id} value={a.id}>{a.name}</option>)}</select></div>
+            </div>
+            <div><Label>Notes</Label><Textarea value={agentForm.notes} onChange={e=>setAgentForm(p=>({...p,notes:e.target.value}))} rows={2}/></div>
+          </div>
+          <DialogFooter><Button variant="outline" onClick={()=>setAgentOpen(false)}>Cancel</Button><Button onClick={saveAgent}>Save Agent</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Affiliate form dialog ── */}
+      <Dialog open={showForm} onOpenChange={setShowForm}>
+        <DialogContent className="bg-card border-border max-w-lg max-h-[85vh] overflow-auto">
+          <DialogHeader><DialogTitle className="font-display text-primary">{editId?"Edit":"New"} Affiliate</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2"><Label>Name *</Label><Input value={form.name} onChange={e=>setForm(p=>({...p,name:e.target.value}))} className="bg-secondary border-border text-foreground"/></div>
+            {brands.length>0&&(
+              <div className="space-y-2">
+                <Label>Brand</Label>
+                <select value={selectedBrandId} onChange={e=>setSelectedBrandId(e.target.value)} className="w-full rounded-md bg-secondary border border-border px-3 py-2 text-sm text-foreground">
+                  <option value="">— No Brand —</option>{brands.map(b=><option key={b.id} value={b.id}>{b.name}</option>)}
+                </select>
+              </div>
+            )}
+            <ResponsiblePerson value={form.responsiblePerson} onChange={v=>setForm(p=>({...p,responsiblePerson:v}))}/>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2"><Label>Code</Label><Input value={form.code} onChange={e=>setForm(p=>({...p,code:e.target.value}))} className="bg-secondary border-border text-foreground"/></div>
+              <div className="space-y-2"><Label>Commission Rate</Label><Input value={form.commission} onChange={e=>setForm(p=>({...p,commission:e.target.value}))} placeholder="e.g. 10%" className="bg-secondary border-border text-foreground"/></div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2"><Label>Region</Label><Input value={form.region} onChange={e=>setForm(p=>({...p,region:e.target.value}))} className="bg-secondary border-border text-foreground"/></div>
+              <div className="space-y-2"><Label>Status</Label><select value={form.status} onChange={e=>setForm(p=>({...p,status:e.target.value as AffiliateRow["status"]}))} className="w-full rounded-md bg-secondary border border-border px-3 py-2 text-sm font-body text-foreground"><option>Active</option><option>Inactive</option></select></div>
+            </div>
+            <div className="grid grid-cols-3 gap-3">
+              <div className="space-y-2"><Label>Referrals</Label><Input type="number" min={0} value={form.referrals} onChange={e=>setForm(p=>({...p,referrals:+e.target.value}))} className="bg-secondary border-border text-foreground"/></div>
+              <div className="space-y-2"><Label>Human Staff</Label><Input type="number" min={0} value={form.humanCount} onChange={e=>setForm(p=>({...p,humanCount:+e.target.value}))} className="bg-secondary border-border text-foreground"/></div>
+              <div className="space-y-2"><Label>AI Agents</Label><Input type="number" min={0} value={form.aiCount} onChange={e=>setForm(p=>({...p,aiCount:+e.target.value}))} className="bg-secondary border-border text-foreground"/></div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2"><Label>Email</Label><Input value={form.email} onChange={e=>setForm(p=>({...p,email:e.target.value}))} className="bg-secondary border-border text-foreground"/></div>
+              <div className="space-y-2"><Label>Phone</Label><Input value={form.phone} onChange={e=>setForm(p=>({...p,phone:e.target.value}))} className="bg-secondary border-border text-foreground"/></div>
+            </div>
+            <div className="space-y-2"><Label>Notes</Label><Textarea value={form.notes} onChange={e=>setForm(p=>({...p,notes:e.target.value}))} className="bg-secondary border-border text-foreground"/></div>
+            <EntityFileUpload files={form.files} onChange={files=>setForm(p=>({...p,files}))} ownerKind="affiliate" ownerId={editId||undefined}/>
+            <EntityApiHub entityName={form.name||"New Affiliate"} ownerKind="affiliate" ownerId={editId||undefined}/>
+          </div>
+          <DialogFooter><Button onClick={handleSubmit} className="font-display text-xs">{editId?"Save":"Create"}</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Detail dialog ── */}
+      <Dialog open={!!detailId} onOpenChange={()=>setDetailId(null)}>
+        <DialogContent className="bg-card border-border max-w-lg max-h-[85vh] overflow-auto">
+          {detail&&(<>
+            <DialogHeader><DialogTitle className="font-display text-primary flex items-center gap-2">{detail.name}<Badge variant={detail.status==="Active"?"default":"secondary"} className="text-[10px]">{detail.status}</Badge></DialogTitle></DialogHeader>
+            <div className="space-y-4">
+              <div className="grid grid-cols-3 gap-3 text-xs">
+                <div className="bg-secondary/50 rounded p-2"><p className="text-muted-foreground">Code</p><p className="font-mono mt-0.5">{detail.code||"—"}</p></div>
+                <div className="bg-secondary/50 rounded p-2"><p className="text-muted-foreground">Commission</p><p className="font-mono mt-0.5 text-emerald-400">{detail.commission||"—"}</p></div>
+                <div className="bg-secondary/50 rounded p-2"><p className="text-muted-foreground">Region</p><p className="font-mono mt-0.5">{detail.region||"—"}</p></div>
+              </div>
+              {detail.responsiblePerson&&<p className="text-xs text-primary">Key Person: {summarizeKeyPersons(detail.responsiblePerson)}</p>}
+              <StaffMetrics humanCount={detail.humanCount} aiCount={detail.aiCount}/>
+              {agents.filter(a=>a.affiliate_id===detail.id).length>0&&(
+                <div>
+                  <p className="text-xs font-display text-muted-foreground mb-2 uppercase tracking-wider">Linked Agents ({agents.filter(a=>a.affiliate_id===detail.id).length})</p>
+                  <div className="space-y-1.5">
+                    {agents.filter(a=>a.affiliate_id===detail.id).map(ag=>(
+                      <div key={ag.id} className="flex justify-between items-center text-xs bg-secondary/40 rounded px-3 py-1.5 gap-3">
+                        <span className="font-medium">{ag.agent_name}</span>
+                        <CommissionBar rate={ag.commission_rate||0}/>
+                        <span className="text-emerald-400 font-mono">${(ag.total_sales||0).toLocaleString()}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              <EntityApiHub entityName={detail.name} ownerKind="affiliate" ownerId={detail.id}/>
+            </div>
+          </>)}
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Delete dialog ── */}
+      <Dialog open={!!deleteId} onOpenChange={()=>setDeleteId(null)}>
+        <DialogContent className="bg-card border-border">
+          <DialogHeader><DialogTitle className="font-display text-destructive">Delete Affiliate?</DialogTitle></DialogHeader>
+          {deleteId&&agents.filter(a=>a.affiliate_id===deleteId).length>0&&<p className="text-xs text-amber-400 mb-2">⚠ {agents.filter(a=>a.affiliate_id===deleteId).length} agent(s) will be unlinked.</p>}
+          <DialogFooter>
+            <Button variant="outline" onClick={()=>setDeleteId(null)}>Cancel</Button>
+            <Button variant="destructive" onClick={async()=>{if(deleteId){await remove(deleteId);setDeleteId(null);toast.success("Deleted");}}}>Delete</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
 /* ═══════════════════════════════════ MAIN COMPONENT ══════════ */
 export default function BrandsHub() {
   const navigate = useNavigate();
@@ -688,6 +1245,7 @@ export default function BrandsHub() {
             <TabsTrigger value="agents"     className="text-xs"><UserCheck className="w-3.5 h-3.5 mr-1"/>Agents ({agentCount})</TabsTrigger>
             <TabsTrigger value="partners"   className="text-xs"><Handshake className="w-3.5 h-3.5 mr-1"/>Partners ({partnerCount})</TabsTrigger>
             <TabsTrigger value="employees"  className="text-xs"><Users className="w-3.5 h-3.5 mr-1"/>Employees ({empCount})</TabsTrigger>
+            <TabsTrigger value="affiliates-hub" className="text-xs"><UserCheck className="w-3.5 h-3.5 mr-1"/>Affiliates Hub</TabsTrigger>
             <TabsTrigger value="users"      className="text-xs"><Shield className="w-3.5 h-3.5 mr-1"/>Users</TabsTrigger>
             <TabsTrigger value="workflow"   className="text-xs"><GitBranch className="w-3.5 h-3.5 mr-1"/>Workflows</TabsTrigger>
           </TabsList>
@@ -776,6 +1334,10 @@ export default function BrandsHub() {
 
           <TabsContent value="employees" className="mt-2">
             <EmployeesTab activeBrandId={activeBrandId} brands={brands}/>
+          </TabsContent>
+
+          <TabsContent value="affiliates-hub" className="mt-2">
+            <AffiliatesHubTab activeBrandId={activeBrandId} brands={brands}/>
           </TabsContent>
 
           <TabsContent value="users" className="mt-2">
