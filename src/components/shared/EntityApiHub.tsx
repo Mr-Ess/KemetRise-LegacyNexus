@@ -19,9 +19,6 @@ const EntityApiHub = ({ entityName, ownerKind, ownerId }: Props) => {
   const [newWebhookEvents, setNewWebhookEvents] = useState("all");
   const [loading, setLoading] = useState(false);
 
-  // Don't render at all until entity is saved (ownerId exists)
-  if (!persistent) return null;
-
   useEffect(() => {
     if (!persistent) return;
     setLoading(true);
@@ -33,6 +30,9 @@ const EntityApiHub = ({ entityName, ownerKind, ownerId }: Props) => {
       setWebhooks(w);
     }).catch(e => toast.error(e.message)).finally(() => setLoading(false));
   }, [persistent, ownerKind, ownerId]);
+
+  // Don't render at all until entity is saved (ownerId exists)
+  if (!persistent) return null;
 
   const generateKey = async () => {
     try {

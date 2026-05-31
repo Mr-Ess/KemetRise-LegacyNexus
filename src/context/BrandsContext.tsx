@@ -342,7 +342,7 @@ export const BrandsProvider = ({ children }: { children: ReactNode }) => {
         status: "active",
         ...toBrandColumns(brand),
       },
-      { includeClientId: false, includeBrandId: false, includeUserName: false },
+      { includeClientId: false, includeBrandId: false },
     );
     if (data) {
       const brandId = (data as any).id;
@@ -362,7 +362,7 @@ export const BrandsProvider = ({ children }: { children: ReactNode }) => {
         ...toBrandColumns(merged),
       },
       { id },
-      { includeBrandId: false, includeClientId: false, includeUserName: false },
+      { includeBrandId: false, includeClientId: false },
     );
     if (data) {
       await syncBrandSections(id, merged);

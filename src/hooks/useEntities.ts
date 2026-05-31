@@ -18,7 +18,7 @@ export const useEntities = (kind: EntityKind) => {
 
   useEffect(() => { refresh(); }, [refresh]);
 
-  const create = async (payload: { name: string; status?: string; data?: any }) => {
+  const create = async (payload: { name: string; status?: string; data?: any; [key: string]: any }) => {
     try { const row = await entitiesApi.create(kind, payload); setItems(p => [row, ...p]); return row; }
     catch (e: any) { toast.error(e.message); throw e; }
   };
