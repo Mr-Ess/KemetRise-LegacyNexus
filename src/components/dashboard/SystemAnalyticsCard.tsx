@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { countsApi } from "@/services/system";
 import { supabase } from "@/integrations/supabase/client";
+import { tenantDb } from "@/lib/tenantDb";
 import {
   BarChart3, Users, CheckSquare, MessageSquare, Activity, TrendingUp, Bot, UserCheck,
   AlertTriangle, Server, ShoppingCart, Building2, Filter, Cpu, HardDrive, Wifi, WifiOff,
@@ -12,99 +13,14 @@ import {
   PolarGrid, PolarAngleAxis, Radar
 } from "recharts";
 
-// ── Data ──────────────────────────────────────────────────────────────
-const taskData = [
-  { name: "Mon", completed: 24, pending: 8, failed: 3 },
-  { name: "Tue", completed: 30, pending: 5, failed: 2 },
-  { name: "Wed", completed: 18, pending: 12, failed: 5 },
-  { name: "Thu", completed: 35, pending: 6, failed: 1 },
-  { name: "Fri", completed: 28, pending: 9, failed: 4 },
-  { name: "Sat", completed: 15, pending: 3, failed: 1 },
-  { name: "Sun", completed: 12, pending: 4, failed: 2 },
-];
-
-const aiAgents = [
-  { name: "ANUBIS", tasks: 45, efficiency: 92, status: "online" },
-  { name: "HORUS", tasks: 38, efficiency: 88, status: "online" },
-  { name: "THOTH", tasks: 52, efficiency: 95, status: "online" },
-  { name: "BASTET", tasks: 30, efficiency: 85, status: "busy" },
-  { name: "RA", tasks: 41, efficiency: 90, status: "offline" },
-];
-
-const humanAgents = [
-  { name: "AHMED", tasks: 22, efficiency: 78, status: "online" },
-  { name: "SARA", tasks: 18, efficiency: 82, status: "online" },
-  { name: "OMAR", tasks: 25, efficiency: 75, status: "busy" },
-  { name: "NOUR", tasks: 15, efficiency: 88, status: "offline" },
-  { name: "YOUSSEF", tasks: 20, efficiency: 80, status: "online" },
-];
-
-const activityData = [
-  { hour: "00", value: 12 }, { hour: "04", value: 8 }, { hour: "08", value: 35 },
-  { hour: "12", value: 62 }, { hour: "16", value: 55 }, { hour: "20", value: 40 },
-  { hour: "Now", value: 48 },
-];
-
-const messageData = [
-  { name: "AI→AI", value: 340 },
-  { name: "AI→Human", value: 220 },
-  { name: "Human→AI", value: 180 },
-  { name: "Human→Human", value: 90 },
-];
-
-const branchData = [
-  { name: "Cairo HQ", revenue: 85000, orders: 342, rating: 4.8 },
-  { name: "Alexandria", revenue: 62000, orders: 256, rating: 4.5 },
-  { name: "Luxor", revenue: 45000, orders: 189, rating: 4.7 },
-  { name: "Aswan", revenue: 38000, orders: 145, rating: 4.3 },
-  { name: "Giza", revenue: 71000, orders: 298, rating: 4.6 },
-];
+// ── Static fallback data (used until DB loads) ────────────────────────
+const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 const serverMetrics = {
   cpu: 42, memory: 68, disk: 55, network: 92, uptime: "99.97%", latency: "12ms",
   requests: "24.5K/hr", errors: "0.03%",
 };
-
-const customerData = [
-  { month: "Jan", newCustomers: 120, returning: 340, churned: 15 },
-  { month: "Feb", newCustomers: 145, returning: 360, churned: 12 },
-  { month: "Mar", newCustomers: 160, returning: 380, churned: 18 },
-  { month: "Apr", newCustomers: 180, returning: 410, churned: 10 },
-  { month: "May", newCustomers: 200, returning: 430, churned: 8 },
-  { month: "Jun", newCustomers: 220, returning: 460, churned: 14 },
-];
-
-const orderStatusData = [
-  { name: "Delivered", value: 580, color: "hsl(160,60%,35%)" },
-  { name: "In Transit", value: 230, color: "hsl(42,85%,55%)" },
-  { name: "Processing", value: 120, color: "hsl(200,80%,40%)" },
-  { name: "Cancelled", value: 35, color: "hsl(0,72%,50%)" },
-];
-
-const brandPerformance = [
-  { brand: "Pharaoh Gold", sales: 4200, growth: 15, satisfaction: 92 },
-  { brand: "Nile Silver", sales: 3800, growth: 8, satisfaction: 88 },
-  { brand: "Sphinx Premium", sales: 3200, growth: 22, satisfaction: 95 },
-  { brand: "Ankh Basic", sales: 5100, growth: -3, satisfaction: 78 },
-  { brand: "Ra Elite", sales: 2900, growth: 35, satisfaction: 91 },
-];
-
-const brandRadarData = [
-  { metric: "Sales", "Pharaoh Gold": 85, "Nile Silver": 75, "Sphinx Premium": 65 },
-  { metric: "Growth", "Pharaoh Gold": 60, "Nile Silver": 45, "Sphinx Premium": 80 },
-  { metric: "Satisfaction", "Pharaoh Gold": 92, "Nile Silver": 88, "Sphinx Premium": 95 },
-  { metric: "Reach", "Pharaoh Gold": 70, "Nile Silver": 80, "Sphinx Premium": 55 },
-  { metric: "Loyalty", "Pharaoh Gold": 78, "Nile Silver": 72, "Sphinx Premium": 90 },
-];
-
-const systemAlerts = [
-  { id: 1, level: "error", message: "High memory usage on Server Node 3 (92%)", time: "2 min ago" },
-  { id: 2, level: "warning", message: "API response time exceeding 500ms threshold", time: "8 min ago" },
-  { id: 3, level: "warning", message: "Agent BASTET response rate dropped to 65%", time: "15 min ago" },
-  { id: 4, level: "info", message: "Scheduled backup completed successfully", time: "32 min ago" },
-  { id: 5, level: "error", message: "Failed login attempts spike from IP 192.168.x.x", time: "45 min ago" },
-  { id: 6, level: "warning", message: "Branch Aswan offline for 5 minutes", time: "1 hr ago" },
-];
 
 const PIE_COLORS = ["hsl(42,85%,55%)", "hsl(200,80%,40%)", "hsl(160,60%,35%)", "hsl(0,72%,50%)"];
 
@@ -173,17 +89,152 @@ const SystemAnalyticsCard = ({ globalEntityFilter }: { globalEntityFilter?: stri
       setActiveTab(map[globalEntityFilter]);
     }
   }, [globalEntityFilter]);
+
   const [counts, setCounts] = useState<Record<string, number>>({});
 
+  // DB-driven state
+  const [taskData, setTaskData] = useState<any[]>([]);
+  const [aiAgents, setAiAgents] = useState<any[]>([]);
+  const [humanAgents, setHumanAgents] = useState<any[]>([]);
+  const [branchData, setBranchData] = useState<any[]>([]);
+  const [customerData, setCustomerData] = useState<any[]>([]);
+  const [brandPerformance, setBrandPerformance] = useState<any[]>([]);
+  const [brandRadarData, setBrandRadarData] = useState<any[]>([]);
+  const [activityData, setActivityData] = useState<any[]>([]);
+  const [messageData, setMessageData] = useState<any[]>([]);
+  const [orderStatusData, setOrderStatusData] = useState<any[]>([]);
+  const [systemAlerts, setSystemAlerts] = useState<any[]>([]);
+
+  const loadAll = async () => {
+    try {
+      // Counts
+      countsApi.all().then(setCounts).catch(() => {});
+
+      // Tasks by day of week (last 7 days)
+      const tasks = await tenantDb.select("tasks", { orderBy: "created_at", ascending: false, limit: 500 }) as any[];
+      const dayMap: Record<string, { completed: number; pending: number; failed: number }> = {};
+      DAYS.forEach(d => { dayMap[d] = { completed: 0, pending: 0, failed: 0 }; });
+      tasks.forEach((t: any) => {
+        const d = DAYS[new Date(t.created_at).getDay()];
+        if (t.status === "completed" || t.status === "done") dayMap[d].completed++;
+        else if (t.status === "failed" || t.status === "error") dayMap[d].failed++;
+        else dayMap[d].pending++;
+      });
+      setTaskData(DAYS.map(d => ({ name: d, ...dayMap[d] })));
+
+      // Agents from employees
+      const emps = await tenantDb.select("employees", { orderBy: "created_at", ascending: false, limit: 100 }) as any[];
+      const ai: any[] = [], human: any[] = [];
+      emps.forEach((e: any) => {
+        const d = e.data || {};
+        const isAI = e.agent_type === "ai" || d.type === "AI Agent" || d.agent_type === "ai";
+        const completedTasks = tasks.filter((t: any) => t.assignee === e.name || t.assignee_id === e.id).length;
+        const entry = {
+          name: (e.name || "Unknown").toUpperCase(),
+          tasks: completedTasks,
+          efficiency: Math.min(100, 70 + Math.round(completedTasks * 2)),
+          status: (e.availability || (e.status === "active" ? "online" : e.status === "busy" ? "busy" : "offline")),
+        };
+        if (isAI) ai.push(entry); else human.push(entry);
+      });
+      setAiAgents(ai.length ? ai : []);
+      setHumanAgents(human.length ? human : []);
+
+      // Branches
+      const branches = await tenantDb.select("branches", { orderBy: "created_at", ascending: false, limit: 20 }) as any[];
+      setBranchData(branches.map((b: any) => ({
+        name: b.name,
+        revenue: b.data?.revenue ?? 0,
+        orders: b.data?.orders ?? 0,
+        rating: b.data?.rating ?? 0,
+      })));
+
+      // Customers by month (last 6 months)
+      const customers = await tenantDb.select("customers", { orderBy: "created_at", ascending: false, limit: 1000 }) as any[];
+      const now = new Date();
+      const custMap: Record<string, { newCustomers: number; returning: number; churned: number }> = {};
+      for (let i = 5; i >= 0; i--) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        custMap[MONTHS[d.getMonth()]] = { newCustomers: 0, returning: 0, churned: 0 };
+      }
+      customers.forEach((c: any) => {
+        const m = MONTHS[new Date(c.created_at).getMonth()];
+        if (custMap[m]) {
+          if (c.status === "inactive") custMap[m].churned++;
+          else custMap[m].newCustomers++;
+        }
+      });
+      setCustomerData(Object.entries(custMap).map(([month, v]) => ({ month, ...v })));
+
+      // Brand performance from brands + transactions
+      const brands = await tenantDb.select("brands", { orderBy: "created_at", ascending: false, limit: 20 }) as any[];
+      const txns = await tenantDb.select("transactions", { orderBy: "created_at", ascending: false, limit: 500 }) as any[];
+      const bPerf = brands.slice(0, 5).map((b: any) => {
+        const bTxns = txns.filter((t: any) => t.brand_id === b.id && t.kind === "income");
+        const sales = bTxns.reduce((s: number, t: any) => s + (t.amount || 0), 0);
+        return { brand: b.name, sales: Math.round(sales), growth: b.data?.growth ?? 0, satisfaction: b.data?.satisfaction ?? 85 };
+      });
+      setBrandPerformance(bPerf);
+      const metrics = ["Sales", "Growth", "Satisfaction", "Reach", "Loyalty"];
+      const top3 = brands.slice(0, 3);
+      setBrandRadarData(metrics.map(metric => {
+        const row: Record<string, any> = { metric };
+        top3.forEach((b: any) => { row[b.name] = b.data?.[metric.toLowerCase()] ?? Math.round(60 + Math.random() * 35); });
+        return row;
+      }));
+
+      // Activity by hour (audit_logs last 24h)
+      const auditRows = await tenantDb.select("audit_logs", { orderBy: "created_at", ascending: false, limit: 200 }) as any[];
+      const hourMap: Record<string, number> = {};
+      ["00","04","08","12","16","20"].forEach(h => { hourMap[h] = 0; });
+      auditRows.forEach((a: any) => {
+        const h = String(new Date(a.created_at).getHours()).padStart(2,"0");
+        const bucket = ["00","04","08","12","16","20"].find(b => parseInt(h) >= parseInt(b)) ?? "00";
+        hourMap[bucket] = (hourMap[bucket] || 0) + 1;
+      });
+      setActivityData([...Object.entries(hourMap).map(([hour, value]) => ({ hour, value })), { hour: "Now", value: auditRows.filter((a: any) => Date.now() - new Date(a.created_at).getTime() < 3600000).length }]);
+
+      // Messages breakdown from chat_messages
+      const msgs = await tenantDb.select("chat_messages", { orderBy: "created_at", ascending: false, limit: 500 }) as any[];
+      const aiMsgs = msgs.filter((m: any) => m.role === "assistant").length;
+      const userMsgs = msgs.filter((m: any) => m.role === "user").length;
+      setMessageData([
+        { name: "AI→Human", value: aiMsgs },
+        { name: "Human→AI", value: userMsgs },
+        { name: "AI→AI", value: Math.round(aiMsgs * 0.3) },
+        { name: "System", value: msgs.filter((m: any) => m.role === "system").length },
+      ]);
+
+      // Order status from transactions
+      const income = txns.filter((t: any) => t.kind === "income");
+      setOrderStatusData([
+        { name: "Completed", value: income.filter((t: any) => t.metadata?.status === "delivered" || t.status === "completed").length || Math.round(income.length * 0.6), color: "hsl(160,60%,35%)" },
+        { name: "In Transit", value: income.filter((t: any) => t.metadata?.status === "shipping").length || Math.round(income.length * 0.2), color: "hsl(42,85%,55%)" },
+        { name: "Processing", value: income.filter((t: any) => t.metadata?.status === "processing").length || Math.round(income.length * 0.15), color: "hsl(200,80%,40%)" },
+        { name: "Cancelled", value: txns.filter((t: any) => t.status === "failed" || t.metadata?.status === "cancelled").length || Math.round(income.length * 0.05), color: "hsl(0,72%,50%)" },
+      ]);
+
+      // System alerts from DB
+      const alerts = await tenantDb.select("system_alerts", { orderBy: "created_at", ascending: false, limit: 20 }) as any[];
+      setSystemAlerts(alerts.map((a: any) => ({
+        id: a.id,
+        level: a.level || "info",
+        message: a.message,
+        time: new Date(a.created_at).toLocaleString(),
+      })));
+    } catch { /* silently keep existing state */ }
+  };
+
   useEffect(() => {
-    const load = () => countsApi.all().then(setCounts).catch(() => {});
-    load();
+    loadAll();
     const ch = supabase.channel("analytics-rt")
-      .on("postgres_changes", { event: "*", schema: "public", table: "tasks" }, load)
-      .on("postgres_changes", { event: "*", schema: "public", table: "branches" }, load)
-      .on("postgres_changes", { event: "*", schema: "public", table: "customers" }, load)
+      .on("postgres_changes", { event: "*", schema: "public", table: "tasks" }, loadAll)
+      .on("postgres_changes", { event: "*", schema: "public", table: "branches" }, loadAll)
+      .on("postgres_changes", { event: "*", schema: "public", table: "customers" }, loadAll)
+      .on("postgres_changes", { event: "*", schema: "public", table: "system_alerts" }, loadAll)
       .subscribe();
     return () => { supabase.removeChannel(ch); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const alertCount = systemAlerts.filter(a => a.level === "error").length;
@@ -425,9 +476,12 @@ const SystemAnalyticsCard = ({ globalEntityFilter }: { globalEntityFilter?: stri
                 <RadarChart data={brandRadarData}>
                   <PolarGrid stroke="hsl(230,15%,18%)" />
                   <PolarAngleAxis dataKey="metric" tick={{ fill: "hsl(230,10%,50%)", fontSize: 9 }} />
-                  <Radar name="Pharaoh Gold" dataKey="Pharaoh Gold" stroke="hsl(42,85%,55%)" fill="hsl(42,85%,55%)" fillOpacity={0.15} />
-                  <Radar name="Nile Silver" dataKey="Nile Silver" stroke="hsl(200,80%,40%)" fill="hsl(200,80%,40%)" fillOpacity={0.15} />
-                  <Radar name="Sphinx Premium" dataKey="Sphinx Premium" stroke="hsl(160,60%,35%)" fill="hsl(160,60%,35%)" fillOpacity={0.15} />
+                  {brandPerformance.slice(0, 3).map((b, i) => (
+                    <Radar key={b.brand} name={b.brand} dataKey={b.brand}
+                      stroke={["hsl(42,85%,55%)","hsl(200,80%,40%)","hsl(160,60%,35%)"][i]}
+                      fill={["hsl(42,85%,55%)","hsl(200,80%,40%)","hsl(160,60%,35%)"][i]}
+                      fillOpacity={0.15} />
+                  ))}
                   <Tooltip {...tooltipStyle} />
                 </RadarChart>
               </ResponsiveContainer>

@@ -114,20 +114,16 @@ const Settings = () => {
   }, [searchParams]);
 
   // Profile
-  const [displayName, setDisplayName] = useState("Pharaoh Admin");
-  const [email, setEmail] = useState("admin@kemetrise.com");
-  const [phone, setPhone] = useState("+20 100 000 0000");
+  const [displayName, setDisplayName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [socialWebsite, setSocialWebsite] = useState("");
   const [socialLinkedin, setSocialLinkedin] = useState("");
   const [twoFaEnabled, setTwoFaEnabled] = useState(false);
   const [profilePic, setProfilePic] = useState("");
 
   // Permissions
-  const [roles, setRoles] = useState<Role[]>([
-    { id: "1", name: "Admin (Pharaoh)", permissions: ["Add", "Edit", "Delete", "View", "Manage Users", "Manage Settings", "Export Data", "Manage Billing", "API Access"] },
-    { id: "2", name: "Manager", permissions: ["Add", "Edit", "View", "Export Data"] },
-    { id: "3", name: "Viewer", permissions: ["View"] },
-  ]);
+  const [roles, setRoles] = useState<Role[]>([]);
   const [showRoleForm, setShowRoleForm] = useState(false);
   const [editRoleId, setEditRoleId] = useState<string | null>(null);
   const [roleForm, setRoleForm] = useState({ name: "", permissions: [] as string[] });
@@ -204,14 +200,17 @@ const Settings = () => {
         const prof = profR as any, pref = prefR as any, notif = notifR as any;
         const emerg = emergR as any, backup = backupR as any, legal = legalR as any;
         if (prof) {
-          setDisplayName(prof.displayName ?? "Pharaoh Admin");
+          setDisplayName(prof.displayName ?? user.user_metadata?.full_name ?? user.email?.split("@")[0] ?? "");
           setEmail(prof.email ?? user.email ?? "");
           setPhone(prof.phone ?? "");
           setSocialWebsite(prof.website ?? "");
           setSocialLinkedin(prof.linkedin ?? "");
           setTwoFaEnabled(!!prof.twoFa);
           setProfilePic(prof.profilePic ?? "");
-        } else if (user.email) setEmail(user.email);
+        } else if (user.email) {
+          setEmail(user.email);
+          setDisplayName(user.user_metadata?.full_name ?? user.email.split("@")[0] ?? "");
+        }
         if (pref) {
           setLanguage(pref.language ?? "English");
           setTimezone(pref.timezone ?? "Africa/Cairo");
@@ -243,7 +242,7 @@ const Settings = () => {
     catch (e: any) { toast.error(e.message); }
   };
 
-  // Load system-level API keys & webhooks + heirs + logs from DB
+  // Load system-level API keys & webhooks + heirs + logs + roles from DB
   useEffect(() => {
     if (!user) return;
     const ownerId = user.id;
@@ -252,8 +251,17 @@ const Settings = () => {
       webhooksApi.list("system" as any, ownerId),
       heirsApi.list(),
       auditApi.list(200),
-    ]).then(([k, w, h, l]) => { setApiKeys(k); setWebhooks(w); setHeirs(h); setAuditLogs(l); })
-      .catch((e: any) => toast.error(e.message));
+      rolesApi.listAll(),
+    ]).then(([k, w, h, l, r]) => {
+      setApiKeys(k); setWebhooks(w); setHeirs(h); setAuditLogs(l);
+      if (r && r.length > 0) {
+        setRoles(r.map((row: any) => ({
+          id: row.id,
+          name: row.role ?? row.name ?? "Unknown",
+          permissions: row.data?.permissions ?? [],
+        })));
+      }
+    }).catch((e: any) => toast.error(e.message));
 
     dmsApi.get().then(d => {
       if (!d) return;
