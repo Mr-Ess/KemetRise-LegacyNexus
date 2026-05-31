@@ -204,6 +204,64 @@ interface FieldDef { key: string; label: string; type?: "text"|"number"|"date"|"
 type AFile = { id: string; name: string };
 const emptyDocs = () => ({ _legal_docs: [] as AFile[], _contracts: [] as AFile[], _marketing_plans: [] as AFile[], _other_files: [] as AFile[] });
 
+type ContactEntry = { id: string; type: string; value: string };
+type PersonEntry  = { id: string; name: string; role: string; contacts: ContactEntry[] };
+const emptyPerson = (): PersonEntry => ({ id: crypto.randomUUID(), name: "", role: "", contacts: [] });
+const emptyPeople = (): { _owners: PersonEntry[]; _key_personnel: PersonEntry[]; _team: PersonEntry[] } =>
+  ({ _owners: [], _key_personnel: [], _team: [] });
+
+function PeopleSection({ title, icon: Icon, color = "text-primary", people, onChange }: {
+  title: string; icon: React.ElementType; color?: string;
+  people: PersonEntry[]; onChange: (v: PersonEntry[]) => void;
+}) {
+  const updPerson  = (i: number, f: string, v: string) => onChange(people.map((p,idx) => idx===i ? {...p,[f]:v} : p));
+  const addContact = (i: number) => onChange(people.map((p,idx) => idx===i ? {...p, contacts:[...p.contacts,{id:crypto.randomUUID(),type:"phone",value:""}]} : p));
+  const rmContact  = (i: number, ci: number) => onChange(people.map((p,idx) => idx===i ? {...p, contacts:p.contacts.filter((_,cIdx)=>cIdx!==ci)} : p));
+  const updContact = (i: number, ci: number, f: string, v: string) => onChange(people.map((p,idx) => idx===i ? {...p, contacts:p.contacts.map((c,cIdx)=>cIdx===ci?{...c,[f]:v}:c)} : p));
+  return (
+    <div>
+      <div className="flex items-center gap-1.5 pb-1 border-b border-border mb-2 mt-4">
+        <Icon className={`w-3.5 h-3.5 ${color}`}/>
+        <span className={`text-[11px] font-medium uppercase tracking-wider ${color}`}>{title}</span>
+      </div>
+      <div className="space-y-3">
+        {people.map((person, i) => (
+          <div key={person.id} className="p-3 bg-secondary/30 rounded-md border border-border space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] text-muted-foreground">{title.replace(/s$/, "")} #{i+1}</span>
+              <button type="button" onClick={() => onChange(people.filter((_,idx)=>idx!==i))} className="text-destructive p-0.5 rounded hover:bg-destructive/10"><X className="w-3.5 h-3.5"/></button>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div><Label className="text-xs">Name</Label><Input value={person.name} onChange={e=>updPerson(i,"name",e.target.value)} className="mt-1 bg-secondary border-border text-xs"/></div>
+              <div><Label className="text-xs">Role / Position</Label><Input value={person.role} onChange={e=>updPerson(i,"role",e.target.value)} className="mt-1 bg-secondary border-border text-xs"/></div>
+            </div>
+            <div className="space-y-1.5">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Contact Info</p>
+              {person.contacts.map((c, ci) => (
+                <div key={c.id} className="flex items-center gap-1.5">
+                  <select value={c.type} onChange={e=>updContact(i,ci,"type",e.target.value)}
+                    className="bg-secondary border border-border rounded px-2 py-1 text-xs text-foreground shrink-0 w-28">
+                    <option value="phone">📞 Phone</option>
+                    <option value="email">📧 Email</option>
+                    <option value="whatsapp">💬 WhatsApp</option>
+                    <option value="linkedin">🔗 LinkedIn</option>
+                    <option value="twitter">𝕏 Twitter</option>
+                    <option value="other">• Other</option>
+                  </select>
+                  <Input value={c.value} onChange={e=>updContact(i,ci,"value",e.target.value)} placeholder="Value…" className="flex-1 h-7 text-xs bg-secondary border-border"/>
+                  <button type="button" onClick={()=>rmContact(i,ci)} className="text-destructive p-0.5 shrink-0 hover:bg-destructive/10 rounded"><X className="w-3 h-3"/></button>
+                </div>
+              ))}
+              <Button type="button" variant="ghost" size="sm" onClick={()=>addContact(i)} className="h-6 text-[11px] gap-1 text-muted-foreground hover:text-foreground"><Plus className="w-3 h-3"/>Add Contact</Button>
+            </div>
+          </div>
+        ))}
+        <Button type="button" variant="outline" size="sm" onClick={()=>onChange([...people, emptyPerson()])} className="gap-1 text-xs h-7"><Plus className="w-3 h-3"/>Add {title.replace(/s$/,"")}</Button>
+      </div>
+    </div>
+  );
+}
+
 function DocList({ label, icon: Icon, color, items, onChange }: {
   label: string; icon: React.ElementType; color: string;
   items: AFile[]; onChange: (v: AFile[]) => void;
@@ -249,9 +307,11 @@ function EntityTab({ items, loading, create, update, remove, title, columns, fie
   const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState<Record<string,any>>({});
   const [docs, setDocs] = useState(emptyDocs());
+  const [people, setPeople] = useState(emptyPeople());
   const [q, setQ] = useState("");
 
-  const setDoc = (key: keyof ReturnType<typeof emptyDocs>) => (v: AFile[]) => setDocs(p => ({ ...p, [key]: v }));
+  const setDoc    = (key: keyof ReturnType<typeof emptyDocs>)    => (v: AFile[])       => setDocs(p => ({ ...p, [key]: v }));
+  const setPeople2 = (key: keyof ReturnType<typeof emptyPeople>) => (v: PersonEntry[]) => setPeople(p => ({ ...p, [key]: v }));
 
   const filtered = useMemo(() => {
     let list = activeBrandId
@@ -268,6 +328,7 @@ function EntityTab({ items, loading, create, update, remove, title, columns, fie
     setEditId(null);
     setForm({ brand_id: activeBrandId ?? "" });
     setDocs(emptyDocs());
+    setPeople(emptyPeople());
     setOpen(true);
   };
   const openEdit = (row: any) => {
@@ -280,6 +341,11 @@ function EntityTab({ items, loading, create, update, remove, title, columns, fie
       _contracts:       (row._contracts        ?? row.data?._contracts        ?? []),
       _marketing_plans: (row._marketing_plans  ?? row.data?._marketing_plans  ?? []),
       _other_files:     (row._other_files      ?? row.data?._other_files      ?? []),
+    });
+    setPeople({
+      _owners:        (row._owners         ?? row.data?._owners         ?? []),
+      _key_personnel: (row._key_personnel   ?? row.data?._key_personnel   ?? []),
+      _team:          (row._team            ?? row.data?._team            ?? []),
     });
     setOpen(true);
   };
@@ -294,6 +360,9 @@ function EntityTab({ items, loading, create, update, remove, title, columns, fie
     payload._contracts        = docs._contracts.filter(d => d.name);
     payload._marketing_plans  = docs._marketing_plans.filter(d => d.name);
     payload._other_files      = docs._other_files.filter(d => d.name);
+    payload._owners            = people._owners.filter(p => p.name.trim());
+    payload._key_personnel     = people._key_personnel.filter(p => p.name.trim());
+    payload._team              = people._team.filter(p => p.name.trim());
     if (!payload.name && !payload.agent_name) { toast.error("Name is required"); return; }
     if (editId) await update(editId, payload);
     else        await create(payload);
@@ -334,6 +403,9 @@ function EntityTab({ items, loading, create, update, remove, title, columns, fie
                   + (row._contracts?.length ?? row.data?._contracts?.length ?? 0)
                   + (row._marketing_plans?.length ?? row.data?._marketing_plans?.length ?? 0)
                   + (row._other_files?.length ?? row.data?._other_files?.length ?? 0);
+                const totalPeople = (row._owners?.length ?? row.data?._owners?.length ?? 0)
+                  + (row._key_personnel?.length ?? row.data?._key_personnel?.length ?? 0)
+                  + (row._team?.length ?? row.data?._team?.length ?? 0);
                 return (
                   <tr key={row.id} className="border-t border-border hover:bg-secondary/20 transition-colors">
                     <td className="p-3">
@@ -349,6 +421,7 @@ function EntityTab({ items, loading, create, update, remove, title, columns, fie
                     ))}
                     <td className="p-3">
                       <div className="flex items-center gap-1">
+                        {totalPeople > 0 && <Badge variant="outline" className="text-[9px] gap-0.5 px-1.5"><Users className="w-2.5 h-2.5"/>{totalPeople}</Badge>}
                         {totalDocs > 0 && <Badge variant="outline" className="text-[9px] gap-0.5 px-1.5"><Paperclip className="w-2.5 h-2.5"/>{totalDocs}</Badge>}
                         <Button size="icon" variant="ghost" className="w-7 h-7" onClick={() => openEdit(row)}><Edit className="w-3.5 h-3.5"/></Button>
                         <Button size="icon" variant="ghost" className="w-7 h-7" onClick={() => remove(row.id)}><Trash2 className="w-3.5 h-3.5 text-destructive"/></Button>
@@ -405,6 +478,17 @@ function EntityTab({ items, loading, create, update, remove, title, columns, fie
               </div>
             ))}
 
+            {/* ── People ── */}
+            <div className="pt-2 border-t border-border/50">
+              <p className="text-[11px] uppercase tracking-wider text-muted-foreground mb-1">People</p>
+              <PeopleSection title="Owners" icon={User} color="text-amber-400"
+                people={people._owners} onChange={setPeople2("_owners")}/>
+              <PeopleSection title="Key Personnel" icon={UserCheck} color="text-primary"
+                people={people._key_personnel} onChange={setPeople2("_key_personnel")}/>
+              <PeopleSection title="Team Members" icon={Users} color="text-blue-400"
+                people={people._team} onChange={setPeople2("_team")}/>
+            </div>
+
             {/* ── Attachments ── */}
             <div className="pt-2 border-t border-border/50">
               <p className="text-[11px] uppercase tracking-wider text-muted-foreground mb-1">Attachments</p>
@@ -442,6 +526,7 @@ export default function BrandsHub() {
   const { items: custRows,   loading: custLoading,   create: custCreate,   update: custUpdate,   remove: custRemove   } = useEntities("customers");
   const { items: agentItems,   loading: agentLoading,   create: _agentCreate,   update: _agentUpdate,   remove: _agentRemove   } = useExtTable("affiliated_agents");
   const { items: partnerRows,  loading: partnerLoading, create: partnerCreate,  update: partnerUpdate,  remove: partnerRemove  } = useEntities("success_partners");
+  const { items: empRows,      loading: _empLoading                                                                              } = useEntities("employees");
 
   const getBrandLabel = (id: string | null) => brands.find((b: any) => b.id === id)?.name ?? id?.slice(0,8) ?? "—";
 
@@ -454,6 +539,7 @@ export default function BrandsHub() {
   const custCount     = custRows.filter(brandFilter).length;
   const agentCount    = agentItems.filter(agentFilter).length;
   const partnerCount  = partnerRows.filter(brandFilter).length;
+  const empCount      = empRows.filter((e:any) => !activeBrandId || (e.brand_id ?? e.data?.brandId) === activeBrandId).length;
   /* ── Column/field configs ───────────────────────────────── */
   const PROJECT_COLS: ColDef[] = [
     { key:"name", label:"Name", render:(v)=><span className="font-semibold">{v}</span> },
@@ -592,6 +678,7 @@ export default function BrandsHub() {
             <TabsTrigger value="customers"  className="text-xs"><Users className="w-3.5 h-3.5 mr-1"/>Customers ({custCount})</TabsTrigger>
             <TabsTrigger value="agents"     className="text-xs"><UserCheck className="w-3.5 h-3.5 mr-1"/>Agents ({agentCount})</TabsTrigger>
             <TabsTrigger value="partners"   className="text-xs"><Handshake className="w-3.5 h-3.5 mr-1"/>Partners ({partnerCount})</TabsTrigger>
+            <TabsTrigger value="employees"  className="text-xs"><Users className="w-3.5 h-3.5 mr-1"/>Employees ({empCount})</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="mt-2">
@@ -674,6 +761,10 @@ export default function BrandsHub() {
               emptyHint="Add success partners and link them to a brand"
               activeBrandId={activeBrandId} brands={brands} getBrandLabel={getBrandLabel}
             />
+          </TabsContent>
+
+          <TabsContent value="employees" className="mt-2">
+            <EmployeesTab activeBrandId={activeBrandId} brands={brands}/>
           </TabsContent>
         </Tabs>
       </div>
@@ -805,6 +896,209 @@ function AgentTab({ items, loading, create, update, remove, columns, fields, act
   );
 }
 
+
+/* ─── Employees Tab ──────────────────────────────────────────── */
+function EmployeesTab({ activeBrandId, brands }: { activeBrandId: string | null; brands: any[] }) {
+  const { items: rows, loading, create, update, remove } = useEntities("employees");
+  const [open, setOpen]       = useState(false);
+  const [editId, setEditId]   = useState<string | null>(null);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [q, setQ]             = useState("");
+  const [typeFilter, setTypeFilter]     = useState("all");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [form, setForm] = useState<Record<string,any>>({
+    name:"", type:"Human", position:"", branch:"", email:"", phone:"",
+    specialization:"", tasks:"", status:"Active", bio:"", role:"", department:"",
+    agent_code:"", agent_version:"", system_prompt:"", team_category:"", is_aggregator:false,
+    brand_id: activeBrandId ?? "",
+  });
+
+  const items = useMemo(() => rows.map((r: any) => ({
+    id: r.id,
+    name:           r.name              ?? r.data?.name              ?? "",
+    type:           (r.employee_type==="AI"||r.employee_type==="AI Agent"||r.data?.type==="AI Agent") ? "AI Agent" : "Human",
+    position:       r.position          ?? r.data?.position          ?? "",
+    branch:         r.branch_name       ?? r.data?.branch            ?? "",
+    email:          r.email             ?? r.data?.email             ?? "",
+    phone:          r.phone             ?? r.data?.phone             ?? "",
+    specialization: r.specialization    ?? r.data?.specialization    ?? "",
+    tasks:          r.tasks             ?? r.data?.tasks             ?? "",
+    status:         r.status==="inactive" ? "Inactive" : "Active",
+    bio:            r.bio               ?? r.data?.bio               ?? "",
+    role:           r.role              ?? r.data?.role              ?? "",
+    department:     r.department        ?? r.data?.department        ?? "",
+    agent_code:     r.agent_code        ?? r.data?.agent_code        ?? "",
+    agent_version:  r.agent_version     ?? r.data?.agent_version     ?? "",
+    system_prompt:  r.system_prompt     ?? r.data?.system_prompt     ?? "",
+    team_category:  r.team_category     ?? r.data?.team_category     ?? "",
+    is_aggregator:  r.is_aggregator     ?? r.data?.is_aggregator     ?? false,
+    brand_id:       r.brand_id          ?? r.data?.brandId           ?? null,
+  })), [rows]);
+
+  const filtered = useMemo(() => {
+    let list = activeBrandId ? items.filter(e => e.brand_id === activeBrandId) : items;
+    if (typeFilter !== "all") list = list.filter(e => e.type === typeFilter);
+    if (statusFilter !== "all") list = list.filter(e => e.status === statusFilter);
+    if (q.trim()) { const lq=q.toLowerCase(); list=list.filter(e=>e.name.toLowerCase().includes(lq)||(e.position||"").toLowerCase().includes(lq)); }
+    return list;
+  }, [items, activeBrandId, typeFilter, statusFilter, q]);
+
+  const resetForm = () => setForm({ name:"", type:"Human", position:"", branch:"", email:"", phone:"", specialization:"", tasks:"", status:"Active", bio:"", role:"", department:"", agent_code:"", agent_version:"", system_prompt:"", team_category:"", is_aggregator:false, brand_id: activeBrandId ?? "" });
+
+  const openNew  = () => { resetForm(); setEditId(null); setOpen(true); };
+  const openEdit = (e: any) => { setForm({ ...e }); setEditId(e.id); setOpen(true); };
+
+  const handleSubmit = async () => {
+    if (!form.name.trim()) { toast.error("Name required"); return; }
+    const payload: any = {
+      name: form.name, status: form.status==="Active"?"active":"inactive",
+      brand_id: form.brand_id||null, employee_type: form.type==="AI Agent"?"AI":"Human",
+      position: form.position||null, branch_name: form.branch||null,
+      email: form.email||null, phone: form.phone||null,
+      specialization: form.specialization||null, tasks: form.tasks||null,
+      role: form.role||null, department: form.department||null, bio: form.bio||null,
+      agent_code: form.agent_code||null, agent_version: form.agent_version||null,
+      system_prompt: form.system_prompt||null, team_category: form.team_category||null,
+      is_aggregator: !!form.is_aggregator, data: form,
+    };
+    if (editId) { await update(editId, payload); toast.success("Updated"); }
+    else        { await create(payload);          toast.success("Added");   }
+    setOpen(false); resetForm();
+  };
+
+  const f = (key: string, label: string, type = "text") => (
+    <div key={key}>
+      <Label className="text-xs">{label}</Label>
+      <Input type={type} value={form[key]||""} onChange={e=>setForm(p=>({...p,[key]:e.target.value}))} className="mt-1 bg-secondary border-border text-xs"/>
+    </div>
+  );
+
+  return (
+    <div className="space-y-3">
+      {/* Toolbar */}
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="relative flex-1 min-w-[180px]">
+          <Search className="absolute left-3 top-2.5 w-3.5 h-3.5 text-muted-foreground"/>
+          <Input placeholder="Search employees…" value={q} onChange={e=>setQ(e.target.value)} className="pl-9 h-8 text-xs"/>
+        </div>
+        <ExportButton data={filtered as any[]} filename="employees" title="Employees"/>
+        <Button size="sm" onClick={openNew} className="gap-1 text-xs"><Plus className="w-3.5 h-3.5"/>Add Employee</Button>
+      </div>
+
+      {/* Filters */}
+      <div className="flex flex-wrap gap-2 items-center">
+        {["all","Human","AI Agent"].map(t=>(
+          <button key={t} onClick={()=>setTypeFilter(t)} className={`px-2.5 py-1 rounded-md text-[11px] font-display transition-colors ${typeFilter===t?"bg-primary/20 text-primary border border-primary/30":"text-muted-foreground border border-transparent hover:border-border"}`}>{t==="all"?"All Types":t}</button>
+        ))}
+        <span className="text-border">|</span>
+        {["all","Active","Inactive"].map(s=>(
+          <button key={s} onClick={()=>setStatusFilter(s)} className={`px-2.5 py-1 rounded-md text-[11px] font-display transition-colors ${statusFilter===s?"bg-primary/20 text-primary border border-primary/30":"text-muted-foreground border border-transparent hover:border-border"}`}>{s==="all"?"All Status":s}</button>
+        ))}
+        <span className="ml-auto flex gap-3 text-xs font-display text-muted-foreground">
+          <span>👤 {items.filter(e=>e.type==="Human").length} Human</span>
+          <span>🤖 {items.filter(e=>e.type==="AI Agent").length} AI</span>
+        </span>
+      </div>
+
+      {/* List */}
+      {loading ? (
+        <div className="space-y-2">{[1,2,3].map(i=><Skeleton key={i} className="h-16 w-full"/>)}</div>
+      ) : filtered.length === 0 ? (
+        <Card><EmptyState title="No Employees" hint="Add employees and link them to brands"/></Card>
+      ) : (
+        <div className="space-y-2">
+          {filtered.map(e => (
+            <Card key={e.id} className="p-3 hover:border-primary/30 transition-colors">
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${e.type==="AI Agent"?"bg-purple-500/20":"bg-primary/20"}`}>
+                    {e.type==="AI Agent" ? <Cpu className="w-4 h-4 text-purple-400"/> : <User className="w-4 h-4 text-primary"/>}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="font-display text-sm text-foreground truncate">{e.name}</p>
+                    <p className="text-[11px] text-muted-foreground">{e.position}{e.department?` · ${e.department}`:""}</p>
+                    {(e.email||e.phone)&&<p className="text-[10px] text-muted-foreground">{e.email}{e.email&&e.phone?" · ":""}{e.phone}</p>}
+                    {e.brand_id&&<Badge variant="outline" className="text-[9px] mt-0.5">{brands.find(b=>b.id===e.brand_id)?.name??""}</Badge>}
+                  </div>
+                </div>
+                <div className="flex items-center gap-1 shrink-0">
+                  <Badge className={`text-[9px] ${e.type==="AI Agent"?"bg-purple-500/20 text-purple-300":"bg-primary/20 text-primary"}`}>{e.type}</Badge>
+                  <Badge className={`text-[9px] ${e.status==="Active"?"bg-emerald-500/20 text-emerald-400":"bg-muted text-muted-foreground"}`}>{e.status}</Badge>
+                  <Button size="icon" variant="ghost" className="w-7 h-7" onClick={()=>openEdit(e)}><Edit className="w-3.5 h-3.5"/></Button>
+                  <Button size="icon" variant="ghost" className="w-7 h-7" onClick={()=>setDeleteId(e.id)}><Trash2 className="w-3.5 h-3.5 text-destructive"/></Button>
+                </div>
+              </div>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      {/* Add/Edit Dialog */}
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-lg max-h-[85vh] overflow-auto">
+          <DialogHeader><DialogTitle className="font-display">{editId?"Edit":"New"} Employee</DialogTitle></DialogHeader>
+          <div className="space-y-3 py-1">
+            <div>
+              <Label className="text-xs">Brand</Label>
+              <select value={form.brand_id||""} onChange={e=>setForm(p=>({...p,brand_id:e.target.value||null}))} className="mt-1 w-full bg-secondary border border-border text-foreground rounded-md px-3 py-2 text-sm">
+                <option value="">— No Brand —</option>
+                {brands.map((b:any)=><option key={b.id} value={b.id}>{b.name}</option>)}
+              </select>
+            </div>
+            <div>
+              <Label className="text-xs">Type</Label>
+              <Select value={form.type} onValueChange={v=>setForm(p=>({...p,type:v}))}>
+                <SelectTrigger className="mt-1"><SelectValue/></SelectTrigger>
+                <SelectContent><SelectItem value="Human">Human</SelectItem><SelectItem value="AI Agent">AI Agent</SelectItem></SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              {f("name","Name *")} {f("position","Position")}
+              {f("branch","Branch")} {f("department","Department")}
+              {f("role","Role")} {f("specialization","Specialization")}
+            </div>
+            {form.type==="Human"&&<div className="grid grid-cols-2 gap-2">{f("email","Email","email")}{f("phone","Phone","tel")}</div>}
+            <div>
+              <Label className="text-xs">Status</Label>
+              <Select value={form.status} onValueChange={v=>setForm(p=>({...p,status:v}))}>
+                <SelectTrigger className="mt-1"><SelectValue/></SelectTrigger>
+                <SelectContent><SelectItem value="Active">Active</SelectItem><SelectItem value="Inactive">Inactive</SelectItem></SelectContent>
+              </Select>
+            </div>
+            <div><Label className="text-xs">Tasks</Label><Textarea value={form.tasks||""} onChange={e=>setForm(p=>({...p,tasks:e.target.value}))} className="mt-1 bg-secondary border-border text-xs" rows={2}/></div>
+            <div><Label className="text-xs">Bio</Label><Textarea value={form.bio||""} onChange={e=>setForm(p=>({...p,bio:e.target.value}))} className="mt-1 bg-secondary border-border text-xs" rows={2}/></div>
+            {form.type==="AI Agent"&&(
+              <div className="p-3 rounded-md border border-purple-500/30 bg-purple-500/5 space-y-3">
+                <p className="font-display text-[11px] text-purple-400 tracking-wider">AI AGENT CONFIG</p>
+                <div className="grid grid-cols-2 gap-2">{f("agent_code","Agent Code")}{f("agent_version","Version")}</div>
+                {f("team_category","Team Category")}
+                <div><Label className="text-xs">System Prompt</Label><Textarea value={form.system_prompt||""} onChange={e=>setForm(p=>({...p,system_prompt:e.target.value}))} className="mt-1 bg-secondary border-border text-xs" rows={3}/></div>
+                <label className="flex items-center gap-2 text-xs text-foreground cursor-pointer">
+                  <input type="checkbox" checked={!!form.is_aggregator} onChange={e=>setForm(p=>({...p,is_aggregator:e.target.checked}))}/> Is Aggregator
+                </label>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={()=>setOpen(false)}>Cancel</Button>
+            <Button onClick={handleSubmit}>Save</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete */}
+      <Dialog open={!!deleteId} onOpenChange={()=>setDeleteId(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader><DialogTitle className="font-display text-destructive">Delete Employee?</DialogTitle></DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={()=>setDeleteId(null)}>Cancel</Button>
+            <Button variant="destructive" onClick={async()=>{if(deleteId){await remove(deleteId);toast.success("Deleted");setDeleteId(null);}}}>Delete</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
 
 /* ─── Brands Management Tab ─────────────────────────────────── */
 function BrandsManageTab() {
