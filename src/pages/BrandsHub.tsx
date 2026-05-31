@@ -900,39 +900,52 @@ function AgentTab({ items, loading, create, update, remove, columns, fields, act
 /* ─── Employees Tab ──────────────────────────────────────────── */
 function EmployeesTab({ activeBrandId, brands }: { activeBrandId: string | null; brands: any[] }) {
   const { items: rows, loading, create, update, remove } = useEntities("employees");
-  const [open, setOpen]       = useState(false);
-  const [editId, setEditId]   = useState<string | null>(null);
+  const [open, setOpen]         = useState(false);
+  const [editId, setEditId]     = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
-  const [q, setQ]             = useState("");
+  const [q, setQ]               = useState("");
   const [typeFilter, setTypeFilter]     = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [form, setForm] = useState<Record<string,any>>({
+
+  const emptyForm = () => ({
     name:"", type:"Human", position:"", branch:"", email:"", phone:"",
     specialization:"", tasks:"", status:"Active", bio:"", role:"", department:"",
+    responsiblePerson:"", availability:"offline", reports_to:"", avatar_url:"",
+    instructions:"", workflow_id:"",
+    metadata:{} as Record<string,any>, metaRaw:"{}",
     agent_code:"", agent_version:"", system_prompt:"", team_category:"", is_aggregator:false,
     brand_id: activeBrandId ?? "",
   });
 
+  const [form, setForm] = useState<Record<string,any>>(emptyForm());
+
   const items = useMemo(() => rows.map((r: any) => ({
     id: r.id,
-    name:           r.name              ?? r.data?.name              ?? "",
-    type:           (r.employee_type==="AI"||r.employee_type==="AI Agent"||r.data?.type==="AI Agent") ? "AI Agent" : "Human",
-    position:       r.position          ?? r.data?.position          ?? "",
-    branch:         r.branch_name       ?? r.data?.branch            ?? "",
-    email:          r.email             ?? r.data?.email             ?? "",
-    phone:          r.phone             ?? r.data?.phone             ?? "",
-    specialization: r.specialization    ?? r.data?.specialization    ?? "",
-    tasks:          r.tasks             ?? r.data?.tasks             ?? "",
-    status:         r.status==="inactive" ? "Inactive" : "Active",
-    bio:            r.bio               ?? r.data?.bio               ?? "",
-    role:           r.role              ?? r.data?.role              ?? "",
-    department:     r.department        ?? r.data?.department        ?? "",
-    agent_code:     r.agent_code        ?? r.data?.agent_code        ?? "",
-    agent_version:  r.agent_version     ?? r.data?.agent_version     ?? "",
-    system_prompt:  r.system_prompt     ?? r.data?.system_prompt     ?? "",
-    team_category:  r.team_category     ?? r.data?.team_category     ?? "",
-    is_aggregator:  r.is_aggregator     ?? r.data?.is_aggregator     ?? false,
-    brand_id:       r.brand_id          ?? r.data?.brandId           ?? null,
+    name:             r.name               ?? r.data?.name              ?? "",
+    type:             (r.employee_type==="AI"||r.employee_type==="AI Agent"||r.data?.type==="AI Agent") ? "AI Agent" : "Human",
+    position:         r.position           ?? r.data?.position          ?? "",
+    branch:           r.branch_name        ?? r.data?.branch            ?? "",
+    email:            r.email              ?? r.data?.email             ?? "",
+    phone:            r.phone              ?? r.data?.phone             ?? "",
+    specialization:   r.specialization     ?? r.data?.specialization    ?? "",
+    tasks:            r.tasks              ?? r.data?.tasks             ?? "",
+    status:           r.status==="inactive" ? "Inactive" : "Active",
+    bio:              r.bio                ?? r.data?.bio               ?? "",
+    role:             r.role               ?? r.data?.role              ?? "",
+    department:       r.department         ?? r.data?.department        ?? "",
+    responsiblePerson:r.responsible_person ?? r.data?.responsiblePerson ?? "",
+    availability:     r.availability       ?? r.data?.availability      ?? "offline",
+    reports_to:       r.reports_to         ?? r.data?.reports_to        ?? "",
+    avatar_url:       r.avatar_url         ?? r.data?.avatar_url        ?? "",
+    instructions:     r.instructions       ?? r.data?.instructions      ?? "",
+    workflow_id:      r.workflow_id         ?? r.data?.workflow_id        ?? "",
+    metadata:         (() => { const m=r.metadata??r.data?.metadata; if(!m||typeof m!=="object"||Array.isArray(m)) return {}; return m; })(),
+    agent_code:       r.agent_code         ?? r.data?.agent_code        ?? "",
+    agent_version:    r.agent_version      ?? r.data?.agent_version     ?? "",
+    system_prompt:    r.system_prompt      ?? r.data?.system_prompt     ?? "",
+    team_category:    r.team_category      ?? r.data?.team_category     ?? "",
+    is_aggregator:    r.is_aggregator      ?? r.data?.is_aggregator     ?? false,
+    brand_id:         r.brand_id           ?? r.data?.brandId           ?? null,
   })), [rows]);
 
   const filtered = useMemo(() => {
@@ -943,35 +956,59 @@ function EmployeesTab({ activeBrandId, brands }: { activeBrandId: string | null;
     return list;
   }, [items, activeBrandId, typeFilter, statusFilter, q]);
 
-  const resetForm = () => setForm({ name:"", type:"Human", position:"", branch:"", email:"", phone:"", specialization:"", tasks:"", status:"Active", bio:"", role:"", department:"", agent_code:"", agent_version:"", system_prompt:"", team_category:"", is_aggregator:false, brand_id: activeBrandId ?? "" });
-
-  const openNew  = () => { resetForm(); setEditId(null); setOpen(true); };
-  const openEdit = (e: any) => { setForm({ ...e }); setEditId(e.id); setOpen(true); };
+  const openNew  = () => { setForm(emptyForm()); setEditId(null); setOpen(true); };
+  const openEdit = (e: any) => {
+    let metaRaw = "{}";
+    try { metaRaw = e.metadata && typeof e.metadata==="object" ? JSON.stringify(e.metadata, null, 2) : "{}"; } catch {}
+    setForm({ ...e, metaRaw });
+    setEditId(e.id); setOpen(true);
+  };
 
   const handleSubmit = async () => {
     if (!form.name.trim()) { toast.error("Name required"); return; }
+    let metadata = {};
+    try { metadata = JSON.parse(form.metaRaw||"{}"); } catch {}
     const payload: any = {
-      name: form.name, status: form.status==="Active"?"active":"inactive",
-      brand_id: form.brand_id||null, employee_type: form.type==="AI Agent"?"AI":"Human",
-      position: form.position||null, branch_name: form.branch||null,
-      email: form.email||null, phone: form.phone||null,
-      specialization: form.specialization||null, tasks: form.tasks||null,
-      role: form.role||null, department: form.department||null, bio: form.bio||null,
-      agent_code: form.agent_code||null, agent_version: form.agent_version||null,
-      system_prompt: form.system_prompt||null, team_category: form.team_category||null,
-      is_aggregator: !!form.is_aggregator, data: form,
+      name:               form.name,
+      status:             form.status==="Active"?"active":"inactive",
+      brand_id:           form.brand_id||null,
+      employee_type:      form.type==="AI Agent"?"AI":"Human",
+      position:           form.position||null,
+      branch_name:        form.branch||null,
+      email:              form.email||null,
+      phone:              form.phone||null,
+      specialization:     form.specialization||null,
+      tasks:              form.tasks||null,
+      responsible_person: form.responsiblePerson||null,
+      role:               form.role||null,
+      department:         form.department||null,
+      bio:                form.bio||null,
+      avatar_url:         form.avatar_url||null,
+      availability:       form.availability||"offline",
+      reports_to:         form.reports_to||null,
+      instructions:       form.instructions||null,
+      workflow_id:         form.workflow_id||null,
+      metadata,
+      agent_code:         form.agent_code||null,
+      agent_version:      form.agent_version||null,
+      system_prompt:      form.system_prompt||null,
+      team_category:      form.team_category||null,
+      is_aggregator:      !!form.is_aggregator,
+      data:               { ...form, metadata },
     };
     if (editId) { await update(editId, payload); toast.success("Updated"); }
     else        { await create(payload);          toast.success("Added");   }
-    setOpen(false); resetForm();
+    setOpen(false);
   };
 
-  const f = (key: string, label: string, type = "text") => (
+  const sf = (key: string, label: string, type="text") => (
     <div key={key}>
       <Label className="text-xs">{label}</Label>
       <Input type={type} value={form[key]||""} onChange={e=>setForm(p=>({...p,[key]:e.target.value}))} className="mt-1 bg-secondary border-border text-xs"/>
     </div>
   );
+
+  const availabilityDot: Record<string,string> = { online:"bg-emerald-500", offline:"bg-muted-foreground", busy:"bg-amber-500" };
 
   return (
     <div className="space-y-3">
@@ -1011,14 +1048,22 @@ function EmployeesTab({ activeBrandId, brands }: { activeBrandId: string | null;
             <Card key={e.id} className="p-3 hover:border-primary/30 transition-colors">
               <div className="flex items-start justify-between gap-2">
                 <div className="flex items-center gap-3 min-w-0">
-                  <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${e.type==="AI Agent"?"bg-purple-500/20":"bg-primary/20"}`}>
-                    {e.type==="AI Agent" ? <Cpu className="w-4 h-4 text-purple-400"/> : <User className="w-4 h-4 text-primary"/>}
-                  </div>
+                  {e.avatar_url
+                    ? <img src={e.avatar_url} alt={e.name} className="w-9 h-9 rounded-full object-cover shrink-0 border border-border"/>
+                    : <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${e.type==="AI Agent"?"bg-purple-500/20":"bg-primary/20"}`}>
+                        {e.type==="AI Agent" ? <Cpu className="w-4 h-4 text-purple-400"/> : <User className="w-4 h-4 text-primary"/>}
+                      </div>
+                  }
                   <div className="min-w-0">
-                    <p className="font-display text-sm text-foreground truncate">{e.name}</p>
-                    <p className="text-[11px] text-muted-foreground">{e.position}{e.department?` · ${e.department}`:""}</p>
+                    <div className="flex items-center gap-1.5">
+                      <p className="font-display text-sm text-foreground truncate">{e.name}</p>
+                      <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${availabilityDot[e.availability]||"bg-muted-foreground"}`}/>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground">{[e.position, e.department, e.branch].filter(Boolean).join(" · ")}</p>
+                    {e.specialization&&<p className="text-[10px] text-primary">{e.specialization}</p>}
                     {(e.email||e.phone)&&<p className="text-[10px] text-muted-foreground">{e.email}{e.email&&e.phone?" · ":""}{e.phone}</p>}
-                    {e.brand_id&&<Badge variant="outline" className="text-[9px] mt-0.5">{brands.find(b=>b.id===e.brand_id)?.name??""}</Badge>}
+                    {e.responsiblePerson&&<p className="text-[10px] text-muted-foreground">Reports to: {e.responsiblePerson}</p>}
+                    {e.brand_id&&<Badge variant="outline" className="text-[9px] mt-0.5">{brands.find((b:any)=>b.id===e.brand_id)?.name??""}</Badge>}
                   </div>
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
@@ -1035,9 +1080,11 @@ function EmployeesTab({ activeBrandId, brands }: { activeBrandId: string | null;
 
       {/* Add/Edit Dialog */}
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-lg max-h-[85vh] overflow-auto">
+        <DialogContent className="max-w-xl max-h-[88vh] overflow-auto">
           <DialogHeader><DialogTitle className="font-display">{editId?"Edit":"New"} Employee</DialogTitle></DialogHeader>
           <div className="space-y-3 py-1">
+
+            {/* Brand */}
             <div>
               <Label className="text-xs">Brand</Label>
               <select value={form.brand_id||""} onChange={e=>setForm(p=>({...p,brand_id:e.target.value||null}))} className="mt-1 w-full bg-secondary border border-border text-foreground rounded-md px-3 py-2 text-sm">
@@ -1045,39 +1092,119 @@ function EmployeesTab({ activeBrandId, brands }: { activeBrandId: string | null;
                 {brands.map((b:any)=><option key={b.id} value={b.id}>{b.name}</option>)}
               </select>
             </div>
+
+            {/* Classification */}
             <div>
-              <Label className="text-xs">Type</Label>
+              <Label className="text-xs">Classification *</Label>
               <Select value={form.type} onValueChange={v=>setForm(p=>({...p,type:v}))}>
                 <SelectTrigger className="mt-1"><SelectValue/></SelectTrigger>
                 <SelectContent><SelectItem value="Human">Human</SelectItem><SelectItem value="AI Agent">AI Agent</SelectItem></SelectContent>
               </Select>
             </div>
+
+            {/* Basic info */}
             <div className="grid grid-cols-2 gap-2">
-              {f("name","Name *")} {f("position","Position")}
-              {f("branch","Branch")} {f("department","Department")}
-              {f("role","Role")} {f("specialization","Specialization")}
+              {sf("name","Name *")}
+              {sf("position","Position")}
+              {sf("branch","Branch")}
+              {sf("specialization","Specialization")}
+              {sf("role","Role")}
+              {sf("department","Department")}
             </div>
-            {form.type==="Human"&&<div className="grid grid-cols-2 gap-2">{f("email","Email","email")}{f("phone","Phone","tel")}</div>}
+
+            {/* Responsible person + reports to */}
+            <div className="grid grid-cols-2 gap-2">
+              {sf("responsiblePerson","Responsible Person")}
+              {sf("reports_to","Reports To")}
+            </div>
+
+            {/* Availability + Status */}
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <Label className="text-xs">Availability</Label>
+                <Select value={form.availability||"offline"} onValueChange={v=>setForm(p=>({...p,availability:v}))}>
+                  <SelectTrigger className="mt-1"><SelectValue/></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="online">🟢 Online</SelectItem>
+                    <SelectItem value="busy">🟡 Busy</SelectItem>
+                    <SelectItem value="offline">⚫ Offline</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-xs">Status</Label>
+                <Select value={form.status} onValueChange={v=>setForm(p=>({...p,status:v}))}>
+                  <SelectTrigger className="mt-1"><SelectValue/></SelectTrigger>
+                  <SelectContent><SelectItem value="Active">Active</SelectItem><SelectItem value="Inactive">Inactive</SelectItem></SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Avatar URL */}
+            {sf("avatar_url","Avatar URL (https://…)")}
+
+            {/* Human-only contact */}
+            {form.type==="Human"&&(
+              <div className="grid grid-cols-2 gap-2">
+                {sf("email","Email","email")}
+                {sf("phone","Phone","tel")}
+              </div>
+            )}
+
+            {/* Tasks */}
             <div>
-              <Label className="text-xs">Status</Label>
-              <Select value={form.status} onValueChange={v=>setForm(p=>({...p,status:v}))}>
-                <SelectTrigger className="mt-1"><SelectValue/></SelectTrigger>
-                <SelectContent><SelectItem value="Active">Active</SelectItem><SelectItem value="Inactive">Inactive</SelectItem></SelectContent>
-              </Select>
+              <Label className="text-xs">Tasks</Label>
+              <Textarea value={form.tasks||""} onChange={e=>setForm(p=>({...p,tasks:e.target.value}))} className="mt-1 bg-secondary border-border text-xs" rows={2} placeholder="Comma-separated tasks"/>
             </div>
-            <div><Label className="text-xs">Tasks</Label><Textarea value={form.tasks||""} onChange={e=>setForm(p=>({...p,tasks:e.target.value}))} className="mt-1 bg-secondary border-border text-xs" rows={2}/></div>
-            <div><Label className="text-xs">Bio</Label><Textarea value={form.bio||""} onChange={e=>setForm(p=>({...p,bio:e.target.value}))} className="mt-1 bg-secondary border-border text-xs" rows={2}/></div>
+
+            {/* Bio */}
+            <div>
+              <Label className="text-xs">Bio</Label>
+              <Textarea value={form.bio||""} onChange={e=>setForm(p=>({...p,bio:e.target.value}))} className="mt-1 bg-secondary border-border text-xs" rows={2}/>
+            </div>
+
+            {/* Instructions (Human) */}
+            {form.type==="Human"&&(
+              <div>
+                <Label className="text-xs">Special Instructions</Label>
+                <Textarea value={form.instructions||""} onChange={e=>setForm(p=>({...p,instructions:e.target.value}))} className="mt-1 bg-secondary border-border text-xs" rows={2}/>
+              </div>
+            )}
+
+            {/* Workflow ID */}
+            {sf("workflow_id","Workflow ID")}
+
+            {/* Metadata */}
+            <div>
+              <Label className="text-xs">Metadata (JSON)</Label>
+              <Textarea
+                value={form.metaRaw||"{}"}
+                onChange={e=>setForm(p=>({...p,metaRaw:e.target.value}))}
+                rows={3} placeholder={'{ "key": "value" }'}
+                className="mt-1 bg-secondary border-border text-xs font-mono"
+              />
+            </div>
+
+            {/* AI Agent config */}
             {form.type==="AI Agent"&&(
               <div className="p-3 rounded-md border border-purple-500/30 bg-purple-500/5 space-y-3">
                 <p className="font-display text-[11px] text-purple-400 tracking-wider">AI AGENT CONFIG</p>
-                <div className="grid grid-cols-2 gap-2">{f("agent_code","Agent Code")}{f("agent_version","Version")}</div>
-                {f("team_category","Team Category")}
-                <div><Label className="text-xs">System Prompt</Label><Textarea value={form.system_prompt||""} onChange={e=>setForm(p=>({...p,system_prompt:e.target.value}))} className="mt-1 bg-secondary border-border text-xs" rows={3}/></div>
+                <div className="grid grid-cols-2 gap-2">
+                  {sf("agent_code","Agent Code")}
+                  {sf("agent_version","Version")}
+                </div>
+                {sf("team_category","Team Category")}
+                <div>
+                  <Label className="text-xs">System Prompt</Label>
+                  <Textarea value={form.system_prompt||""} onChange={e=>setForm(p=>({...p,system_prompt:e.target.value}))} className="mt-1 bg-secondary border-border text-xs" rows={4} placeholder="Instructions for the AI agent…"/>
+                </div>
                 <label className="flex items-center gap-2 text-xs text-foreground cursor-pointer">
-                  <input type="checkbox" checked={!!form.is_aggregator} onChange={e=>setForm(p=>({...p,is_aggregator:e.target.checked}))}/> Is Aggregator
+                  <input type="checkbox" checked={!!form.is_aggregator} onChange={e=>setForm(p=>({...p,is_aggregator:e.target.checked}))}/>
+                  Is Aggregator (collects results from sub-agents)
                 </label>
               </div>
             )}
+
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={()=>setOpen(false)}>Cancel</Button>
