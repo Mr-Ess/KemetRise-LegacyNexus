@@ -82,7 +82,9 @@ CREATE INDEX IF NOT EXISTS idx_audit_logs_brand_created
 -- ── 3. get_invitation_by_token RPC (idempotent) ────────────────────────────
 -- Used by teamApi.accept(token) in src/services/system.ts
 
-CREATE OR REPLACE FUNCTION public.get_invitation_by_token(p_token TEXT)
+DROP FUNCTION IF EXISTS public.get_invitation_by_token(TEXT);
+
+CREATE FUNCTION public.get_invitation_by_token(p_token TEXT)
 RETURNS SETOF public.brand_invitations
 LANGUAGE sql STABLE SECURITY DEFINER
 SET search_path = public
