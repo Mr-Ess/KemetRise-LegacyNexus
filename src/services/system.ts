@@ -370,39 +370,56 @@ export const viewsApi = {
 // Team / Brand members & invitations
 export const teamApi = {
   async members(brand_id: string) {
-    return await tenantDb.select("brand_members", { eq: { brand_id } });
+    const { data, error } = await supabase
+      .from("brand_members")
+      .select("*")
+      .eq("brand_id", brand_id)
+      .order("created_at", { ascending: false });
+    if (error) throw error;
+    return data || [];
   },
   async invitations(brand_id: string) {
-    return await tenantDb.select("brand_invitations", { eq: { brand_id }, orderBy: "created_at", ascending: false });
+    const { data, error } = await supabase
+      .from("brand_invitations")
+      .select("*")
+      .eq("brand_id", brand_id)
+      .order("created_at", { ascending: false });
+    if (error) throw error;
+    return data || [];
   },
   async invite(brand_id: string, email: string, role = "member") {
     const invited_by = await uid();
     const token = crypto.randomUUID().replace(/-/g, "");
-    return await tenantDb.insert("brand_invitations", { brand_id, invited_by, email, role, token } as any, { includeClientId: false, includeBrandId: false });
+    const { data, error } = await supabase
+      .from("brand_invitations")
+      .insert({ brand_id, invited_by, email, role, token })
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
   },
   async revoke(id: string) {
-    await tenantDb.remove("brand_invitations", { id }, { includeUserId: false, includeUserName: false, includeClientId: false, includeBrandId: false });
+    const { error } = await supabase.from("brand_invitations").delete().eq("id", id);
+    if (error) throw error;
   },
   async accept(token: string) {
     const u = await uid();
-    const { data, error: e1 } = await supabase.rpc("get_invitation_by_token" as any, { _token: token });
+    const { data, error: e1 } = await supabase.rpc("get_invitation_by_token" as any, { p_token: token });
     const inv: any = Array.isArray(data) ? data[0] : data;
     if (e1 || !inv) throw new Error("Invalid or expired invitation");
-    try {
-      await tenantDb.insert("brand_members", { brand_id: inv.brand_id, user_id: u, role: inv.role } as any, { includeClientId: false, includeBrandId: false });
-    } catch (e: any) {
-      if (!String(e?.message || "").includes("duplicate")) throw e;
-    }
-    await tenantDb.update(
-      "brand_invitations",
-      { accepted_at: new Date().toISOString() },
-      { id: inv.id },
-      { includeUserId: false, includeUserName: false, includeClientId: false, includeBrandId: false },
-    );
+    const { error: e2 } = await supabase
+      .from("brand_members")
+      .insert({ brand_id: inv.brand_id, user_id: u, role: inv.role });
+    if (e2 && !String(e2.message).includes("duplicate")) throw e2;
+    await supabase
+      .from("brand_invitations")
+      .update({ accepted_at: new Date().toISOString() })
+      .eq("id", inv.id);
     return inv;
   },
   async removeMember(id: string) {
-    await tenantDb.remove("brand_members", { id }, { includeUserId: false, includeUserName: false, includeClientId: false, includeBrandId: false });
+    const { error } = await supabase.from("brand_members").delete().eq("id", id);
+    if (error) throw error;
   },
 };
 
