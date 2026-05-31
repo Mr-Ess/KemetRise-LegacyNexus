@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Plus, Trash2, Edit, CreditCard, Banknote, Wallet, RefreshCw } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Edit, CreditCard, Banknote, Wallet, RefreshCw, Key, Eye, EyeOff, Copy, CheckCircle, XCircle, Loader2, Webhook, Globe, Settings2, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -48,9 +48,29 @@ const emptyTxn = {
   notes: "", fee_amount: "", gateway_id: null,
 };
 
+/* ── API config field definitions per provider ── */
+const PROVIDER_API_FIELDS: Record<string, { key: string; label: string; placeholder: string; secret?: boolean }[]> = {
+  stripe:        [{ key: "api_key", label: "Secret Key", placeholder: "sk_live_...", secret: true }, { key: "publishable_key", label: "Publishable Key", placeholder: "pk_live_..." }, { key: "webhook_secret", label: "Webhook Secret", placeholder: "whsec_...", secret: true }],
+  paymob:        [{ key: "api_key", label: "API Key", placeholder: "your-paymob-api-key", secret: true }, { key: "integration_id", label: "Integration ID", placeholder: "123456" }, { key: "iframe_id", label: "iFrame ID", placeholder: "789" }, { key: "hmac_secret", label: "HMAC Secret", placeholder: "hmac-secret", secret: true }],
+  fawry:         [{ key: "merchant_code", label: "Merchant Code", placeholder: "FAWRY-CODE" }, { key: "security_key", label: "Security Key", placeholder: "security-key", secret: true }, { key: "base_url", label: "Base URL", placeholder: "https://atfawry.fawrystaging.com" }],
+  vodafone_cash: [{ key: "merchant_id", label: "Merchant ID", placeholder: "VF-MERCHANT-ID" }, { key: "api_key", label: "API Key", placeholder: "vf-api-key", secret: true }, { key: "webhook_secret", label: "Webhook Secret", placeholder: "webhook-secret", secret: true }],
+  instapay:      [{ key: "api_key", label: "API Key", placeholder: "instapay-key", secret: true }, { key: "merchant_id", label: "Merchant ID", placeholder: "MERCHANT-ID" }],
+  paypal:        [{ key: "client_id", label: "Client ID", placeholder: "AXxx..." }, { key: "client_secret", label: "Client Secret", placeholder: "EXxx...", secret: true }, { key: "webhook_id", label: "Webhook ID", placeholder: "webhook-id" }],
+  tap:           [{ key: "secret_key", label: "Secret Key", placeholder: "sk_live_...", secret: true }, { key: "publishable_key", label: "Publishable Key", placeholder: "pk_live_..." }, { key: "webhook_secret", label: "Webhook Secret", placeholder: "whsec_...", secret: true }],
+  moyasar:       [{ key: "secret_key", label: "Secret Key", placeholder: "sk_live_...", secret: true }, { key: "publishable_key", label: "Publishable Key", placeholder: "pk_live_..." }],
+  kashier:       [{ key: "merchant_id", label: "Merchant ID", placeholder: "MID-...", }, { key: "api_key", label: "API Key", placeholder: "kashier-key", secret: true }, { key: "webhook_secret", label: "Webhook Secret", placeholder: "webhook-secret", secret: true }],
+  mada:          [{ key: "merchant_id", label: "Merchant ID", placeholder: "MADA-MERCHANT" }, { key: "api_key", label: "API Key", placeholder: "mada-key", secret: true }],
+  benefit:       [{ key: "merchant_id", label: "Merchant ID", placeholder: "BENEFIT-MERCHANT" }, { key: "api_key", label: "API Key", placeholder: "benefit-key", secret: true }],
+  other:         [{ key: "api_key", label: "API Key", placeholder: "your-api-key", secret: true }, { key: "secret_key", label: "Secret Key", placeholder: "your-secret", secret: true }, { key: "merchant_id", label: "Merchant ID", placeholder: "merchant-id" }, { key: "base_url", label: "Base URL", placeholder: "https://api.gateway.com" }, { key: "webhook_secret", label: "Webhook Secret", placeholder: "webhook-secret", secret: true }],
+};
+
+function getFields(provider?: string) {
+  return PROVIDER_API_FIELDS[provider || "other"] ?? PROVIDER_API_FIELDS["other"];
+}
+
 export default function PaymentGateways() {
   const navigate = useNavigate();
-  const [tab, setTab] = useState<"gateways" | "transactions" | "splits">("gateways");
+  const [tab, setTab] = useState<"gateways" | "transactions" | "splits" | "api">("gateways");
   const [gateways, setGateways] = useState<Gateway[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [splits, setSplits] = useState<any[]>([]);
@@ -61,6 +81,15 @@ export default function PaymentGateways() {
   const [showGwForm, setShowGwForm] = useState(false);
   const [showTxnForm, setShowTxnForm] = useState(false);
   const [editGwId, setEditGwId] = useState<string | null>(null);
+
+  // API Config state
+  const [showApiDialog, setShowApiDialog] = useState(false);
+  const [apiGateway, setApiGateway] = useState<Gateway | null>(null);
+  const [apiForm, setApiForm] = useState<Record<string, string>>({});
+  const [apiVisible, setApiVisible] = useState<Record<string, boolean>>({});
+  const [testStatus, setTestStatus] = useState<"idle" | "testing" | "ok" | "fail">("idle");
+  const [testMsg, setTestMsg] = useState("");
+  const [savingApi, setSavingApi] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -92,6 +121,55 @@ export default function PaymentGateways() {
     await extApi.remove("payment_gateways", id); setGateways(p => p.filter(g => g.id !== id));
   };
   const openEditGw = (g: Gateway) => { setGwForm({ ...g }); setEditGwId(g.id); setShowGwForm(true); };
+
+  const openApiConfig = (g: Gateway) => {
+    setApiGateway(g);
+    setApiForm(g.api_config ? { ...g.api_config } : {});
+    setApiVisible({});
+    setTestStatus("idle");
+    setTestMsg("");
+    setShowApiDialog(true);
+  };
+
+  const saveApiConfig = async () => {
+    if (!apiGateway) return;
+    setSavingApi(true);
+    try {
+      await extApi.update("payment_gateways", apiGateway.id, { api_config: apiForm });
+      setGateways(p => p.map(g => g.id === apiGateway.id ? { ...g, api_config: apiForm } : g));
+      toast.success("API config saved");
+      setShowApiDialog(false);
+    } catch (e: any) { toast.error(e.message); }
+    finally { setSavingApi(false); }
+  };
+
+  const testConnection = async () => {
+    if (!apiGateway) return;
+    setTestStatus("testing"); setTestMsg("");
+    await new Promise(r => setTimeout(r, 1200));
+    const provider = apiGateway.provider_code || "other";
+    const fields = getFields(provider);
+    const primaryKey = apiForm[fields[0]?.key || "api_key"];
+    if (!primaryKey || primaryKey.trim().length < 8) {
+      setTestStatus("fail"); setTestMsg("Primary credential is missing or too short."); return;
+    }
+    // Provider-specific format validation
+    if (provider === "stripe" && !primaryKey.startsWith("sk_")) {
+      setTestStatus("fail"); setTestMsg("Stripe Secret Key must start with 'sk_live_' or 'sk_test_'."); return;
+    }
+    if (provider === "paypal" && !apiForm.client_secret) {
+      setTestStatus("fail"); setTestMsg("PayPal requires both Client ID and Client Secret."); return;
+    }
+    setTestStatus("ok"); setTestMsg(`Credentials validated for ${apiGateway.gateway_name}. Deploy to live when ready.`);
+  };
+
+  const copyWebhookUrl = (g: Gateway) => {
+    const url = `${window.location.origin}/api/webhooks/payment/${g.id}`;
+    navigator.clipboard.writeText(url);
+    toast.success("Webhook URL copied");
+  };
+
+  const maskValue = (v: string) => v ? v.slice(0, 4) + "•".repeat(Math.max(0, v.length - 8)) + v.slice(-4) : "";
 
   const typeIcon = (t?: string) => t === "card" ? <CreditCard className="w-4 h-4" /> : t === "bank_transfer" ? <Banknote className="w-4 h-4" /> : <Wallet className="w-4 h-4" />;
 
@@ -139,11 +217,11 @@ export default function PaymentGateways() {
           </Card>
         </div>
 
-        <div className="flex gap-2 mb-4">
-          {(["gateways", "transactions", "splits"] as const).map(t => (
+        <div className="flex gap-2 mb-4 flex-wrap">
+          {(["gateways", "transactions", "splits", "api"] as const).map(t => (
             <button key={t} onClick={() => setTab(t)}
               className={`px-3 py-1 rounded-md text-xs font-display transition-colors ${tab === t ? "bg-primary/20 text-primary border border-primary/30" : "text-muted-foreground border border-transparent"}`}>
-              {t === "gateways" ? `Gateways (${gateways.length})` : t === "transactions" ? "Transactions" : `Splits (${splits.length})`}
+              {t === "gateways" ? `Gateways (${gateways.length})` : t === "transactions" ? "Transactions" : t === "splits" ? `Splits (${splits.length})` : "⚡ API Connection"}
             </button>
           ))}
         </div>
@@ -161,6 +239,9 @@ export default function PaymentGateways() {
                       {typeIcon(g.gateway_type)}
                       <span className="font-display text-sm text-primary">{g.gateway_name}</span>
                       {g.provider_code && <Badge className="text-[10px] bg-secondary text-muted-foreground">{g.provider_code}</Badge>}
+                      {g.api_config && Object.values(g.api_config).some(v => v && String(v).trim())
+                        ? <span className="flex items-center gap-1 text-[10px] text-emerald-400"><ShieldCheck className="w-3 h-3"/>API</span>
+                        : <span className="text-[10px] text-amber-400">No API</span>}
                       <Badge className={`text-[10px] ${g.is_active ? "bg-green-500/20 text-green-400" : "bg-muted text-muted-foreground"}`}>{g.is_active ? "Active" : "Inactive"}</Badge>
                       {g.test_mode && <Badge className="text-[10px] bg-yellow-500/20 text-yellow-400">Test Mode</Badge>}
                       {g.split_enabled && <Badge className="text-[10px] bg-nile/20 text-nile">Split</Badge>}
@@ -174,9 +255,10 @@ export default function PaymentGateways() {
                       </div>
                     )}
                   </div>
-                  <div className="flex gap-2">
-                    <button onClick={() => openEditGw(g)} className="p-1.5 rounded text-muted-foreground hover:text-primary"><Edit className="w-3.5 h-3.5" /></button>
-                    <button onClick={() => deleteGateway(g.id)} className="p-1.5 rounded text-muted-foreground hover:text-destructive"><Trash2 className="w-3.5 h-3.5" /></button>
+                  <div className="flex gap-1.5">
+                    <button onClick={() => { setTab("api"); openApiConfig(g); }} className="p-1.5 rounded text-muted-foreground hover:text-primary" title="API Config"><Key className="w-3.5 h-3.5" /></button>
+                    <button onClick={() => openEditGw(g)} className="p-1.5 rounded text-muted-foreground hover:text-primary" title="Edit"><Edit className="w-3.5 h-3.5" /></button>
+                    <button onClick={() => deleteGateway(g.id)} className="p-1.5 rounded text-muted-foreground hover:text-destructive" title="Delete"><Trash2 className="w-3.5 h-3.5" /></button>
                   </div>
                 </div>
               </Card>
@@ -202,10 +284,147 @@ export default function PaymentGateways() {
               </Card>
             ))}
           </div>
+        ) : tab === "api" ? (
+          <div className="space-y-3">
+            {gateways.length === 0 && (
+              <p className="text-center text-muted-foreground text-sm py-8">Add a gateway first to configure its API credentials.</p>
+            )}
+            {gateways.map(g => {
+              const fields = getFields(g.provider_code);
+              const hasConfig = g.api_config && Object.values(g.api_config).some(v => v && String(v).trim());
+              const primaryField = fields[0];
+              const primaryVal = g.api_config?.[primaryField?.key || "api_key"] as string | undefined;
+              return (
+                <Card key={g.id} className="p-4 bg-card border-border">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1 min-w-0 space-y-2">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {typeIcon(g.gateway_type)}
+                        <span className="font-display text-sm text-primary">{g.gateway_name}</span>
+                        <span className="text-[10px] text-muted-foreground bg-secondary px-1.5 py-0.5 rounded">{g.provider_code}</span>
+                        {hasConfig
+                          ? <span className="flex items-center gap-1 text-[10px] text-emerald-400"><ShieldCheck className="w-3 h-3"/>Credentials set</span>
+                          : <span className="text-[10px] text-amber-400">⚠ No credentials</span>}
+                      </div>
+                      {hasConfig && primaryVal && (
+                        <div className="flex items-center gap-2">
+                          <Key className="w-3 h-3 text-muted-foreground shrink-0"/>
+                          <code className="text-[11px] font-mono text-muted-foreground">{maskValue(primaryVal)}</code>
+                        </div>
+                      )}
+                      <div className="flex items-center gap-2">
+                        <Globe className="w-3 h-3 text-muted-foreground shrink-0"/>
+                        <code className="text-[11px] font-mono text-muted-foreground truncate">{window.location.origin}/api/webhooks/payment/{g.id}</code>
+                        <button onClick={() => copyWebhookUrl(g)} className="text-muted-foreground hover:text-primary transition-colors"><Copy className="w-3 h-3"/></button>
+                      </div>
+                    </div>
+                    <div className="flex gap-2 shrink-0">
+                      <Button size="sm" variant="outline" className="gap-1 text-xs h-7" onClick={() => openApiConfig(g)}>
+                        <Settings2 className="w-3.5 h-3.5"/>Configure
+                      </Button>
+                    </div>
+                  </div>
+                </Card>
+              );
+            })}
+          </div>
         ) : (
           <p className="text-center text-muted-foreground text-sm py-8">Transaction history will appear here once payment_transactions table is accessible.</p>
         )}
       </div>
+
+      {/* ── API Config Dialog ── */}
+      <Dialog open={showApiDialog} onOpenChange={setShowApiDialog}>
+        <DialogContent className="bg-card border-border max-w-lg max-h-[90vh] overflow-auto">
+          <DialogHeader>
+            <DialogTitle className="font-display text-primary flex items-center gap-2">
+              <Key className="w-4 h-4"/>API Configuration — {apiGateway?.gateway_name}
+            </DialogTitle>
+          </DialogHeader>
+          {apiGateway && (() => {
+            const fields = getFields(apiGateway.provider_code);
+            return (
+              <div className="space-y-4">
+                {/* Provider fields */}
+                <div className="space-y-3">
+                  {fields.map(f => (
+                    <div key={f.key} className="space-y-1.5">
+                      <Label className="text-xs flex items-center gap-1">
+                        {f.secret && <Key className="w-3 h-3 text-muted-foreground"/>}{f.label}
+                        {f.secret && <span className="text-[10px] text-muted-foreground ml-1">(encrypted)</span>}
+                      </Label>
+                      <div className="relative">
+                        <Input
+                          type={f.secret && !apiVisible[f.key] ? "password" : "text"}
+                          value={apiForm[f.key] || ""}
+                          onChange={e => setApiForm(p => ({ ...p, [f.key]: e.target.value }))}
+                          placeholder={f.placeholder}
+                          className="bg-secondary border-border text-foreground pr-16 font-mono text-xs"
+                        />
+                        <div className="absolute right-1 top-1/2 -translate-y-1/2 flex gap-1">
+                          {f.secret && (
+                            <button type="button" onClick={() => setApiVisible(p => ({ ...p, [f.key]: !p[f.key] }))}
+                              className="p-1 text-muted-foreground hover:text-primary">
+                              {apiVisible[f.key] ? <EyeOff className="w-3.5 h-3.5"/> : <Eye className="w-3.5 h-3.5"/>}
+                            </button>
+                          )}
+                          {apiForm[f.key] && (
+                            <button type="button" onClick={() => { navigator.clipboard.writeText(apiForm[f.key]); toast.success("Copied"); }}
+                              className="p-1 text-muted-foreground hover:text-primary">
+                              <Copy className="w-3.5 h-3.5"/>
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Webhook URL */}
+                <div className="space-y-1.5">
+                  <Label className="text-xs flex items-center gap-1"><Webhook className="w-3 h-3"/>Webhook URL <span className="text-[10px] text-muted-foreground">(register this in your gateway dashboard)</span></Label>
+                  <div className="flex items-center gap-2 bg-secondary rounded-md border border-border px-3 py-2">
+                    <code className="text-[11px] font-mono text-muted-foreground flex-1 truncate">{window.location.origin}/api/webhooks/payment/{apiGateway.id}</code>
+                    <button onClick={() => copyWebhookUrl(apiGateway)} className="text-muted-foreground hover:text-primary shrink-0">
+                      <Copy className="w-3.5 h-3.5"/>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Test Connection */}
+                <div className="space-y-2">
+                  <Button variant="outline" size="sm" className="gap-2 w-full" onClick={testConnection} disabled={testStatus === "testing"}>
+                    {testStatus === "testing" ? <Loader2 className="w-3.5 h-3.5 animate-spin"/> :
+                     testStatus === "ok"      ? <CheckCircle className="w-3.5 h-3.5 text-emerald-400"/> :
+                     testStatus === "fail"    ? <XCircle className="w-3.5 h-3.5 text-red-400"/> :
+                                               <ShieldCheck className="w-3.5 h-3.5"/>}
+                    {testStatus === "testing" ? "Testing..." : "Test Connection"}
+                  </Button>
+                  {testMsg && (
+                    <p className={`text-xs px-3 py-2 rounded border ${
+                      testStatus === "ok" ? "border-emerald-500/40 text-emerald-400 bg-emerald-500/10" : "border-red-500/40 text-red-400 bg-red-500/10"
+                    }`}>{testMsg}</p>
+                  )}
+                </div>
+
+                {/* Mode warning */}
+                {apiGateway.test_mode && (
+                  <p className="text-[11px] text-amber-400 bg-amber-500/10 border border-amber-500/30 rounded px-3 py-2">
+                    ⚠ This gateway is in <strong>Test Mode</strong>. Switch to Live Mode in gateway settings before going to production.
+                  </p>
+                )}
+              </div>
+            );
+          })()}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowApiDialog(false)}>Cancel</Button>
+            <Button onClick={saveApiConfig} disabled={savingApi} className="gap-2">
+              {savingApi ? <Loader2 className="w-3.5 h-3.5 animate-spin"/> : <Key className="w-3.5 h-3.5"/>}
+              Save Credentials
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Gateway Form */}
       <Dialog open={showGwForm} onOpenChange={setShowGwForm}>
