@@ -40,9 +40,17 @@ const Projects = () => {
     id: r.id,
     ...emptyForm,
     ...(r.data as any),
-    name: (r as any).name ?? (r.data as any)?.name ?? "",
-    status: (r as any).status === "inactive" ? "Completed" : (r as any).status === "maintenance" ? "On Hold" : (r as any).status === "pending" ? "Cancelled" : ((r.data as any)?.status ?? "Active"),
-    brandId: (r as any).brand_id ?? (r.data as any)?.brandId ?? null,
+    name:              (r as any).name              ?? (r.data as any)?.name              ?? "",
+    description:       (r as any).description       ?? (r.data as any)?.description       ?? "",
+    startDate:         (r as any).start_date        ?? (r.data as any)?.startDate         ?? "",
+    endDate:           (r as any).end_date          ?? (r.data as any)?.endDate           ?? "",
+    budget:            (r as any).budget            ?? (r.data as any)?.budget            ?? "",
+    team:              (r as any).team              ?? (r.data as any)?.team              ?? [],
+    humanCount:        (r as any).human_count       ?? (r.data as any)?.humanCount        ?? 0,
+    aiCount:           (r as any).ai_count          ?? (r.data as any)?.aiCount           ?? 0,
+    responsiblePerson: (r as any).responsible_person ?? (r.data as any)?.responsiblePerson ?? "",
+    status:   (r as any).status === "inactive" ? "Completed" : (r as any).status === "maintenance" ? "On Hold" : (r as any).status === "pending" ? "Cancelled" : ((r.data as any)?.status ?? "Active"),
+    brandId:  (r as any).brand_id ?? (r.data as any)?.brandId ?? null,
   })), [rows]);
   const [showForm, setShowForm] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
@@ -57,7 +65,20 @@ const Projects = () => {
 
   const handleSubmit = async () => {
     if (!form.name.trim()) { toast.error("Project name required"); return; }
-    const payload = { name: form.name, status: statusToDb(form.status), data: form, brand_id: form.brandId || null };
+    const payload = {
+      name:               form.name,
+      status:             statusToDb(form.status),
+      brand_id:           form.brandId || null,
+      description:        form.description        || null,
+      start_date:         form.startDate          || null,
+      end_date:           form.endDate            || null,
+      budget:             form.budget             || null,
+      team:               form.team               || [],
+      human_count:        form.humanCount         || 0,
+      ai_count:           form.aiCount            || 0,
+      responsible_person: form.responsiblePerson  || null,
+      data:               form,
+    };
     if (editId) { await update(editId, payload); toast.success("Updated"); }
     else { await create(payload); toast.success("Created"); }
     setShowForm(false); resetForm();

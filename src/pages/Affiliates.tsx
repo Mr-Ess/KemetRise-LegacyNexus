@@ -29,8 +29,18 @@ const Affiliates = () => {
     id: r.id,
     ...emptyForm,
     ...(r.data as any),
-    name: (r as any).name ?? (r.data as any)?.name ?? "",
-    status: (r as any).status === "inactive" ? "Inactive" : ((r.data as any)?.status ?? "Active"),
+    name:              (r as any).name              ?? (r.data as any)?.name              ?? "",
+    code:              (r as any).code              ?? (r.data as any)?.code              ?? "",
+    commission:        (r as any).commission        ?? (r.data as any)?.commission        ?? "",
+    referrals:         (r as any).referrals         ?? (r.data as any)?.referrals         ?? 0,
+    region:            (r as any).region            ?? (r.data as any)?.region            ?? "",
+    email:             (r as any).email             ?? (r.data as any)?.email             ?? "",
+    phone:             (r as any).phone             ?? (r.data as any)?.phone             ?? "",
+    notes:             (r as any).notes             ?? (r.data as any)?.notes             ?? "",
+    humanCount:        (r as any).human_count       ?? (r.data as any)?.humanCount        ?? 0,
+    aiCount:           (r as any).ai_count          ?? (r.data as any)?.aiCount           ?? 0,
+    responsiblePerson: (r as any).responsible_person ?? (r.data as any)?.responsiblePerson ?? "",
+    status:   (r as any).status === "inactive" ? "Inactive" : ((r.data as any)?.status ?? "Active"),
   })), [rows]);
   const [showForm, setShowForm] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
@@ -44,7 +54,21 @@ const Affiliates = () => {
 
   const handleSubmit = async () => {
     if (!form.name.trim()) { toast.error("Name required"); return; }
-    const payload = { name: form.name, status: statusToDb(form.status), data: form };
+    const payload = {
+      name:               form.name,
+      status:             statusToDb(form.status),
+      code:               form.code               || null,
+      commission:         form.commission         || null,
+      referrals:          form.referrals          || 0,
+      region:             form.region             || null,
+      email:              form.email              || null,
+      phone:              form.phone              || null,
+      notes:              form.notes              || null,
+      human_count:        form.humanCount         || 0,
+      ai_count:           form.aiCount            || 0,
+      responsible_person: form.responsiblePerson  || null,
+      data:               form,
+    };
     if (editId) { await update(editId, payload); toast.success("Updated"); }
     else { await create(payload); toast.success("Created"); }
     setShowForm(false); resetForm();

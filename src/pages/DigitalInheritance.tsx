@@ -28,7 +28,18 @@ const DigitalInheritance = () => {
     id: r.id,
     ...emptyForm,
     ...(r.data as any),
-    name: (r as any).name ?? (r.data as any)?.name ?? "",
+    name:              (r as any).name              ?? (r.data as any)?.name              ?? "",
+    relationship:      (r as any).relationship      ?? (r.data as any)?.relationship      ?? "",
+    email:             (r as any).email             ?? (r.data as any)?.email             ?? "",
+    phone:             (r as any).phone             ?? (r.data as any)?.phone             ?? "",
+    whatsapp:          (r as any).whatsapp          ?? (r.data as any)?.whatsapp          ?? "",
+    accessLevel:       (r as any).access_level      ?? (r.data as any)?.accessLevel       ?? "Full",
+    assets:            (r as any).assets            ?? (r.data as any)?.assets            ?? "",
+    notes:             (r as any).notes             ?? (r.data as any)?.notes             ?? "",
+    photoUrl:          (r as any).photo_url         ?? (r.data as any)?.photoUrl          ?? "",
+    humanCount:        (r as any).human_count       ?? (r.data as any)?.humanCount        ?? 0,
+    aiCount:           (r as any).ai_count          ?? (r.data as any)?.aiCount           ?? 0,
+    responsiblePerson: (r as any).responsible_person ?? (r.data as any)?.responsiblePerson ?? "",
   })), [rows]);
   const [showForm, setShowForm] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
@@ -41,7 +52,22 @@ const DigitalInheritance = () => {
 
   const handleSubmit = async () => {
     if (!form.name.trim()) { toast.error("Name required"); return; }
-    const payload = { name: form.name, status: "active", data: form };
+    const payload = {
+      name:               form.name,
+      status:             "active",
+      relationship:       form.relationship       || null,
+      email:              form.email              || null,
+      phone:              form.phone              || null,
+      whatsapp:           form.whatsapp           || null,
+      access_level:       form.accessLevel        || null,
+      assets:             form.assets             || null,
+      notes:              form.notes              || null,
+      photo_url:          form.photoUrl           || null,
+      human_count:        form.humanCount         || 0,
+      ai_count:           form.aiCount            || 0,
+      responsible_person: form.responsiblePerson  || null,
+      data:               form,
+    };
     if (editId) { await update(editId, payload); toast.success("Updated"); }
     else { await create(payload); toast.success("Added"); }
     setShowForm(false); resetForm();

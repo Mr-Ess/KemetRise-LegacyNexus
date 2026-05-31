@@ -22,7 +22,16 @@ const emptyForm: Omit<Milestone, "id"> = { title: "", date: "", description: "",
 const LegendaryJourney = () => {
   const navigate = useNavigate();
   const { items: rows, create, update, remove } = useEntities("legendary_journey");
-  const items: Milestone[] = useMemo(() => rows.map(r => ({ id: r.id, ...emptyForm, ...(r.data as any), title: (r.data as any)?.title || r.name })).sort((a, b) => a.date.localeCompare(b.date)), [rows]);
+  const items: Milestone[] = useMemo(() => rows.map(r => ({
+    id: r.id,
+    ...emptyForm,
+    ...(r.data as any),
+    title:             (r.data as any)?.title       || r.name,
+    date:              (r as any).date              ?? (r.data as any)?.date              ?? "",
+    description:       (r as any).description      ?? (r.data as any)?.description       ?? "",
+    category:          (r as any).category         ?? (r.data as any)?.category          ?? "Achievement",
+    responsiblePerson: (r as any).responsible_person ?? (r.data as any)?.responsiblePerson ?? "",
+  })).sort((a, b) => a.date.localeCompare(b.date)), [rows]);
   const [showForm, setShowForm] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -34,7 +43,15 @@ const LegendaryJourney = () => {
 
   const handleSubmit = async () => {
     if (!form.title.trim()) { toast.error("Title required"); return; }
-    const payload = { name: form.title, status: "active", data: form };
+    const payload = {
+      name:               form.title,
+      status:             "active",
+      date:               form.date               || null,
+      description:        form.description        || null,
+      category:           form.category           || null,
+      responsible_person: form.responsiblePerson  || null,
+      data:               form,
+    };
     if (editId) { await update(editId, payload); toast.success("Updated"); }
     else { await create(payload); toast.success("Milestone added"); }
     setShowForm(false); resetForm();
