@@ -37,8 +37,6 @@ const Sidebar = ({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => 
     { icon: Layers, label: "Operations Hub", path: "/operations" },
     { icon: Code, label: "Developer Hub", path: "/api-docs" },
     { icon: CreditCard, label: "Payment Gateways", path: "/payment-gateways" },
-    { icon: Users, label: "User Management", path: "/user-management" },
-    { icon: GitBranch, label: "Workflow Map", path: "/workflow-map" },
     { icon: BarChart3, label: "Reports", path: "/reports" },
     { icon: TrendingUp, label: "Finance Analytics", path: "/finance-analytics" },
     { icon: FileText, label: "System Logs", path: "/audit-logs" },

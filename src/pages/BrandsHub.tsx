@@ -1,11 +1,12 @@
-import React, { useState, useMemo, useCallback } from "react";
+import React, { useState, useMemo, useCallback, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   ArrowLeft, Crown, FolderOpen, Briefcase, Building2, Users, UserCheck, Handshake,
   Plus, Edit, Trash2, Search, ExternalLink, BarChart2,
   MapPin, Globe, Mail, Phone, DollarSign, Package,
   Upload, Save, User, Megaphone, FileText, Pencil, X, Link2, Cpu, MessageSquare,
-  Paperclip, ScrollText, ShieldCheck,
+  Paperclip, ScrollText, ShieldCheck, Shield, Bot, Layers, Network, List, Play,
+  RefreshCw, Copy, GitBranch,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,7 +18,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Switch } from "@/components/ui/switch";
 import { useBrands } from "@/context/BrandsContext";
+import { teamApi } from "@/services/system";
+import { extApi } from "@/services/extended";
+import { supabase } from "@/integrations/supabase/client";
 import { useEntities } from "@/hooks/useEntities";
 import { useExtTable } from "@/hooks/useExtTable";
 import ExportButton from "@/components/shared/ExportButton";
@@ -679,6 +684,8 @@ export default function BrandsHub() {
             <TabsTrigger value="agents"     className="text-xs"><UserCheck className="w-3.5 h-3.5 mr-1"/>Agents ({agentCount})</TabsTrigger>
             <TabsTrigger value="partners"   className="text-xs"><Handshake className="w-3.5 h-3.5 mr-1"/>Partners ({partnerCount})</TabsTrigger>
             <TabsTrigger value="employees"  className="text-xs"><Users className="w-3.5 h-3.5 mr-1"/>Employees ({empCount})</TabsTrigger>
+            <TabsTrigger value="users"      className="text-xs"><Shield className="w-3.5 h-3.5 mr-1"/>Users</TabsTrigger>
+            <TabsTrigger value="workflow"   className="text-xs"><GitBranch className="w-3.5 h-3.5 mr-1"/>Workflows</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="mt-2">
@@ -765,6 +772,14 @@ export default function BrandsHub() {
 
           <TabsContent value="employees" className="mt-2">
             <EmployeesTab activeBrandId={activeBrandId} brands={brands}/>
+          </TabsContent>
+
+          <TabsContent value="users" className="mt-2">
+            <UserManagementTab activeBrandId={activeBrandId} brands={brands}/>
+          </TabsContent>
+
+          <TabsContent value="workflow" className="mt-2">
+            <WorkflowMapTab activeBrandId={activeBrandId}/>
           </TabsContent>
         </Tabs>
       </div>
