@@ -31,13 +31,6 @@ const Sidebar = ({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => 
   const navSections: NavSection[] = [
     { icon: LayoutDashboard, label: t("dashboard"), path: "/" },
     { icon: Crown, label: "Brands Hub", path: "/brands" },
-    {
-      icon: Crown, label: t("brands"), addButton: true, onAdd: () => navigate("/brands/add"),
-      children: brands.map(b => ({
-        icon: iconMap[Object.keys(iconMap)[Math.floor(Math.random() * 4)]] || Crown,
-        label: b.name, onClick: () => navigate(`/brands/${b.id}`),
-      })),
-    },
     { icon: Lock, label: t("digital_inheritance"), path: "/digital-inheritance" },
     { icon: Users, label: t("employees"), path: "/employees" },
     { icon: Scroll, label: t("legendary_journey"), path: "/legendary-journey" },
