@@ -18,7 +18,7 @@ import ExportButton from "@/components/shared/ExportButton";
 
 const BASE = `${import.meta.env.VITE_SUPABASE_URL || "https://your-project.supabase.co"}/rest/v1`;
 
-const EVENTS = ["insert.invoices","update.invoices","insert.subscriptions","update.subscriptions","insert.payment_transactions","*"];
+const FALLBACK_EVENTS = ["insert.invoices","update.invoices","insert.subscriptions","update.subscriptions","insert.payment_transactions","*"];
 
 const ENDPOINTS = [
   { method:"GET",  path:"/brands",               desc:"List your brands",       scope:"owner" },
@@ -50,6 +50,7 @@ export default function DeveloperHub() {
   const [hooks, setHooks] = useState<any[]>([]);
   const [deliveries, setDeliveries] = useState<any[]>([]);
   const [apiKeys, setApiKeys] = useState<any[]>([]);
+  const [events, setEvents] = useState<string[]>(FALLBACK_EVENTS);
   const [hookOpen, setHookOpen] = useState(false);
   const [keyOpen, setKeyOpen] = useState(false);
   const [hookForm, setHookForm] = useState({ label:"", url:"", events:["*"], active:true, secret:"" });
@@ -84,6 +85,14 @@ export default function DeveloperHub() {
       apiKeysApi.list().catch(()=>[]),
     ]);
     setHooks(h as any[]); setDeliveries(d as any[]); setApiKeys(k as any[]);
+
+    // Load distinct event types from webhook_deliveries + existing hooks
+    try {
+      const deliveryEvents: string[] = (d as any[]).map((x: any) => x.event_type).filter(Boolean);
+      const hookEvents: string[]     = (h as any[]).flatMap((x: any) => Array.isArray(x.events) ? x.events : [x.events]).filter(Boolean);
+      const allEvents = Array.from(new Set([...deliveryEvents, ...hookEvents, "*"]));
+      if (allEvents.length > 1) setEvents(allEvents);
+    } catch { /* keep fallback */ }
   };
   useEffect(() => { loadAll(); loadWl(); }, []);
 
@@ -207,7 +216,7 @@ export default function DeveloperHub() {
                 </Card>
                 <Card className="p-4 space-y-2">
                   <h3 className="font-bold text-sm">Supported Events</h3>
-                  <div className="flex flex-wrap gap-2">{EVENTS.map(e=><Badge key={e} variant="outline" className="text-xs font-mono">{e}</Badge>)}</div>
+                  <div className="flex flex-wrap gap-2">{events.map(e=><Badge key={e} variant="outline" className="text-xs font-mono">{e}</Badge>)}</div>
                 </Card>
               </TabsContent>
               <TabsContent value="errors" className="mt-3">
@@ -465,7 +474,7 @@ export default function DeveloperHub() {
             <div>
               <Label>Events</Label>
               <div className="flex flex-wrap gap-2 mt-2">
-                {EVENTS.map(e=>(
+                {events.map(e=>(
                   <button key={e} type="button" onClick={()=>setHookForm(p=>({...p,events:p.events.includes(e)?p.events.filter(x=>x!==e):[...p.events,e]}))}
                     className={`text-[10px] px-2 py-1 rounded-md border transition-colors ${hookForm.events.includes(e)?"bg-primary text-primary-foreground border-primary":"border-border hover:border-primary/50"}`}>{e}</button>
                 ))}
