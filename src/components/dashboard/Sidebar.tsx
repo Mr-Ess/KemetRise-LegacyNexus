@@ -49,7 +49,6 @@ const Sidebar = ({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => 
     { icon: Layers, label: "Operations Hub", path: "/operations" },
     { icon: Bell, label: "Notifications", path: "/notifications" },
     { icon: FileText, label: "Audit Logs", path: "/audit-logs" },
-    { icon: UserCheck, label: t("team"), path: "/team" },
     { icon: BarChart3, label: "Reports", path: "/reports" },
     { icon: DollarSign, label: "Revenue", path: "/revenue" },
     { icon: Tag, label: "Coupons", path: "/coupons" },
@@ -80,7 +79,6 @@ const Sidebar = ({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => 
     { icon: BookOpen, label: "Help", path: "/help" },
     { icon: GitBranch, label: "Workflow Map", path: "/workflow-map" },
     { icon: FileText, label: "Agent Logs", path: "/agent-logs" },
-    { icon: Shield, label: "Permissions", path: "/permissions" },
     { icon: Users, label: "User Management", path: "/user-management" },
   ];
 
