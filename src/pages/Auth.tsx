@@ -84,7 +84,7 @@ export default function Auth() {
         const { data: refs } = await supabase
           .from("referrals")
           .select("id, total_referred, total_earned, reward_amount")
-          .eq("referral_code", refCode)
+          .eq("code", refCode)
           .limit(1);
         const ref = refs?.[0];
         if (ref) {

@@ -23,11 +23,8 @@ ALTER TABLE public.employees
   ADD COLUMN IF NOT EXISTS status         TEXT DEFAULT 'active'
     CHECK (status IN ('active','inactive','busy','offline'));
 
--- referrals: ensure reward_amount + total_referred + total_earned exist
-ALTER TABLE public.referrals
-  ADD COLUMN IF NOT EXISTS reward_amount  NUMERIC(10,2) DEFAULT 0,
-  ADD COLUMN IF NOT EXISTS total_referred INTEGER        DEFAULT 0,
-  ADD COLUMN IF NOT EXISTS total_earned   NUMERIC(10,2) DEFAULT 0;
+-- referrals: columns already exist in DB (reward_amount, total_referred, total_earned, code)
+-- No ALTER needed — confirmed from types.ts
 
 -- ── 2. PERFORMANCE INDEXES ─────────────────────────────────────────────────
 
@@ -58,9 +55,9 @@ CREATE INDEX IF NOT EXISTS idx_chat_messages_conv_created
 CREATE INDEX IF NOT EXISTS idx_employees_agent_type
   ON public.employees (agent_type, user_id);
 
--- referrals: referral_code unique lookup
+-- referrals: code unique lookup
 CREATE INDEX IF NOT EXISTS idx_referrals_code
-  ON public.referrals (referral_code) WHERE referral_code IS NOT NULL;
+  ON public.referrals (code) WHERE code IS NOT NULL;
 
 -- responsible_personnel: owner lookups (if table exists)
 DO $$
