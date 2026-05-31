@@ -40,7 +40,7 @@ const Sidebar = ({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => 
     },
     { icon: Lock, label: t("digital_inheritance"), path: "/digital-inheritance" },
     { icon: Users, label: t("employees"), path: "/employees" },
-    { icon: Handshake, label: t("success_partners"), path: "/success-partners" },
+
     { icon: UserCheck, label: t("affiliates"), path: "/affiliates" },
     { icon: Scroll, label: t("legendary_journey"), path: "/legendary-journey" },
     { icon: Layers, label: "Operations Hub", path: "/operations" },

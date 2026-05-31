@@ -1,9 +1,9 @@
 import React, { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  ArrowLeft, Crown, FolderOpen, Briefcase, Building2, Users, UserCheck,
+  ArrowLeft, Crown, FolderOpen, Briefcase, Building2, Users, UserCheck, Handshake,
   Plus, Edit, Trash2, Search, RefreshCw, ExternalLink, BarChart2,
-  MapPin, Globe, Mail, Phone, DollarSign, TrendingUp, Package,
+  MapPin, Globe, Mail, Phone, DollarSign, TrendingUp, Package, Star,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -78,7 +78,7 @@ function KpiCard({ icon: Icon, label, value, color = "primary" }: {
   const c: Record<string,string> = {
     primary:"border-primary text-primary", blue:"border-blue-500 text-blue-400",
     emerald:"border-emerald-500 text-emerald-400", amber:"border-amber-500 text-amber-400",
-    violet:"border-violet-500 text-violet-400",
+    violet:"border-violet-500 text-violet-400", rose:"border-rose-500 text-rose-400",
   };
   return (
     <Card className={`border-l-4 ${c[color]||c.primary}`}>
@@ -94,23 +94,25 @@ function KpiCard({ icon: Icon, label, value, color = "primary" }: {
 }
 
 /* ─── Overview tab ──────────────────────────────────────────── */
-function OverviewTab({ brands, projRows, svcRows, branchRows, custRows, agentItems, navigate, setActiveBrandId, setTab }: any) {
+function OverviewTab({ brands, projRows, svcRows, branchRows, custRows, agentItems, partnerRows, navigate, setActiveBrandId, setTab }: any) {
   const getBrandStats = (brandId: string) => ({
-    projects: projRows.filter((r: any) => (r.brand_id ?? r.data?.brandId) === brandId).length,
-    services: svcRows.filter((r: any) => (r.brand_id ?? r.data?.brandId) === brandId).length,
-    branches: branchRows.filter((r: any) => (r.brand_id ?? r.data?.brandId) === brandId).length,
+    projects:  projRows.filter((r: any) => (r.brand_id ?? r.data?.brandId) === brandId).length,
+    services:  svcRows.filter((r: any) => (r.brand_id ?? r.data?.brandId) === brandId).length,
+    branches:  branchRows.filter((r: any) => (r.brand_id ?? r.data?.brandId) === brandId).length,
     customers: custRows.filter((r: any) => (r.brand_id ?? r.data?.brandId) === brandId).length,
-    agents: agentItems.filter((a: any) => a.brand_id === brandId).length,
+    agents:    agentItems.filter((a: any) => a.brand_id === brandId).length,
+    partners:  partnerRows.filter((r: any) => (r.brand_id ?? r.data?.brandId) === brandId).length,
   });
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-        <KpiCard icon={Crown}      label="Brands"    value={brands.length}    color="primary"/>
-        <KpiCard icon={FolderOpen} label="Projects"  value={projRows.length}  color="blue"/>
-        <KpiCard icon={Briefcase}  label="Services"  value={svcRows.length}   color="emerald"/>
-        <KpiCard icon={Building2}  label="Branches"  value={branchRows.length} color="amber"/>
-        <KpiCard icon={Users}      label="Customers" value={custRows.length}  color="violet"/>
+      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
+        <KpiCard icon={Crown}      label="Brands"    value={brands.length}        color="primary"/>
+        <KpiCard icon={FolderOpen} label="Projects"  value={projRows.length}      color="blue"/>
+        <KpiCard icon={Briefcase}  label="Services"  value={svcRows.length}       color="emerald"/>
+        <KpiCard icon={Building2}  label="Branches"  value={branchRows.length}    color="amber"/>
+        <KpiCard icon={Users}      label="Customers" value={custRows.length}      color="violet"/>
+        <KpiCard icon={Handshake}  label="Partners"  value={partnerRows.length}   color="rose"/>
       </div>
 
       {brands.length === 0 ? (
@@ -161,13 +163,14 @@ function OverviewTab({ brands, projRows, svcRows, branchRows, custRows, agentIte
                   )}
 
                   {/* Stats grid */}
-                  <div className="grid grid-cols-5 gap-1 pt-2 border-t border-border">
+                  <div className="grid grid-cols-6 gap-1 pt-2 border-t border-border">
                     {[
-                      { icon: FolderOpen, count: stats.projects, label: "Proj", tab: "projects" },
-                      { icon: Briefcase,  count: stats.services,  label: "Svc",  tab: "services" },
-                      { icon: Building2,  count: stats.branches,  label: "Brnch",tab: "branches" },
-                      { icon: Users,      count: stats.customers, label: "Cust", tab: "customers" },
-                      { icon: UserCheck,  count: stats.agents,    label: "Agts", tab: "agents" },
+                      { icon: FolderOpen, count: stats.projects,  label: "Proj",  tab: "projects" },
+                      { icon: Briefcase,  count: stats.services,  label: "Svc",   tab: "services" },
+                      { icon: Building2,  count: stats.branches,  label: "Brnch", tab: "branches" },
+                      { icon: Users,      count: stats.customers, label: "Cust",  tab: "customers" },
+                      { icon: UserCheck,  count: stats.agents,    label: "Agts",  tab: "agents" },
+                      { icon: Handshake,  count: stats.partners,  label: "Prtnr", tab: "partners" },
                     ].map(s => (
                       <button
                         key={s.tab}
@@ -352,18 +355,20 @@ export default function BrandsHub() {
   const { items: svcRows,    loading: svcLoading,    create: svcCreate,    update: svcUpdate,    remove: svcRemove    } = useEntities("services");
   const { items: branchRows, loading: branchLoading, create: branchCreate, update: branchUpdate, remove: branchRemove } = useEntities("branches");
   const { items: custRows,   loading: custLoading,   create: custCreate,   update: custUpdate,   remove: custRemove   } = useEntities("customers");
-  const { items: agentItems, loading: agentLoading,  create: _agentCreate,  update: _agentUpdate,  remove: _agentRemove  } = useExtTable("affiliated_agents");
+  const { items: agentItems,   loading: agentLoading,   create: _agentCreate,   update: _agentUpdate,   remove: _agentRemove   } = useExtTable("affiliated_agents");
+  const { items: partnerRows,  loading: partnerLoading, create: partnerCreate,  update: partnerUpdate,  remove: partnerRemove  } = useEntities("success_partners");
 
   const getBrandLabel = (id: string | null) => brands.find((b: any) => b.id === id)?.name ?? id?.slice(0,8) ?? "—";
 
-  const brandFilter = (row: any) => !activeBrandId || (row.brand_id ?? row.data?.brandId) === activeBrandId;
-  const agentFilter = (a: any) => !activeBrandId || a.brand_id === activeBrandId;
+  const brandFilter   = (row: any) => !activeBrandId || (row.brand_id ?? row.data?.brandId) === activeBrandId;
+  const agentFilter   = (a: any)   => !activeBrandId || a.brand_id === activeBrandId;
 
-  const projCount   = projRows.filter(brandFilter).length;
-  const svcCount    = svcRows.filter(brandFilter).length;
-  const branchCount = branchRows.filter(brandFilter).length;
-  const custCount   = custRows.filter(brandFilter).length;
-  const agentCount  = agentItems.filter(agentFilter).length;
+  const projCount     = projRows.filter(brandFilter).length;
+  const svcCount      = svcRows.filter(brandFilter).length;
+  const branchCount   = branchRows.filter(brandFilter).length;
+  const custCount     = custRows.filter(brandFilter).length;
+  const agentCount    = agentItems.filter(agentFilter).length;
+  const partnerCount  = partnerRows.filter(brandFilter).length;
   /* ── Column/field configs ───────────────────────────────── */
   const PROJECT_COLS: ColDef[] = [
     { key:"name", label:"Name", render:(v)=><span className="font-semibold">{v}</span> },
@@ -442,6 +447,27 @@ export default function BrandsHub() {
     { key:"phone",           label:"Phone" },
   ];
 
+  const PARTNER_COLS: ColDef[] = [
+    { key:"name",         label:"Name",    render:(v)=><span className="font-semibold">{v}</span> },
+    { key:"company",      label:"Company" },
+    { key:"role",         label:"Role",    render:(v,row)=><Badge variant="outline" className="text-[10px]">{row.role??row.data?.role??v??"—"}</Badge> },
+    { key:"email",        label:"Email",   render:(v,row)=><span className="text-muted-foreground">{row.email??row.data?.email??v??"—"}</span> },
+    { key:"contribution", label:"Contribution", render:(v,row)=>{ const c=row.contribution??row.data?.contribution??v; return c?<span className="truncate max-w-[160px] block">{c}</span>:"—"; } },
+    { key:"status",       label:"Status",  render:(v,row)=>statusBadge(row.status??row.data?.status??v) },
+  ];
+  const PARTNER_FIELDS: FieldDef[] = [
+    { key:"name",         label:"Partner Name *" },
+    { key:"company",      label:"Company" },
+    { key:"role",         label:"Role" },
+    { key:"email",        label:"Email" },
+    { key:"phone",        label:"Phone" },
+    { key:"status",       label:"Status", type:"select", options:["Active","Inactive"] },
+    { key:"contribution", label:"Contribution", type:"textarea" },
+    { key:"human_count",  label:"Human Staff", type:"number" },
+    { key:"ai_count",     label:"AI Agents", type:"number" },
+    { key:"responsible_person", label:"Key Person" },
+  ];
+
   return (
     <div className="min-h-screen bg-background p-4 md:p-8">
       <div className="max-w-7xl mx-auto space-y-6">
@@ -476,12 +502,14 @@ export default function BrandsHub() {
             <TabsTrigger value="branches"   className="text-xs"><Building2 className="w-3.5 h-3.5 mr-1"/>Branches ({branchCount})</TabsTrigger>
             <TabsTrigger value="customers"  className="text-xs"><Users className="w-3.5 h-3.5 mr-1"/>Customers ({custCount})</TabsTrigger>
             <TabsTrigger value="agents"     className="text-xs"><UserCheck className="w-3.5 h-3.5 mr-1"/>Agents ({agentCount})</TabsTrigger>
+            <TabsTrigger value="partners"   className="text-xs"><Handshake className="w-3.5 h-3.5 mr-1"/>Partners ({partnerCount})</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="mt-2">
             <OverviewTab
               brands={brands} projRows={projRows} svcRows={svcRows}
               branchRows={branchRows} custRows={custRows} agentItems={agentItems}
+              partnerRows={partnerRows}
               navigate={navigate} setActiveBrandId={setActiveBrandId} setTab={setTab}
             />
           </TabsContent>
@@ -539,6 +567,18 @@ export default function BrandsHub() {
               items={agentItems} loading={agentLoading}
               create={_agentCreate} update={_agentUpdate} remove={_agentRemove}
               columns={AGENT_COLS} fields={AGENT_FIELDS}
+              activeBrandId={activeBrandId} brands={brands} getBrandLabel={getBrandLabel}
+            />
+          </TabsContent>
+
+          <TabsContent value="partners" className="mt-2">
+            <EntityTab
+              items={partnerRows} loading={partnerLoading}
+              create={p => partnerCreate({ name: p.name, status: p.status === "Active" ? "active" : "inactive", brand_id: p.brand_id, company: p.company||null, role: p.role||null, email: p.email||null, phone: p.phone||null, contribution: p.contribution||null, human_count: Number(p.human_count)||0, ai_count: Number(p.ai_count)||0, responsible_person: p.responsible_person||null, data: p })}
+              update={(id, p) => partnerUpdate(id, { name: p.name, status: p.status === "Active" ? "active" : "inactive", brand_id: p.brand_id, company: p.company||null, role: p.role||null, email: p.email||null, phone: p.phone||null, contribution: p.contribution||null, human_count: Number(p.human_count)||0, ai_count: Number(p.ai_count)||0, responsible_person: p.responsible_person||null, data: p })}
+              remove={partnerRemove}
+              title="Success Partners" columns={PARTNER_COLS} fields={PARTNER_FIELDS}
+              emptyHint="Add success partners and link them to a brand"
               activeBrandId={activeBrandId} brands={brands} getBrandLabel={getBrandLabel}
             />
           </TabsContent>

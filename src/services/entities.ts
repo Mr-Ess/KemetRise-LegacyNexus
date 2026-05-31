@@ -49,7 +49,7 @@ export const entitiesApi = {
   async create(kind: EntityKind, payload: { name: string; status?: string; data?: any; brand_id?: string | null; [key: string]: any }): Promise<EntityRow> {
     const { name, status, data, brand_id, ...extraCols } = payload;
     const row: any = { name, status: (status as any) || "active", data: data || {}, ...extraCols };
-    if (brand_id !== undefined && ["branches","employees","projects","services","customers"].includes(kind)) row.brand_id = brand_id || null;
+    if (brand_id !== undefined && ["branches","employees","projects","services","customers","success_partners"].includes(kind)) row.brand_id = brand_id || null;
     return (await tenantDb.insert(kind as any, row)) as any;
   },
   async update(kind: EntityKind, id: string, patch: Record<string, any>): Promise<EntityRow> {

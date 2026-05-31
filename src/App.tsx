@@ -132,7 +132,7 @@ const App = () => (
                 <Route path="/services" element={<Navigate to="/brands" replace />} />
                 <Route path="/employees" element={<Protected><Employees /></Protected>} />
                 <Route path="/affiliates" element={<Protected><Affiliates /></Protected>} />
-                <Route path="/success-partners" element={<Protected><SuccessPartners /></Protected>} />
+                <Route path="/success-partners" element={<Navigate to="/brands" replace />} />
                 <Route path="/digital-inheritance" element={<Protected><DigitalInheritance /></Protected>} />
                 <Route path="/legendary-journey" element={<Protected><LegendaryJourney /></Protected>} />
                 <Route path="/operations" element={<Protected><OperationsHub /></Protected>} />
