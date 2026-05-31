@@ -468,6 +468,37 @@ export default function PaymentGateways() {
               <div className="flex items-center gap-2"><Switch checked={!!gwForm.test_mode} onCheckedChange={v => setGwForm((p: any) => ({ ...p, test_mode: v }))} /><Label>Test Mode</Label></div>
               <div className="flex items-center gap-2"><Switch checked={!!gwForm.split_enabled} onCheckedChange={v => setGwForm((p: any) => ({ ...p, split_enabled: v }))} /><Label>Split</Label></div>
             </div>
+
+            {/* ── API Credentials (inline in Add/Edit form) ── */}
+            {(() => {
+              const fields = getFields(gwForm.provider_code);
+              if (!fields.length) return null;
+              return (
+                <div className="space-y-3 pt-3 border-t border-border">
+                  <p className="text-xs font-display text-muted-foreground flex items-center gap-1.5"><Key className="w-3 h-3"/>API Credentials <span className="text-[10px]">(optional — can be set later)</span></p>
+                  {fields.map(f => (
+                    <div key={f.key} className="space-y-1">
+                      <Label className="text-xs">{f.label}{f.secret && <span className="text-[10px] text-muted-foreground ml-1">(secret)</span>}</Label>
+                      <div className="relative">
+                        <Input
+                          type={f.secret && !apiVisible[f.key] ? "password" : "text"}
+                          value={(gwForm.api_config?.[f.key]) || ""}
+                          onChange={e => setGwForm((p: any) => ({ ...p, api_config: { ...(p.api_config || {}), [f.key]: e.target.value } }))}
+                          placeholder={f.placeholder}
+                          className="bg-secondary border-border text-foreground font-mono text-xs pr-8"
+                        />
+                        {f.secret && (
+                          <button type="button" onClick={() => setApiVisible(p => ({ ...p, [f.key]: !p[f.key] }))}
+                            className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-primary">
+                            {apiVisible[f.key] ? <EyeOff className="w-3.5 h-3.5"/> : <Eye className="w-3.5 h-3.5"/>}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              );
+            })()}
           </div>
           <DialogFooter><Button onClick={saveGateway} className="font-display text-xs">{editGwId ? "Save" : "Create"}</Button></DialogFooter>
         </DialogContent>
