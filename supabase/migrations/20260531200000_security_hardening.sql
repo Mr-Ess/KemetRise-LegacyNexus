@@ -32,6 +32,12 @@ BEGIN
     WHERE table_schema = 'public' AND table_name = 'clients'
       AND constraint_name = 'chk_secret_hash_length'
   ) THEN
+    -- Null out any plaintext/short values before enforcing the hash-length constraint
+    UPDATE public.clients
+      SET external_secret_hash = NULL
+      WHERE external_secret_hash IS NOT NULL
+        AND length(external_secret_hash) < 50;
+
     ALTER TABLE public.clients
       ADD CONSTRAINT chk_secret_hash_length
       CHECK (external_secret_hash IS NULL OR length(external_secret_hash) >= 50);
