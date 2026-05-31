@@ -123,9 +123,9 @@ const App = () => (
                 <Route path="/b/:id" element={<PublicBrand />} />
                 <Route path="/" element={<Protected><Index /></Protected>} />
                 <Route path="/brands" element={<Protected><BrandsHub /></Protected>} />
-                <Route path="/brands/add" element={<Protected><AddBrand /></Protected>} />
-                <Route path="/brands/:id" element={<Protected><BrandDetails /></Protected>} />
-                <Route path="/brands/edit/:id" element={<Protected><AddBrand /></Protected>} />
+                <Route path="/brands/add" element={<Navigate to="/brands" replace />} />
+                <Route path="/brands/:id" element={<Navigate to="/brands" replace />} />
+                <Route path="/brands/edit/:id" element={<Navigate to="/brands" replace />} />
                 <Route path="/projects" element={<Navigate to="/brands" replace />} />
                 <Route path="/customers" element={<Navigate to="/brands" replace />} />
                 <Route path="/branches" element={<Navigate to="/brands" replace />} />

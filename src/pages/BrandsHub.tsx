@@ -1,9 +1,10 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   ArrowLeft, Crown, FolderOpen, Briefcase, Building2, Users, UserCheck, Handshake,
-  Plus, Edit, Trash2, Search, RefreshCw, ExternalLink, BarChart2,
-  MapPin, Globe, Mail, Phone, DollarSign, TrendingUp, Package, Star,
+  Plus, Edit, Trash2, Search, ExternalLink, BarChart2,
+  MapPin, Globe, Mail, Phone, DollarSign, Package,
+  Upload, Save, User, Megaphone, FileText, Pencil, X, Link2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,6 +20,11 @@ import { useBrands } from "@/context/BrandsContext";
 import { useEntities } from "@/hooks/useEntities";
 import { useExtTable } from "@/hooks/useExtTable";
 import ExportButton from "@/components/shared/ExportButton";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import type { Brand, Owner, TeamMember, ProductItem, DocFile, MarketingPlan, SocialLinks } from "@/context/BrandsContext";
+import StaffMetrics from "@/components/shared/StaffMetrics";
+import { ActivityTimeline } from "@/components/shared/ActivityTimeline";
+import { Comments } from "@/components/shared/Comments";
 import { toast } from "sonner";
 
 /* ─── helpers ───────────────────────────────────────────────── */
@@ -94,7 +100,7 @@ function KpiCard({ icon: Icon, label, value, color = "primary" }: {
 }
 
 /* ─── Overview tab ──────────────────────────────────────────── */
-function OverviewTab({ brands, projRows, svcRows, branchRows, custRows, agentItems, partnerRows, navigate, setActiveBrandId, setTab }: any) {
+function OverviewTab({ brands, projRows, svcRows, branchRows, custRows, agentItems, partnerRows, setActiveBrandId, setTab }: any) {
   const getBrandStats = (brandId: string) => ({
     projects:  projRows.filter((r: any) => (r.brand_id ?? r.data?.brandId) === brandId).length,
     services:  svcRows.filter((r: any) => (r.brand_id ?? r.data?.brandId) === brandId).length,
@@ -120,7 +126,7 @@ function OverviewTab({ brands, projRows, svcRows, branchRows, custRows, agentIte
           <Crown className="w-12 h-12 mx-auto mb-3 text-primary/30"/>
           <p className="font-display text-primary">No brands yet</p>
           <p className="text-xs text-muted-foreground mt-1">Add your first brand to get started</p>
-          <Button className="mt-4" onClick={() => navigate("/brands/add")}><Plus className="w-4 h-4 mr-2"/>Add Brand</Button>
+          <Button className="mt-4" onClick={() => setTab("brands")}><Plus className="w-4 h-4 mr-2"/>Add Brand</Button>
         </Card>
       ) : (
         <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -141,11 +147,8 @@ function OverviewTab({ brands, projRows, svcRows, branchRows, custRows, agentIte
                       </div>
                     </div>
                     <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                      <Button size="icon" variant="ghost" className="w-7 h-7" onClick={() => navigate(`/brands/edit/${b.id}`)} title="Edit">
-                        <Edit className="w-3.5 h-3.5"/>
-                      </Button>
-                      <Button size="icon" variant="ghost" className="w-7 h-7" onClick={() => navigate(`/brands/${b.id}`)} title="Details">
-                        <ExternalLink className="w-3.5 h-3.5"/>
+                      <Button size="icon" variant="ghost" className="w-7 h-7" onClick={() => setTab("brands")} title="Manage in Brands tab">
+                        <Pencil className="w-3.5 h-3.5"/>
                       </Button>
                     </div>
                   </div>
@@ -484,7 +487,7 @@ export default function BrandsHub() {
               <p className="text-xs text-muted-foreground">Brands · Projects · Services · Branches · Customers · Agents</p>
             </div>
           </div>
-          <Button onClick={() => navigate("/brands/add")} className="gap-1.5 font-display text-xs">
+          <Button onClick={() => setTab("brands")} className="gap-1.5 font-display text-xs">
             <Plus className="w-4 h-4"/>New Brand
           </Button>
         </div>
@@ -497,6 +500,7 @@ export default function BrandsHub() {
         <Tabs value={tab} onValueChange={setTab}>
           <TabsList className="flex flex-wrap gap-1 h-auto p-1 mb-2">
             <TabsTrigger value="overview"   className="text-xs"><BarChart2 className="w-3.5 h-3.5 mr-1"/>Overview</TabsTrigger>
+            <TabsTrigger value="brands"    className="text-xs"><Crown className="w-3.5 h-3.5 mr-1"/>Brands ({brands.length})</TabsTrigger>
             <TabsTrigger value="projects"   className="text-xs"><FolderOpen className="w-3.5 h-3.5 mr-1"/>Projects ({projCount})</TabsTrigger>
             <TabsTrigger value="services"   className="text-xs"><Briefcase className="w-3.5 h-3.5 mr-1"/>Services ({svcCount})</TabsTrigger>
             <TabsTrigger value="branches"   className="text-xs"><Building2 className="w-3.5 h-3.5 mr-1"/>Branches ({branchCount})</TabsTrigger>
@@ -510,8 +514,12 @@ export default function BrandsHub() {
               brands={brands} projRows={projRows} svcRows={svcRows}
               branchRows={branchRows} custRows={custRows} agentItems={agentItems}
               partnerRows={partnerRows}
-              navigate={navigate} setActiveBrandId={setActiveBrandId} setTab={setTab}
+              setActiveBrandId={setActiveBrandId} setTab={setTab}
             />
+          </TabsContent>
+
+          <TabsContent value="brands" className="mt-2">
+            <BrandsManageTab/>
           </TabsContent>
 
           <TabsContent value="projects" className="mt-2">
@@ -708,6 +716,304 @@ function AgentTab({ items, loading, create, update, remove, columns, fields, act
           </DialogFooter>
         </DialogContent>
       </Dialog>
+    </div>
+  );
+}
+
+
+/* ─── Brands Management Tab ─────────────────────────────────── */
+function BrandsManageTab() {
+  const { brands, loading, addBrand, updateBrand, deleteBrand } = useBrands();
+  const [sheetOpen, setSheetOpen]   = useState(false);
+  const [editId, setEditId]         = useState<string | null>(null);
+  const [saving, setSaving]         = useState(false);
+  const [deleteId, setDeleteId]     = useState<string | null>(null);
+  const [detailId, setDetailId]     = useState<string | null>(null);
+  const [q, setQ]                   = useState("");
+  const [name, setName]             = useState("");
+  const [address, setAddress]       = useState("");
+  const [industry, setIndustry]     = useState("");
+  const [logoUrl, setLogoUrl]       = useState("");
+  const [responsiblePerson, setResponsiblePerson] = useState("");
+  const [humanCount, setHumanCount] = useState(0);
+  const [aiCount, setAiCount]       = useState(0);
+  const [owners, setOwners]         = useState<Owner[]>([{ id: crypto.randomUUID(), name: "", phone: "", email: "", whatsapp: "" }]);
+  const [team, setTeam]             = useState<TeamMember[]>([]);
+  const [products, setProducts]     = useState<ProductItem[]>([{ id: crypto.randomUUID(), name: "", description: "" }]);
+  const [legalDocs, setLegalDocs]   = useState<DocFile[]>([]);
+  const [financialDocs, setFinancialDocs] = useState<DocFile[]>([]);
+  const [marketingPlans, setMarketingPlans] = useState<MarketingPlan[]>([]);
+  const [companyProfiles, setCompanyProfiles] = useState<DocFile[]>([]);
+  const [socialLinks, setSocialLinks] = useState<SocialLinks>({ website: "", facebook: "", instagram: "", twitter: "", linkedin: "", tiktok: "" });
+
+  const resetForm = () => {
+    setName(""); setAddress(""); setIndustry(""); setLogoUrl("");
+    setResponsiblePerson(""); setHumanCount(0); setAiCount(0);
+    setOwners([{ id: crypto.randomUUID(), name: "", phone: "", email: "", whatsapp: "" }]);
+    setTeam([]); setProducts([{ id: crypto.randomUUID(), name: "", description: "" }]);
+    setLegalDocs([]); setFinancialDocs([]); setMarketingPlans([]); setCompanyProfiles([]);
+    setSocialLinks({ website: "", facebook: "", instagram: "", twitter: "", linkedin: "", tiktok: "" });
+    setEditId(null);
+  };
+  const openNew = () => { resetForm(); setSheetOpen(true); };
+  const openEdit = useCallback((b: Brand) => {
+    setEditId(b.id); setName(b.name); setAddress(b.address); setIndustry(b.industry); setLogoUrl(b.logoUrl||"");
+    setResponsiblePerson(b.responsiblePerson||""); setHumanCount(b.humanCount||0); setAiCount(b.aiCount||0);
+    setOwners(b.owners.length ? b.owners : [{ id: crypto.randomUUID(), name: "", phone: "", email: "", whatsapp: "" }]);
+    setTeam(b.team);
+    setProducts(b.products.length ? b.products : [{ id: crypto.randomUUID(), name: "", description: "" }]);
+    setLegalDocs(b.legalDocs); setFinancialDocs(b.financialDocs);
+    setMarketingPlans(b.marketingPlans); setCompanyProfiles(b.companyProfiles||[]);
+    setSocialLinks(b.socialLinks||{ website:"",facebook:"",instagram:"",twitter:"",linkedin:"",tiktok:"" });
+    setSheetOpen(true);
+  }, []);
+
+  const handleSubmit = async () => {
+    if (!name.trim()) { toast.error("Brand name is required"); return; }
+    const data = { name, address, industry, logoUrl, socialLinks, responsiblePerson, humanCount, aiCount,
+      companyProfiles: companyProfiles.filter(d => d.name), owners: owners.filter(o => o.name.trim()),
+      team: team.filter(t => t.name.trim()), products: products.filter(p => p.name.trim()),
+      legalDocs: legalDocs.filter(d => d.name), financialDocs: financialDocs.filter(d => d.name),
+      marketingPlans: marketingPlans.filter(m => m.title.trim()),
+    };
+    setSaving(true);
+    try {
+      if (editId) { await updateBrand(editId, data); toast.success(`${name} updated`); }
+      else        { await addBrand(data);             toast.success(`${name} created`); }
+      setSheetOpen(false); resetForm();
+    } catch (err: any) { toast.error(err?.message||"Failed to save brand"); }
+    finally { setSaving(false); }
+  };
+
+  const updOwner = useCallback((i: number, f: string, v: string) => setOwners(p => p.map((o,idx) => idx===i?{...o,[f]:v}:o)),[]);
+  const updTeam  = useCallback((i: number, f: string, v: string) => setTeam(p => p.map((t,idx) => idx===i?{...t,[f]:v}:t)),[]);
+  const updProd  = useCallback((i: number, f: string, v: string) => setProducts(p => p.map((pr,idx) => idx===i?{...pr,[f]:v}:pr)),[]);
+  const updPlan  = useCallback((i: number, f: string, v: string) => setMarketingPlans(p => p.map((m,idx) => idx===i?{...m,[f]:v}:m)),[]);
+
+  const detail       = useMemo(() => detailId ? brands.find(b => b.id===detailId) : null, [brands,detailId]);
+  const deleteTarget = useMemo(() => deleteId ? brands.find(b => b.id===deleteId) : null, [brands,deleteId]);
+  const filtered     = useMemo(() => { if (!q.trim()) return brands; const lq=q.toLowerCase(); return brands.filter(b=>b.name.toLowerCase().includes(lq)||(b.industry||"").toLowerCase().includes(lq)); }, [brands,q]);
+
+  const SH = ({ icon: Icon, title }: { icon: React.ElementType; title: string }) => (
+    <div className="flex items-center gap-2 pb-1.5 border-b border-border mb-3 mt-5"><Icon className="w-3.5 h-3.5 text-primary"/><span className="font-display text-[11px] tracking-wider text-primary uppercase">{title}</span></div>
+  );
+
+  return (
+    <div className="space-y-3">
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="relative flex-1 min-w-[180px]"><Search className="absolute left-3 top-2.5 w-3.5 h-3.5 text-muted-foreground"/><Input placeholder="Search brands..." value={q} onChange={e=>setQ(e.target.value)} className="pl-9 h-8 text-xs"/></div>
+        <ExportButton data={filtered as any[]} filename="brands" title="Brands"/>
+        <Button size="sm" onClick={openNew} className="gap-1 text-xs"><Plus className="w-3.5 h-3.5"/>Add Brand</Button>
+      </div>
+
+      {loading ? (
+        <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-4">{[1,2,3,4,5,6].map(i=><Skeleton key={i} className="h-44 rounded-lg"/>)}</div>
+      ) : filtered.length === 0 ? (
+        <Card className="text-center py-12 space-y-3">
+          <Crown className="w-12 h-12 mx-auto text-primary/20"/>
+          <p className="font-display text-primary">No brands yet</p>
+          <p className="text-xs text-muted-foreground">Create your first brand to get started</p>
+          <Button size="sm" onClick={openNew}><Plus className="w-3.5 h-3.5 mr-1"/>Add Brand</Button>
+        </Card>
+      ) : (
+        <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-4">
+          {filtered.map(b => (
+            <Card key={b.id} className="group hover:border-primary/50 transition-colors cursor-pointer" onClick={()=>setDetailId(b.id)}>
+              <CardHeader className="pb-2">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-center gap-3 min-w-0">
+                    {b.logoUrl ? <img src={b.logoUrl} alt={b.name} className="w-10 h-10 rounded-lg object-contain bg-secondary shrink-0"/> : <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0"><Crown className="w-5 h-5 text-primary"/></div>}
+                    <div className="min-w-0"><CardTitle className="text-sm font-display text-primary truncate">⚜ {b.name}</CardTitle>{b.industry&&<p className="text-[11px] text-muted-foreground truncate">{b.industry}</p>}</div>
+                  </div>
+                  <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" onClick={e=>e.stopPropagation()}>
+                    <Button size="icon" variant="ghost" className="w-7 h-7" onClick={()=>openEdit(b)}><Pencil className="w-3.5 h-3.5"/></Button>
+                    <Button size="icon" variant="ghost" className="w-7 h-7" onClick={()=>setDeleteId(b.id)}><Trash2 className="w-3.5 h-3.5 text-destructive"/></Button>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="pt-0 space-y-2">
+                {b.address&&<div className="flex items-center gap-1.5 text-xs text-muted-foreground"><MapPin className="w-3 h-3 shrink-0"/><span className="truncate">{b.address}</span></div>}
+                {b.socialLinks?.website&&<div className="flex items-center gap-1.5 text-xs text-muted-foreground"><Globe className="w-3 h-3 shrink-0"/><span className="truncate">{b.socialLinks.website}</span></div>}
+                <div className="flex flex-wrap gap-1.5 pt-1">
+                  {b.owners.filter(o=>o.name).length>0&&<Badge variant="outline" className="text-[10px]"><User className="w-2.5 h-2.5 mr-1"/>{b.owners.filter(o=>o.name).length} Owner{b.owners.filter(o=>o.name).length>1?"s":""}</Badge>}
+                  {b.team.filter(t=>t.name).length>0&&<Badge variant="outline" className="text-[10px]"><Users className="w-2.5 h-2.5 mr-1"/>{b.team.filter(t=>t.name).length} Team</Badge>}
+                  {b.products.filter(p=>p.name).length>0&&<Badge variant="outline" className="text-[10px]"><Package className="w-2.5 h-2.5 mr-1"/>{b.products.filter(p=>p.name).length} Products</Badge>}
+                  {(b.legalDocs.length+b.financialDocs.length)>0&&<Badge variant="outline" className="text-[10px]"><FileText className="w-2.5 h-2.5 mr-1"/>{b.legalDocs.length+b.financialDocs.length} Docs</Badge>}
+                </div>
+                <p className="text-[10px] text-muted-foreground">Created {new Date(b.createdAt).toLocaleDateString()}</p>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      {/* Detail Dialog */}
+      <Dialog open={!!detailId} onOpenChange={()=>setDetailId(null)}>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-auto">
+          {detail&&(
+            <>
+              <DialogHeader><div className="flex items-center gap-3">{detail.logoUrl&&<img src={detail.logoUrl} alt={detail.name} className="w-10 h-10 rounded-lg object-contain"/>}<DialogTitle className="font-display text-primary">⚜ {detail.name.toUpperCase()}</DialogTitle></div></DialogHeader>
+              <div>
+                <SH icon={Building2} title="General Information"/>
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  {detail.address&&<div><p className="text-[10px] text-muted-foreground uppercase">Address</p><p>{detail.address}</p></div>}
+                  {detail.industry&&<div><p className="text-[10px] text-muted-foreground uppercase">Industry</p><p>{detail.industry}</p></div>}
+                  <div><p className="text-[10px] text-muted-foreground uppercase">Created</p><p>{new Date(detail.createdAt).toLocaleDateString()}</p></div>
+                  {detail.responsiblePerson&&<div><p className="text-[10px] text-muted-foreground uppercase">Key Person</p><p>{detail.responsiblePerson}</p></div>}
+                </div>
+                {(detail.humanCount||detail.aiCount)?<StaffMetrics humanCount={detail.humanCount||0} aiCount={detail.aiCount||0}/>:null}
+                {Object.values(detail.socialLinks||{}).some(v=>v)&&(<><SH icon={Globe} title="Social & Links"/><div className="flex flex-wrap gap-2">{Object.entries(detail.socialLinks).filter(([,v])=>v).map(([k,v])=><a key={k} href={v as string} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 px-2.5 py-1 bg-secondary rounded-md text-xs text-primary hover:bg-secondary/80 capitalize"><Link2 className="w-3 h-3"/>{k}</a>)}</div></>)}
+                {detail.owners.filter(o=>o.name).length>0&&(<><SH icon={User} title="Owners"/><div className="space-y-2">{detail.owners.filter(o=>o.name).map(o=><div key={o.id} className="p-2.5 bg-secondary/30 rounded-md border border-border"><p className="font-semibold text-sm">{o.name}</p><div className="flex flex-wrap gap-3 mt-1">{o.phone&&<span className="flex items-center gap-1 text-xs text-muted-foreground"><Phone className="w-3 h-3"/>{o.phone}</span>}{o.email&&<span className="flex items-center gap-1 text-xs text-muted-foreground"><Mail className="w-3 h-3"/>{o.email}</span>}</div></div>)}</div></>)}
+                {detail.team.filter(t=>t.name).length>0&&(<><SH icon={Users} title="Key Personnel"/><div className="space-y-2">{detail.team.filter(t=>t.name).map(t=><div key={t.id} className="p-2.5 bg-secondary/30 rounded-md border border-border"><p className="font-semibold text-sm">{t.name} <span className="font-normal text-muted-foreground text-xs">— {t.position}</span></p><div className="flex flex-wrap gap-3 mt-1">{t.phone&&<span className="flex items-center gap-1 text-xs text-muted-foreground"><Phone className="w-3 h-3"/>{t.phone}</span>}{t.email&&<span className="flex items-center gap-1 text-xs text-muted-foreground"><Mail className="w-3 h-3"/>{t.email}</span>}</div></div>)}</div></>)}
+                {detail.products.filter(p=>p.name).length>0&&(<><SH icon={Package} title="Products"/><div className="space-y-2">{detail.products.filter(p=>p.name).map(p=><div key={p.id} className="p-2.5 bg-secondary/30 rounded-md border border-border"><p className="font-semibold text-sm">{p.name}</p>{p.description&&<p className="text-xs text-muted-foreground mt-0.5">{p.description}</p>}</div>)}</div></>)}
+                {(detail.legalDocs.length>0||detail.financialDocs.length>0)&&(<><SH icon={FileText} title="Documents"/><div className="space-y-1.5">{detail.legalDocs.map(d=><div key={d.id} className="flex items-center gap-2 p-2 bg-secondary/30 rounded-md border border-border text-sm"><FileText className="w-3.5 h-3.5 text-primary/60 shrink-0"/><span>{d.name}</span><Badge variant="outline" className="text-[9px] ml-auto">Legal</Badge></div>)}{detail.financialDocs.map(d=><div key={d.id} className="flex items-center gap-2 p-2 bg-secondary/30 rounded-md border border-border text-sm"><DollarSign className="w-3.5 h-3.5 text-emerald-400/60 shrink-0"/><span>{d.name}</span><Badge variant="outline" className="text-[9px] ml-auto">Financial</Badge></div>)}</div></>)}
+                {detail.marketingPlans.filter(m=>m.title).length>0&&(<><SH icon={Megaphone} title="Marketing Plans"/><div className="space-y-2">{detail.marketingPlans.filter(m=>m.title).map(m=><div key={m.id} className="p-2.5 bg-secondary/30 rounded-md border border-border"><p className="font-semibold text-sm">{m.title}</p>{m.description&&<p className="text-xs text-muted-foreground mt-0.5">{m.description}</p>}</div>)}</div></>)}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-4">
+                  <div className="bg-card border border-border rounded-lg p-3"><p className="font-display text-xs tracking-wider text-primary mb-2">ACTIVITY</p><ActivityTimeline table="brands" recordId={detail.id}/></div>
+                  <div className="bg-card border border-border rounded-lg p-3"><Comments entityType="brand" entityId={detail.id}/></div>
+                </div>
+              </div>
+              <DialogFooter className="pt-2 gap-2">
+                <Button variant="outline" size="sm" onClick={()=>setDetailId(null)}>Close</Button>
+                <Button size="sm" className="gap-1" onClick={()=>{setDetailId(null);openEdit(detail);}}><Pencil className="w-3.5 h-3.5"/>Edit Brand</Button>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirm */}
+      <Dialog open={!!deleteId} onOpenChange={()=>setDeleteId(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader><DialogTitle className="font-display text-destructive">Delete Brand?</DialogTitle></DialogHeader>
+          <p className="text-sm text-muted-foreground">Permanently delete <strong className="text-foreground">{deleteTarget?.name}</strong>? This cannot be undone.</p>
+          <DialogFooter>
+            <Button variant="outline" onClick={()=>setDeleteId(null)}>Cancel</Button>
+            <Button variant="destructive" onClick={async()=>{if(deleteId){await deleteBrand(deleteId);toast.success("Brand deleted");setDeleteId(null);}}}>Delete</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add / Edit Sheet */}
+      <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
+        <SheetContent side="right" className="w-full sm:max-w-2xl p-0 flex flex-col">
+          <div className="sticky top-0 z-10 bg-card border-b border-border px-6 py-4 shrink-0">
+            <SheetHeader><SheetTitle className="font-display text-primary">⚜ {editId?"EDIT BRAND":"ADD NEW BRAND"}</SheetTitle></SheetHeader>
+          </div>
+          <div className="flex-1 overflow-auto px-6 pb-6">
+            <SH icon={Building2} title="General Information"/>
+            <div className="space-y-3">
+              <div><Label className="text-xs">Brand Name *</Label><Input value={name} onChange={e=>setName(e.target.value)} placeholder="Enter brand name" className="mt-1 bg-secondary border-border"/></div>
+              <div>
+                <Label className="text-xs">Brand Logo</Label>
+                <div className="flex items-center gap-3 mt-1">
+                  <label className="flex items-center gap-2 px-3 py-1.5 bg-secondary border border-border rounded-md cursor-pointer hover:border-primary text-xs text-muted-foreground">
+                    <Upload className="w-3.5 h-3.5"/>Upload Logo
+                    <input type="file" accept="image/*" className="hidden" onChange={async e=>{
+                      const f=e.target.files?.[0]; if(!f) return;
+                      try {
+                        const {supabase}=await import("@/integrations/supabase/client");
+                        const {data:u}=await supabase.auth.getUser(); if(!u.user) throw new Error("Not authenticated");
+                        const path=`${u.user.id}/brand-${Date.now()}-${f.name}`;
+                        const {error}=await supabase.storage.from("avatars").upload(path,f,{upsert:true});
+                        if(error) throw error;
+                        const {data}=supabase.storage.from("avatars").getPublicUrl(path);
+                        setLogoUrl(data.publicUrl);
+                      } catch(err:any){toast.error(err.message||"Upload failed");}
+                    }}/>
+                  </label>
+                  {logoUrl&&<img src={logoUrl} alt="Logo" className="w-10 h-10 rounded-md object-cover border border-border"/>}
+                </div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div><Label className="text-xs">Business Address</Label><Input value={address} onChange={e=>setAddress(e.target.value)} placeholder="Address" className="mt-1 bg-secondary border-border"/></div>
+                <div><Label className="text-xs">Industry</Label><Input value={industry} onChange={e=>setIndustry(e.target.value)} placeholder="e.g. Jewelry, Tech" className="mt-1 bg-secondary border-border"/></div>
+                <div><Label className="text-xs">Key Person</Label><Input value={responsiblePerson} onChange={e=>setResponsiblePerson(e.target.value)} placeholder="Name" className="mt-1 bg-secondary border-border"/></div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div><Label className="text-xs">Human Staff</Label><Input type="number" min={0} value={humanCount} onChange={e=>setHumanCount(+e.target.value)} className="mt-1 bg-secondary border-border"/></div>
+                <div><Label className="text-xs">AI Agents</Label><Input type="number" min={0} value={aiCount} onChange={e=>setAiCount(+e.target.value)} className="mt-1 bg-secondary border-border"/></div>
+              </div>
+            </div>
+            <SH icon={Globe} title="Social Media & Contact"/>
+            <div className="grid grid-cols-2 gap-3">
+              {(["website","facebook","instagram","twitter","linkedin","tiktok"] as const).map(k=>(
+                <div key={k}><Label className="text-xs capitalize">{k}</Label><Input value={socialLinks[k]} onChange={e=>setSocialLinks(p=>({...p,[k]:e.target.value}))} placeholder={k==="website"?"https://...":"@handle"} className="mt-1 bg-secondary border-border text-xs"/></div>
+              ))}
+            </div>
+            <SH icon={User} title="Owners"/>
+            <div className="space-y-3">
+              {owners.map((o,i)=>(
+                <div key={o.id} className="p-3 bg-secondary/30 rounded-md border border-border space-y-2">
+                  <div className="flex items-center justify-between"><span className="text-[11px] text-muted-foreground">Owner #{i+1}</span>{owners.length>1&&<button type="button" onClick={()=>setOwners(p=>p.filter((_,idx)=>idx!==i))} className="text-destructive hover:bg-destructive/10 rounded p-1"><X className="w-3.5 h-3.5"/></button>}</div>
+                  <div className="grid grid-cols-2 gap-2">{(["name","phone","email","whatsapp"] as const).map(f=><div key={f}><Label className="text-xs capitalize">{f}</Label><Input value={o[f]} onChange={e=>updOwner(i,f,e.target.value)} className="mt-1 bg-secondary border-border text-xs"/></div>)}</div>
+                </div>
+              ))}
+              <Button type="button" variant="outline" size="sm" onClick={()=>setOwners(p=>[...p,{id:crypto.randomUUID(),name:"",phone:"",email:"",whatsapp:""}])} className="gap-1 text-xs"><Plus className="w-3.5 h-3.5"/>Add Owner</Button>
+            </div>
+            <SH icon={Users} title="Key Personnel / Team"/>
+            <div className="space-y-3">
+              {team.map((t,i)=>(
+                <div key={t.id} className="p-3 bg-secondary/30 rounded-md border border-border space-y-2">
+                  <div className="flex items-center justify-between"><span className="text-[11px] text-muted-foreground">Member #{i+1}</span><button type="button" onClick={()=>setTeam(p=>p.filter((_,idx)=>idx!==i))} className="text-destructive hover:bg-destructive/10 rounded p-1"><X className="w-3.5 h-3.5"/></button></div>
+                  <div className="grid grid-cols-2 gap-2">{(["name","position","phone","email","whatsapp"] as const).map(f=><div key={f}><Label className="text-xs capitalize">{f}</Label><Input value={t[f]} onChange={e=>updTeam(i,f,e.target.value)} className="mt-1 bg-secondary border-border text-xs"/></div>)}</div>
+                </div>
+              ))}
+              <Button type="button" variant="outline" size="sm" onClick={()=>setTeam(p=>[...p,{id:crypto.randomUUID(),name:"",position:"",phone:"",email:"",whatsapp:""}])} className="gap-1 text-xs"><Plus className="w-3.5 h-3.5"/>Add Member</Button>
+            </div>
+            <SH icon={Package} title="Products & Services"/>
+            <div className="space-y-3">
+              {products.map((p,i)=>(
+                <div key={p.id} className="p-3 bg-secondary/30 rounded-md border border-border space-y-2">
+                  <div className="flex items-center justify-between"><span className="text-[11px] text-muted-foreground">Product #{i+1}</span>{products.length>1&&<button type="button" onClick={()=>setProducts(prev=>prev.filter((_,idx)=>idx!==i))} className="text-destructive hover:bg-destructive/10 rounded p-1"><X className="w-3.5 h-3.5"/></button>}</div>
+                  <div><Label className="text-xs">Name</Label><Input value={p.name} onChange={e=>updProd(i,"name",e.target.value)} className="mt-1 bg-secondary border-border text-xs"/></div>
+                  <div><Label className="text-xs">Description</Label><Textarea value={p.description} onChange={e=>updProd(i,"description",e.target.value)} className="mt-1 bg-secondary border-border text-xs min-h-[56px]"/></div>
+                </div>
+              ))}
+              <Button type="button" variant="outline" size="sm" onClick={()=>setProducts(p=>[...p,{id:crypto.randomUUID(),name:"",description:""}])} className="gap-1 text-xs"><Plus className="w-3.5 h-3.5"/>Add Product</Button>
+            </div>
+            <SH icon={FileText} title="Legal Documents"/>
+            <div className="space-y-2">
+              {legalDocs.map((d,i)=>(
+                <div key={d.id} className="flex items-center gap-2 p-2 bg-secondary/50 rounded-md border border-border">
+                  <FileText className="w-3.5 h-3.5 text-muted-foreground shrink-0"/>
+                  <span className="flex-1 text-sm truncate">{d.name||"No file"}</span>
+                  <label className="cursor-pointer px-2 py-0.5 text-xs text-primary hover:underline">Upload<input type="file" className="hidden" onChange={e=>{const f=e.target.files?.[0];if(f)setLegalDocs(p=>p.map((doc,idx)=>idx===i?{...doc,name:f.name}:doc));}}/></label>
+                  <button onClick={()=>setLegalDocs(p=>p.filter((_,idx)=>idx!==i))} className="text-destructive p-0.5 rounded hover:bg-destructive/10"><X className="w-3 h-3"/></button>
+                </div>
+              ))}
+              <Button type="button" variant="outline" size="sm" onClick={()=>setLegalDocs(p=>[...p,{id:crypto.randomUUID(),name:""}])} className="gap-1 text-xs"><Plus className="w-3.5 h-3.5"/>Add Legal Doc</Button>
+            </div>
+            <SH icon={DollarSign} title="Financial Documents"/>
+            <div className="space-y-2">
+              {financialDocs.map((d,i)=>(
+                <div key={d.id} className="flex items-center gap-2 p-2 bg-secondary/50 rounded-md border border-border">
+                  <DollarSign className="w-3.5 h-3.5 text-emerald-400/60 shrink-0"/>
+                  <span className="flex-1 text-sm truncate">{d.name||"No file"}</span>
+                  <label className="cursor-pointer px-2 py-0.5 text-xs text-primary hover:underline">Upload<input type="file" className="hidden" onChange={e=>{const f=e.target.files?.[0];if(f)setFinancialDocs(p=>p.map((doc,idx)=>idx===i?{...doc,name:f.name}:doc));}}/></label>
+                  <button onClick={()=>setFinancialDocs(p=>p.filter((_,idx)=>idx!==i))} className="text-destructive p-0.5 rounded hover:bg-destructive/10"><X className="w-3 h-3"/></button>
+                </div>
+              ))}
+              <Button type="button" variant="outline" size="sm" onClick={()=>setFinancialDocs(p=>[...p,{id:crypto.randomUUID(),name:""}])} className="gap-1 text-xs"><Plus className="w-3.5 h-3.5"/>Add Financial Doc</Button>
+            </div>
+            <SH icon={Megaphone} title="Marketing Plans"/>
+            <div className="space-y-3">
+              {marketingPlans.map((m,i)=>(
+                <div key={m.id} className="p-3 bg-secondary/30 rounded-md border border-border space-y-2">
+                  <div className="flex items-center justify-between"><span className="text-[11px] text-muted-foreground">Plan #{i+1}</span><button type="button" onClick={()=>setMarketingPlans(p=>p.filter((_,idx)=>idx!==i))} className="text-destructive hover:bg-destructive/10 rounded p-1"><X className="w-3.5 h-3.5"/></button></div>
+                  <div><Label className="text-xs">Title</Label><Input value={m.title} onChange={e=>updPlan(i,"title",e.target.value)} className="mt-1 bg-secondary border-border text-xs"/></div>
+                  <div><Label className="text-xs">Description</Label><Textarea value={m.description} onChange={e=>updPlan(i,"description",e.target.value)} className="mt-1 bg-secondary border-border text-xs min-h-[56px]"/></div>
+                </div>
+              ))}
+              <Button type="button" variant="outline" size="sm" onClick={()=>setMarketingPlans(p=>[...p,{id:crypto.randomUUID(),title:"",description:""}])} className="gap-1 text-xs"><Plus className="w-3.5 h-3.5"/>Add Plan</Button>
+            </div>
+          </div>
+          <div className="sticky bottom-0 bg-card border-t border-border px-6 py-4 flex justify-end gap-2 shrink-0">
+            <Button variant="outline" onClick={()=>setSheetOpen(false)}>Cancel</Button>
+            <Button onClick={handleSubmit} disabled={saving} className="gap-2 font-display text-xs"><Save className="w-4 h-4"/>{saving?"SAVING...":editId?"SAVE CHANGES":"CREATE BRAND"}</Button>
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
