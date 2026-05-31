@@ -95,8 +95,8 @@ const Attachment = ({ meta }: { meta: any }) => {
 };
 
 const ChatHubCard = () => {
-  const [agents, setAgents] = useState<Agent[]>(STATIC_AI_AGENTS);
-  const [activeAgent, setActiveAgent] = useState("anubis");
+  const [agents, setAgents] = useState<Agent[]>([]);
+  const [activeAgent, setActiveAgent] = useState("");
   const [conversations, setConversations] = useState<Record<string, string>>({});
   const [messages, setMessages] = useState<Record<string, DbMessage[]>>({});
   const [streaming, setStreaming] = useState("");
@@ -115,14 +115,13 @@ const ChatHubCard = () => {
   const [attachOpen, setAttachOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Load real employees from DB and merge with static AI agents
+  // Load employees from DB only — static agents are fallback if DB is empty
   useEffect(() => {
     (async () => {
       try {
         const rows = await tenantDb.select("employees", { orderBy: "created_at", ascending: false, limit: 50 });
         const dbAgents: Agent[] = (rows as any[])
           .filter(emp => {
-            // Only include active/online employees
             const st = (emp.status || emp.data?.status || "").toLowerCase();
             return st !== "inactive";
           })
@@ -141,14 +140,17 @@ const ChatHubCard = () => {
               role: d.position || d.role || d.department || "Team Member",
               avatar: d.avatar_url || emp.avatar_url || undefined,
               system: d.system_prompt || d.instructions || undefined,
-              // Extra info for display in sidebar
-              _email: d.email || emp.email || undefined,
-              _phone: d.phone || emp.phone || undefined,
-              _department: d.department || d.team_category || undefined,
             } as any;
           });
-        setAgents([...STATIC_AI_AGENTS, ...dbAgents]);
-      } catch { /* static agents remain as fallback */ }
+        // Use DB agents only; fall back to static only if DB returned nothing
+        const result = dbAgents.length > 0 ? dbAgents : STATIC_AI_AGENTS;
+        setAgents(result);
+        setActiveAgent(prev => prev || result[0]?.id || "");
+      } catch {
+        // Network/auth error — show static agents as fallback
+        setAgents(STATIC_AI_AGENTS);
+        setActiveAgent(prev => prev || STATIC_AI_AGENTS[0]?.id || "");
+      }
     })();
   }, []);
 
