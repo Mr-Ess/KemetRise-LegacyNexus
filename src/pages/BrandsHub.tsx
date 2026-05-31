@@ -4,7 +4,7 @@ import {
   ArrowLeft, Crown, FolderOpen, Briefcase, Building2, Users, UserCheck, Handshake,
   Plus, Edit, Trash2, Search, ExternalLink, BarChart2,
   MapPin, Globe, Mail, Phone, DollarSign, Package,
-  Upload, Save, User, Megaphone, FileText, Pencil, X, Link2,
+  Upload, Save, User, Megaphone, FileText, Pencil, X, Link2, Cpu,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -409,13 +409,16 @@ export default function BrandsHub() {
     { key:"branch_type", label:"Type", render:(v,row)=><Badge variant="outline" className="text-[10px]">{row.branch_type??row.data?.type??v??"—"}</Badge> },
     { key:"address", label:"Address", render:(v,row)=><span className="text-muted-foreground">{row.address??row.data?.address??v??"—"}</span> },
     { key:"status", label:"Status", render:(v,row)=>statusBadge(row.status??row.data?.status??v) },
+    { key:"human_count", label:"Human Staff", render:(v,row)=><span className="flex items-center gap-1 text-xs"><Users className="w-3 h-3 text-blue-400"/>{row.human_count??0}</span> },
+    { key:"ai_count", label:"AI Agents", render:(v,row)=><span className="flex items-center gap-1 text-xs"><Cpu className="w-3 h-3 text-purple-400"/>{row.ai_count??0}</span> },
   ];
   const BRANCH_FIELDS: FieldDef[] = [
     { key:"name",       label:"Branch Name *" },
     { key:"branch_type",label:"Type", type:"select", options:["Main","Sub-branch","Warehouse","Data Center","Office","Lab","Showroom"] },
     { key:"address",    label:"Address" },
     { key:"status",     label:"Status", type:"select", options:["Active","Inactive","Maintenance"] },
-    { key:"human_count",label:"Staff Count", type:"number" },
+    { key:"human_count",label:"Human Staff Count", type:"number" },
+    { key:"ai_count",   label:"AI Agents Count", type:"number" },
     { key:"responsible_person", label:"Responsible Person" },
   ];
 
@@ -549,8 +552,8 @@ export default function BrandsHub() {
           <TabsContent value="branches" className="mt-2">
             <EntityTab
               items={branchRows} loading={branchLoading}
-              create={p => branchCreate({ ...p, name: p.name, status: p.status === "Active" ? "active" : p.status === "Maintenance" ? "maintenance" : "inactive", brand_id: p.brand_id, branch_type: p.branch_type||"Main", address: p.address||null, human_count: Number(p.human_count)||0, responsible_person: p.responsible_person||null, data: p })}
-              update={(id, p) => branchUpdate(id, { ...p, status: p.status === "Active" ? "active" : p.status === "Maintenance" ? "maintenance" : "inactive", brand_id: p.brand_id, data: p })}
+              create={p => branchCreate({ ...p, name: p.name, status: p.status === "Active" ? "active" : p.status === "Maintenance" ? "maintenance" : "inactive", brand_id: p.brand_id, branch_type: p.branch_type||"Main", address: p.address||null, human_count: Number(p.human_count)||0, ai_count: Number(p.ai_count)||0, responsible_person: p.responsible_person||null, data: p })}
+              update={(id, p) => branchUpdate(id, { ...p, status: p.status === "Active" ? "active" : p.status === "Maintenance" ? "maintenance" : "inactive", brand_id: p.brand_id, human_count: Number(p.human_count)||0, ai_count: Number(p.ai_count)||0, data: p })}
               remove={branchRemove}
               title="Branches" columns={BRANCH_COLS} fields={BRANCH_FIELDS}
               emptyHint="Register branches for each brand location"
