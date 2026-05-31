@@ -25,9 +25,18 @@ END $$;
 COMMENT ON COLUMN public.clients.external_secret_hash IS
   'MUST contain only bcrypt/argon2 hashes (min 50 chars). NEVER store plaintext passwords.';
 
-ALTER TABLE public.clients
-  ADD CONSTRAINT IF NOT EXISTS chk_secret_hash_length
-  CHECK (external_secret_hash IS NULL OR length(external_secret_hash) >= 50);
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.table_constraints
+    WHERE table_schema = 'public' AND table_name = 'clients'
+      AND constraint_name = 'chk_secret_hash_length'
+  ) THEN
+    ALTER TABLE public.clients
+      ADD CONSTRAINT chk_secret_hash_length
+      CHECK (external_secret_hash IS NULL OR length(external_secret_hash) >= 50);
+  END IF;
+END $$;
 
 -- ─────────────────────────────────────────────────────────────────────────────
 -- FIX 2 (OWASP A02): clients.api_key stored in plaintext
