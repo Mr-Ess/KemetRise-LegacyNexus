@@ -64,7 +64,7 @@ const Employees = () => {
     reports_to:        r.reports_to        ?? r.data?.reports_to        ?? "",
     instructions:      r.instructions      ?? r.data?.instructions      ?? "",
     workflow_id:       r.workflow_id        ?? r.data?.workflow_id        ?? "",
-    metadata:          r.metadata          ?? r.data?.metadata          ?? {},
+    metadata:          (() => { const m = r.metadata ?? r.data?.metadata; if (!m || typeof m !== "object" || Array.isArray(m)) return {}; return m; })(),
     brandId:           r.brand_id          ?? r.data?.brandId           ?? null,
     status:            r.status === "inactive" ? "Inactive" : "Active",
     agent_code:        r.agent_code        ?? r.data?.agent_code        ?? "",
@@ -257,7 +257,7 @@ const Employees = () => {
             <div className="space-y-2">
               <Label>Metadata (JSON)</Label>
               <Textarea
-                value={form.metadata ? JSON.stringify(form.metadata, null, 2) : "{}"}
+                value={(() => { try { const m = form.metadata; return m && typeof m === "object" && !Array.isArray(m) ? JSON.stringify(m, null, 2) : "{}"; } catch { return "{}"; } })()}
                 onChange={e => { try { setForm(p => ({ ...p, metadata: JSON.parse(e.target.value) })); } catch { setForm(p => ({ ...p, metadata: e.target.value as any })); } }}
                 rows={3}
                 placeholder={"{ \"key\": \"value\" }"}
