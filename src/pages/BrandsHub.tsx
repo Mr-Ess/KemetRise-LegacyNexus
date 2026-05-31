@@ -199,7 +199,7 @@ function OverviewTab({ brands, projRows, svcRows, branchRows, custRows, agentIte
 
 /* ─── Generic entity CRUD tab ───────────────────────────────── */
 interface ColDef { key: string; label: string; render?: (v: any, row: any) => React.ReactNode }
-interface FieldDef { key: string; label: string; type?: "text"|"number"|"date"|"textarea"|"select"; options?: string[] }
+interface FieldDef { key: string; label: string; type?: "text"|"number"|"date"|"textarea"|"select"; options?: string[]; allowCustom?: boolean }
 
 function EntityTab({ items, loading, create, update, remove, title, columns, fields, emptyHint, activeBrandId, brands, getBrandLabel }: {
   items: any[]; loading: boolean; create: (p: any) => Promise<any>; update: (id: string, p: any) => Promise<any>; remove: (id: string) => Promise<void>;
@@ -326,10 +326,21 @@ function EntityTab({ items, loading, create, update, remove, title, columns, fie
                 {f.type === "textarea" ? (
                   <Textarea value={form[f.key] || ""} onChange={e => setForm(p => ({...p,[f.key]:e.target.value}))} className="mt-1" rows={3}/>
                 ) : f.type === "select" && f.options ? (
-                  <Select value={form[f.key] || ""} onValueChange={v => setForm(p => ({...p,[f.key]:v}))}>
-                    <SelectTrigger className="mt-1"><SelectValue/></SelectTrigger>
-                    <SelectContent>{f.options.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
-                  </Select>
+                  <>
+                    <Select
+                      value={f.allowCustom && f.options && !f.options.includes(form[f.key]) && form[f.key] ? "__custom__" : (form[f.key] || "")}
+                      onValueChange={v => setForm(p => ({...p,[f.key]: v === "__custom__" ? "" : v, ...(v === "__custom__" ? {[`${f.key}__custom`]: true} : {[`${f.key}__custom`]: false})}))}
+                    >
+                      <SelectTrigger className="mt-1"><SelectValue/></SelectTrigger>
+                      <SelectContent>
+                        {f.options.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                        {f.allowCustom && <SelectItem value="__custom__">✏ Other (custom)…</SelectItem>}
+                      </SelectContent>
+                    </Select>
+                    {f.allowCustom && (form[`${f.key}__custom`] || (form[f.key] && !f.options.includes(form[f.key]))) && (
+                      <Input placeholder="Enter custom type…" value={form[f.key] || ""} onChange={e => setForm(p => ({...p,[f.key]:e.target.value}))} className="mt-1.5 text-xs"/>
+                    )}
+                  </>
                 ) : (
                   <Input type={f.type||"text"} value={form[f.key]||""} onChange={e => setForm(p => ({...p,[f.key]:e.target.value}))} className="mt-1"/>
                 )}
@@ -414,7 +425,7 @@ export default function BrandsHub() {
   ];
   const BRANCH_FIELDS: FieldDef[] = [
     { key:"name",       label:"Branch Name *" },
-    { key:"branch_type",label:"Type", type:"select", options:["Main","Sub-branch","Warehouse","Data Center","Office","Lab","Showroom"] },
+    { key:"branch_type",label:"Type", type:"select", options:["Main","Sub-branch","Warehouse","Data Center","Office","Lab","Showroom"], allowCustom:true },
     { key:"address",    label:"Address" },
     { key:"status",     label:"Status", type:"select", options:["Active","Inactive","Maintenance"] },
     { key:"human_count",label:"Human Staff Count", type:"number" },
