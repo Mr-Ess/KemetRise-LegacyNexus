@@ -5,6 +5,7 @@ import {
   Plus, Edit, Trash2, Search, ExternalLink, BarChart2,
   MapPin, Globe, Mail, Phone, DollarSign, Package,
   Upload, Save, User, Megaphone, FileText, Pencil, X, Link2, Cpu, MessageSquare,
+  Paperclip, ScrollText, ShieldCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -200,6 +201,44 @@ function OverviewTab({ brands, projRows, svcRows, branchRows, custRows, agentIte
 /* ─── Generic entity CRUD tab ───────────────────────────────── */
 interface ColDef { key: string; label: string; render?: (v: any, row: any) => React.ReactNode }
 interface FieldDef { key: string; label: string; type?: "text"|"number"|"date"|"textarea"|"select"; options?: string[]; allowCustom?: boolean }
+type AFile = { id: string; name: string };
+const emptyDocs = () => ({ _legal_docs: [] as AFile[], _contracts: [] as AFile[], _marketing_plans: [] as AFile[], _other_files: [] as AFile[] });
+
+function DocList({ label, icon: Icon, color, items, onChange }: {
+  label: string; icon: React.ElementType; color: string;
+  items: AFile[]; onChange: (v: AFile[]) => void;
+}) {
+  return (
+    <div>
+      <div className={`flex items-center gap-1.5 pb-1 border-b border-border mb-2 mt-4`}>
+        <Icon className={`w-3.5 h-3.5 ${color}`}/>
+        <span className={`text-[11px] font-medium uppercase tracking-wider ${color}`}>{label}</span>
+      </div>
+      <div className="space-y-1.5">
+        {items.map((d, i) => (
+          <div key={d.id} className="flex items-center gap-2 p-2 bg-secondary/40 rounded-md border border-border">
+            <Icon className={`w-3.5 h-3.5 shrink-0 ${color} opacity-60`}/>
+            <span className="flex-1 text-xs truncate text-foreground">{d.name || "No file selected"}</span>
+            <label className="cursor-pointer px-2 py-0.5 text-[11px] text-primary hover:underline shrink-0">
+              Browse
+              <input type="file" className="hidden" onChange={e => {
+                const f = e.target.files?.[0];
+                if (f) onChange(items.map((x, idx) => idx === i ? { ...x, name: f.name } : x));
+              }}/>
+            </label>
+            <button type="button" onClick={() => onChange(items.filter((_, idx) => idx !== i))}
+              className="text-destructive p-0.5 rounded hover:bg-destructive/10 shrink-0"><X className="w-3 h-3"/></button>
+          </div>
+        ))}
+        <Button type="button" variant="outline" size="sm"
+          onClick={() => onChange([...items, { id: crypto.randomUUID(), name: "" }])}
+          className="gap-1 text-xs h-7">
+          <Plus className="w-3 h-3"/>Add {label}
+        </Button>
+      </div>
+    </div>
+  );
+}
 
 function EntityTab({ items, loading, create, update, remove, title, columns, fields, emptyHint, activeBrandId, brands, getBrandLabel }: {
   items: any[]; loading: boolean; create: (p: any) => Promise<any>; update: (id: string, p: any) => Promise<any>; remove: (id: string) => Promise<void>;
@@ -209,7 +248,10 @@ function EntityTab({ items, loading, create, update, remove, title, columns, fie
   const [open, setOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState<Record<string,any>>({});
+  const [docs, setDocs] = useState(emptyDocs());
   const [q, setQ] = useState("");
+
+  const setDoc = (key: keyof ReturnType<typeof emptyDocs>) => (v: AFile[]) => setDocs(p => ({ ...p, [key]: v }));
 
   const filtered = useMemo(() => {
     let list = activeBrandId
@@ -225,6 +267,7 @@ function EntityTab({ items, loading, create, update, remove, title, columns, fie
   const openNew = () => {
     setEditId(null);
     setForm({ brand_id: activeBrandId ?? "" });
+    setDocs(emptyDocs());
     setOpen(true);
   };
   const openEdit = (row: any) => {
@@ -232,6 +275,12 @@ function EntityTab({ items, loading, create, update, remove, title, columns, fie
     const base: Record<string,any> = { brand_id: row.brand_id ?? row.data?.brandId ?? "" };
     for (const f of fields) base[f.key] = row[f.key] ?? row.data?.[f.key] ?? "";
     setForm(base);
+    setDocs({
+      _legal_docs:      (row._legal_docs      ?? row.data?._legal_docs      ?? []),
+      _contracts:       (row._contracts        ?? row.data?._contracts        ?? []),
+      _marketing_plans: (row._marketing_plans  ?? row.data?._marketing_plans  ?? []),
+      _other_files:     (row._other_files      ?? row.data?._other_files      ?? []),
+    });
     setOpen(true);
   };
   const submit = async () => {
@@ -241,6 +290,10 @@ function EntityTab({ items, loading, create, update, remove, title, columns, fie
       if (v === undefined || v === "") continue;
       payload[f.key] = f.type === "number" ? Number(v) : v;
     }
+    payload._legal_docs      = docs._legal_docs.filter(d => d.name);
+    payload._contracts        = docs._contracts.filter(d => d.name);
+    payload._marketing_plans  = docs._marketing_plans.filter(d => d.name);
+    payload._other_files      = docs._other_files.filter(d => d.name);
     if (!payload.name && !payload.agent_name) { toast.error("Name is required"); return; }
     if (editId) await update(editId, payload);
     else        await create(payload);
@@ -277,6 +330,10 @@ function EntityTab({ items, loading, create, update, remove, title, columns, fie
             <tbody>
               {filtered.map((row: any) => {
                 const bId = row.brand_id ?? row.data?.brandId ?? null;
+                const totalDocs = (row._legal_docs?.length ?? row.data?._legal_docs?.length ?? 0)
+                  + (row._contracts?.length ?? row.data?._contracts?.length ?? 0)
+                  + (row._marketing_plans?.length ?? row.data?._marketing_plans?.length ?? 0)
+                  + (row._other_files?.length ?? row.data?._other_files?.length ?? 0);
                 return (
                   <tr key={row.id} className="border-t border-border hover:bg-secondary/20 transition-colors">
                     <td className="p-3">
@@ -291,7 +348,8 @@ function EntityTab({ items, loading, create, update, remove, title, columns, fie
                       </td>
                     ))}
                     <td className="p-3">
-                      <div className="flex gap-1">
+                      <div className="flex items-center gap-1">
+                        {totalDocs > 0 && <Badge variant="outline" className="text-[9px] gap-0.5 px-1.5"><Paperclip className="w-2.5 h-2.5"/>{totalDocs}</Badge>}
                         <Button size="icon" variant="ghost" className="w-7 h-7" onClick={() => openEdit(row)}><Edit className="w-3.5 h-3.5"/></Button>
                         <Button size="icon" variant="ghost" className="w-7 h-7" onClick={() => remove(row.id)}><Trash2 className="w-3.5 h-3.5 text-destructive"/></Button>
                       </div>
@@ -305,7 +363,7 @@ function EntityTab({ items, loading, create, update, remove, title, columns, fie
       )}
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-md max-h-[80vh] overflow-auto">
+        <DialogContent className="max-w-lg max-h-[85vh] overflow-auto">
           <DialogHeader><DialogTitle className="font-display">{editId ? "Edit" : "New"} {title.replace(/s$/,"")}</DialogTitle></DialogHeader>
           <div className="space-y-3 py-1">
             {/* Brand selector */}
@@ -346,6 +404,19 @@ function EntityTab({ items, loading, create, update, remove, title, columns, fie
                 )}
               </div>
             ))}
+
+            {/* ── Attachments ── */}
+            <div className="pt-2 border-t border-border/50">
+              <p className="text-[11px] uppercase tracking-wider text-muted-foreground mb-1">Attachments</p>
+              <DocList label="Legal Papers" icon={ShieldCheck} color="text-blue-400"
+                items={docs._legal_docs} onChange={setDoc("_legal_docs")}/>
+              <DocList label="Contracts" icon={ScrollText} color="text-amber-400"
+                items={docs._contracts} onChange={setDoc("_contracts")}/>
+              <DocList label="Marketing Plans" icon={Megaphone} color="text-pink-400"
+                items={docs._marketing_plans} onChange={setDoc("_marketing_plans")}/>
+              <DocList label="Other Files" icon={Paperclip} color="text-muted-foreground"
+                items={docs._other_files} onChange={setDoc("_other_files")}/>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
