@@ -81,6 +81,7 @@ const AutomationBuilder = lazy(() => import("./pages/AutomationBuilder.tsx"));
 const LoginHistory = lazy(() => import("./pages/LoginHistory.tsx"));
 const AgentLogs = lazy(() => import("./pages/AgentLogs.tsx"));
 const WorkflowMap = lazy(() => import("./pages/WorkflowMap.tsx"));
+const Permissions = lazy(() => import("./pages/Permissions.tsx"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -177,6 +178,7 @@ const App = () => (
                 <Route path="/security/login-history" element={<Protected><LoginHistory /></Protected>} />
                 <Route path="/agent-logs" element={<Protected><AgentLogs /></Protected>} />
                 <Route path="/workflow-map" element={<Protected><WorkflowMap /></Protected>} />
+                <Route path="/permissions" element={<Protected><Permissions /></Protected>} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </Suspense>

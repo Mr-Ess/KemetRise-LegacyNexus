@@ -80,6 +80,7 @@ const Sidebar = ({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => 
     { icon: BookOpen, label: "Help", path: "/help" },
     { icon: GitBranch, label: "Workflow Map", path: "/workflow-map" },
     { icon: FileText, label: "Agent Logs", path: "/agent-logs" },
+    { icon: Shield, label: "Permissions", path: "/permissions" },
   ];
 
   

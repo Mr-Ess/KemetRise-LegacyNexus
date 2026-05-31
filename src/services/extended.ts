@@ -11,9 +11,17 @@ export type ExtTable =
   | "heartbeats" | "legal_vault" | "system_alerts"
   | "agent_logs" | "workflow_map"
   | "archive_vault" | "client_mapping" | "client_brand_access"
-  | "departments" | "sub_tasks";
+  | "departments" | "sub_tasks"
+  | "responsible_personnel" | "payment_splits" | "payment_methods"
+  | "workflow_steps" | "workflow_executions"
+  | "role_permissions" | "sector_permissions" | "agent_permissions";
 
-const TENANT_SCOPED_TABLES: ExtTable[] = ["affiliated_agents", "workflow_map"];
+const TENANT_SCOPED_TABLES: ExtTable[] = [
+  "affiliated_agents", "workflow_map",
+  "responsible_personnel", "payment_splits", "payment_methods",
+  "workflow_steps", "workflow_executions",
+  "role_permissions", "sector_permissions", "agent_permissions",
+];
 
 const isTenantScopedTable = (table: ExtTable) => TENANT_SCOPED_TABLES.includes(table);
 
