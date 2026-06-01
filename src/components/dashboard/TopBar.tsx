@@ -48,7 +48,7 @@ const TopBar = () => {
   const [readIds, setReadIds] = useState<string[]>([]);
   const [tickerIdx, setTickerIdx] = useState(0);
   const [search, setSearch] = useState("");
-  const [results, setResults] = useState<{ table: string; id: string; name: string }[]>([]);
+  const [results, setResults] = useState<{ table: string; id: string; name: string; sub?: string; path: string }[]>([]);
   const searchRef = useRef<HTMLInputElement>(null);
   useKeyboardShortcuts({ "mod+k": () => searchRef.current?.focus(), "escape": () => { setSearch(""); searchRef.current?.blur(); } });
   useWhiteLabel();
@@ -137,16 +137,63 @@ const TopBar = () => {
   useEffect(() => {
     if (!search.trim()) { setResults([]); return; }
     const q = search.trim();
-    const tables = ["brands", "branches", "employees", "customers", "projects", "services", "affiliates", "success_partners"];
     let cancelled = false;
-    (async () => {
-      const all: any[] = [];
-      for (const t of tables) {
-        const data = await tenantDb.select(t as any, { select: "id,name", ilike: { column: "name", value: `%${q}%` }, limit: 3 });
-        data.forEach((r: any) => all.push({ table: t, id: r.id, name: r.name }));
-      }
-      if (!cancelled) setResults(all.slice(0, 10));
-    })();
+    const safe = (r: PromiseSettledResult<any[]>) => r.status === "fulfilled" ? r.value || [] : [];
+    Promise.allSettled([
+      tenantDb.select("brands"             as any, { select: "id,name",                        ilike: { column: "name",           value: `%${q}%` }, limit: 3 }),
+      tenantDb.select("customers"          as any, { select: "id,name,email",                  ilike: { column: "name",           value: `%${q}%` }, limit: 3 }),
+      tenantDb.select("clients"            as any, { select: "id,full_name,email",             ilike: { column: "full_name",      value: `%${q}%` }, limit: 3 }),
+      tenantDb.select("employees"          as any, { select: "id,name,position",               ilike: { column: "name",           value: `%${q}%` }, limit: 3 }),
+      tenantDb.select("hr_employees"       as any, { select: "id,full_name,job_title",         ilike: { column: "full_name",      value: `%${q}%` }, limit: 3 }),
+      tenantDb.select("branches"           as any, { select: "id,name,address",                ilike: { column: "name",           value: `%${q}%` }, limit: 3 }),
+      tenantDb.select("legendary_journey"  as any, { select: "id,name,status",                 ilike: { column: "name",           value: `%${q}%` }, limit: 3 }),
+      tenantDb.select("tasks"              as any, { select: "id,title,status",                ilike: { column: "title",          value: `%${q}%` }, limit: 3 }),
+      tenantDb.select("inventory"          as any, { select: "id,name,sku",                    ilike: { column: "name",           value: `%${q}%` }, limit: 3 }),
+      tenantDb.select("materials"          as any, { select: "id,name,unit",                   ilike: { column: "name",           value: `%${q}%` }, limit: 3 }),
+      tenantDb.select("logistics_shipping" as any, { select: "id,tracking_number,status",      ilike: { column: "tracking_number",value: `%${q}%` }, limit: 3 }),
+      tenantDb.select("suppliers"          as any, { select: "id,name,contact_email",          ilike: { column: "name",           value: `%${q}%` }, limit: 3 }),
+      tenantDb.select("purchase_orders"    as any, { select: "id,po_number,vendor_name",       ilike: { column: "po_number",      value: `%${q}%` }, limit: 3 }),
+      tenantDb.select("vendor_contracts"   as any, { select: "id,contract_title,vendor_name",  ilike: { column: "contract_title", value: `%${q}%` }, limit: 3 }),
+      tenantDb.select("marketing_campaigns"as any, { select: "id,name,status",                 ilike: { column: "name",           value: `%${q}%` }, limit: 3 }),
+      tenantDb.select("coupons"            as any, { select: "id,code,description",            ilike: { column: "code",           value: `%${q}%` }, limit: 3 }),
+      tenantDb.select("support_tickets"    as any, { select: "id,subject,status",              ilike: { column: "subject",        value: `%${q}%` }, limit: 3 }),
+      tenantDb.select("assets_management"  as any, { select: "id,name,asset_type",             ilike: { column: "name",           value: `%${q}%` }, limit: 3 }),
+      tenantDb.select("legal_vault"        as any, { select: "id,title,category",              ilike: { column: "title",          value: `%${q}%` }, limit: 3 }),
+      tenantDb.select("services"           as any, { select: "id,name,category",               ilike: { column: "name",           value: `%${q}%` }, limit: 3 }),
+      tenantDb.select("blog_posts"         as any, { select: "id,title,status",                ilike: { column: "title",          value: `%${q}%` }, limit: 3 }),
+      tenantDb.select("artistic_production"as any, { select: "id,title,type",                  ilike: { column: "title",          value: `%${q}%` }, limit: 3 }),
+      tenantDb.select("invoices"           as any, { select: "id,invoice_number,client_name",  ilike: { column: "invoice_number", value: `%${q}%` }, limit: 3 }),
+    ]).then(res => {
+      if (cancelled) return;
+      const [brands,customers,clients,employees,hrEmp,branches,projects,tasksList,
+             inventory,materials,shipments,suppliers,poList,contracts,campaigns,
+             couponsList,tickets,assets,legalDocs,servicesList,blogList,production,invoices] = res.map(safe);
+      const all: { table: string; id: string; name: string; sub?: string; path: string }[] = [];
+      brands.forEach((r:any)      => all.push({ table: "علامات",      id: r.id, name: r.name,            path: `/brands/${r.id}` }));
+      customers.forEach((r:any)   => all.push({ table: "عملاء",       id: r.id, name: r.name,            sub: r.email,           path: `/customers` }));
+      clients.forEach((r:any)     => all.push({ table: "Clients",     id: r.id, name: r.full_name,       sub: r.email,           path: `/clients` }));
+      employees.forEach((r:any)   => all.push({ table: "موظفين",      id: r.id, name: r.name,            sub: r.position,        path: `/employees` }));
+      hrEmp.forEach((r:any)       => all.push({ table: "HR",          id: r.id, name: r.full_name,       sub: r.job_title,       path: `/operations?tab=hr` }));
+      branches.forEach((r:any)    => all.push({ table: "فروع",        id: r.id, name: r.name,            sub: r.address,         path: `/branches` }));
+      projects.forEach((r:any)    => all.push({ table: "مشاريع",      id: r.id, name: r.name,            sub: r.status,          path: `/projects` }));
+      tasksList.forEach((r:any)   => all.push({ table: "مهام",        id: r.id, name: r.title,           sub: r.status,          path: `/projects` }));
+      inventory.forEach((r:any)   => all.push({ table: "مخزون",       id: r.id, name: r.name,            sub: r.sku,             path: `/inventory` }));
+      materials.forEach((r:any)   => all.push({ table: "مواد",        id: r.id, name: r.name,            sub: r.unit,            path: `/materials` }));
+      shipments.forEach((r:any)   => all.push({ table: "شحنات",       id: r.id, name: r.tracking_number, sub: r.status,          path: `/logistics` }));
+      suppliers.forEach((r:any)   => all.push({ table: "موردون",      id: r.id, name: r.name,            sub: r.contact_email,   path: `/operations` }));
+      poList.forEach((r:any)      => all.push({ table: "أوامر شراء",  id: r.id, name: r.po_number,       sub: r.vendor_name,     path: `/operations?tab=procurement` }));
+      contracts.forEach((r:any)   => all.push({ table: "عقود",        id: r.id, name: r.contract_title,  sub: r.vendor_name,     path: `/operations?tab=procurement` }));
+      campaigns.forEach((r:any)   => all.push({ table: "تسويق",       id: r.id, name: r.name,            sub: r.status,          path: `/marketing` }));
+      couponsList.forEach((r:any) => all.push({ table: "قسائم",       id: r.id, name: r.code,            sub: r.description,     path: `/coupons` }));
+      tickets.forEach((r:any)     => all.push({ table: "تذاكر دعم",   id: r.id, name: r.subject,         sub: r.status,          path: `/` }));
+      assets.forEach((r:any)      => all.push({ table: "أصول",        id: r.id, name: r.name,            sub: r.asset_type,      path: `/assets` }));
+      legalDocs.forEach((r:any)   => all.push({ table: "قانوني",      id: r.id, name: r.title,           sub: r.category,        path: `/legal-vault` }));
+      servicesList.forEach((r:any)=> all.push({ table: "خدمات",       id: r.id, name: r.name,            sub: r.category,        path: `/services` }));
+      blogList.forEach((r:any)    => all.push({ table: "مدونة",       id: r.id, name: r.title,           sub: r.status,          path: `/blog` }));
+      production.forEach((r:any)  => all.push({ table: "إنتاج",       id: r.id, name: r.title,           sub: r.type,            path: `/artistic-production` }));
+      invoices.forEach((r:any)    => all.push({ table: "فواتير",      id: r.id, name: r.invoice_number,  sub: r.client_name,     path: `/revenue` }));
+      setResults(all.slice(0, 15));
+    });
     return () => { cancelled = true; };
   }, [search]);
 
@@ -176,12 +223,19 @@ const TopBar = () => {
             {results.length > 0 && (
               <div className="absolute left-0 top-full mt-2 w-72 bg-card border border-border rounded-lg shadow-xl z-50 max-h-64 overflow-auto">
                 {results.map(r => (
-                  <button key={`${r.table}-${r.id}`} onClick={() => { setSearch(""); navigate(`/${r.table.replace("_", "-")}`); }}
+                  <button key={`${r.table}-${r.id}`} onClick={() => { setSearch(""); navigate(r.path); }}
                     className="w-full text-left px-3 py-2 hover:bg-secondary/50 border-b border-border/40 last:border-0">
-                    <p className="text-xs text-foreground truncate">{r.name}</p>
-                    <p className="text-[10px] text-muted-foreground">{r.table}</p>
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-xs text-foreground truncate">{r.name}</p>
+                      <span className="text-[9px] text-muted-foreground bg-secondary px-1.5 py-0.5 rounded shrink-0">{r.table}</span>
+                    </div>
+                    {r.sub && <p className="text-[10px] text-muted-foreground truncate">{r.sub}</p>}
                   </button>
                 ))}
+                <button onClick={() => { setSearch(""); window.dispatchEvent(new KeyboardEvent("keydown", { key: "k", ctrlKey: true, bubbles: true })); }}
+                  className="w-full text-center px-3 py-2 text-[10px] text-primary hover:bg-secondary/50">
+                  بحث متقدم في كل المنصة ←
+                </button>
               </div>
             )}
           </div>

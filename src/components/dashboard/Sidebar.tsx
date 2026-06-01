@@ -79,12 +79,24 @@ const Sidebar = ({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => 
         <button onClick={onToggle} className="p-1 rounded hover:bg-secondary transition-colors"><Menu className="w-4 h-4 text-muted-foreground" /></button>
       </div>
 
-      {/* Global Search */}
+      {/* Global Search — opens full CommandPalette */}
       <div className="px-2 py-2 border-b border-border/50">
         <div className="relative">
           <Search className="w-3.5 h-3.5 text-muted-foreground absolute left-2.5 top-1/2 -translate-y-1/2" />
-          <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
-            placeholder="Search..." className="w-full bg-secondary/50 border border-border rounded-md pl-8 pr-3 py-1.5 text-[11px] font-body text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/50" />
+          <input
+            value={searchQuery}
+            onChange={e => {
+              setSearchQuery(e.target.value);
+              // Open full CommandPalette when user types
+              window.dispatchEvent(new KeyboardEvent("keydown", { key: "k", ctrlKey: true, bubbles: true }));
+              setSearchQuery("");
+            }}
+            onFocus={() => {
+              window.dispatchEvent(new KeyboardEvent("keydown", { key: "k", ctrlKey: true, bubbles: true }));
+            }}
+            readOnly
+            placeholder="بحث شامل في المنصة..."
+            className="w-full bg-secondary/50 border border-border rounded-md pl-8 pr-3 py-1.5 text-[11px] font-body text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/50 cursor-pointer" />
         </div>
       </div>
 
