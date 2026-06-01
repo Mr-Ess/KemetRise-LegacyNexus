@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { ArrowLeft, Plus, Edit, Trash2, Users, Bot, User } from "lucide-react";
 import { useEntities } from "@/hooks/useEntities";
 import { Button } from "@/components/ui/button";
@@ -43,6 +44,7 @@ const statusToDb = (s: string) => s === "Active" ? "active" : "inactive";
 
 const Employees = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const { items: rows, create, update, remove } = useEntities("employees");
   const items: Employee[] = useMemo(() => rows.map((r: any) => ({
     id: r.id,
@@ -131,10 +133,10 @@ const Employees = () => {
   return (
     <div className="min-h-screen bg-background p-4 md:p-8">
       <div className="max-w-5xl mx-auto">
-        <button onClick={() => navigate("/")} className="flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors mb-6"><ArrowLeft className="w-4 h-4" /><span className="font-body text-sm">Back</span></button>
+        <button onClick={() => navigate("/")} className="flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors mb-6"><ArrowLeft className="w-4 h-4" /><span className="font-body text-sm">{t("back")}</span></button>
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-2"><Users className="w-5 h-5 text-primary" /><h1 className="font-display text-lg text-primary">EMPLOYEES (TEAM)</h1></div>
-          <Button onClick={() => { resetForm(); setShowForm(true); }} className="gap-1 font-display text-xs"><Plus className="w-4 h-4" /> Add Employee</Button>
+          <Button onClick={() => { resetForm(); setShowForm(true); }} className="gap-1 font-display text-xs"><Plus className="w-4 h-4" /> {t("add_employee")}</Button>
         </div>
         <div className="flex items-center gap-2 mb-3">
           <ExportButton data={filtered as any[]} filename="employees" title="Employees" />
@@ -188,7 +190,7 @@ const Employees = () => {
 
       <Dialog open={showForm} onOpenChange={setShowForm}>
         <DialogContent className="bg-card border-border max-w-lg max-h-[85vh] overflow-auto">
-          <DialogHeader><DialogTitle className="font-display text-primary">{editId ? "Edit" : "New"} Employee</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle className="font-display text-primary">{editId ? t("edit_employee") : t("add_employee")}</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2"><Label>Name *</Label><Input value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} className="bg-secondary border-border text-foreground" /></div>
             <div className="grid grid-cols-2 gap-3">
@@ -288,7 +290,7 @@ const Employees = () => {
 
       <Dialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
         <DialogContent className="bg-card border-border">
-          <DialogHeader><DialogTitle className="font-display text-blood-red">Delete Employee?</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle className="font-display text-blood-red">{t("confirm_delete")}</DialogTitle></DialogHeader>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDeleteId(null)}>Cancel</Button>
             <Button variant="destructive" onClick={async () => { if (deleteId) await remove(deleteId); setDeleteId(null); toast.success("Deleted"); }}>Delete</Button>

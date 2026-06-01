@@ -30,15 +30,15 @@ const Sidebar = ({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => 
 
   const navSections: NavSection[] = [
     { icon: LayoutDashboard, label: t("dashboard"), path: "/" },
-    { icon: Crown, label: "Brands Hub", path: "/brands" },
+    { icon: Crown, label: t("brands_hub"), path: "/brands" },
     { icon: Lock, label: t("digital_inheritance"), path: "/digital-inheritance" },
     { icon: Scroll, label: t("legendary_journey"), path: "/legendary-journey" },
-    { icon: Store, label: "Marketplace", path: "/marketplace" },
-    { icon: Layers, label: "Operations Hub", path: "/operations" },
-    { icon: CreditCard, label: "Payment Gateways", path: "/payment-gateways" },
-    { icon: FileText, label: "System Logs", path: "/audit-logs" },
-    { icon: Mic, label: "Virtual Assistant", path: "/voice" },
-    { icon: Bell, label: "Notifications", path: "/notifications" },
+    { icon: Store, label: t("marketplace"), path: "/marketplace" },
+    { icon: Layers, label: t("operations_hub"), path: "/operations" },
+    { icon: CreditCard, label: t("payment_gateways"), path: "/payment-gateways" },
+    { icon: FileText, label: t("system_logs"), path: "/audit-logs" },
+    { icon: Mic, label: t("voice_assistant"), path: "/voice" },
+    { icon: Bell, label: t("notifications"), path: "/notifications" },
   ];
 
   

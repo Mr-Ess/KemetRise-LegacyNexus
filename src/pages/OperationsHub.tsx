@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import {
   ArrowLeft, Plus, Trash2, Edit, Search, Package, Truck, BarChart2,
   MessageCircle, Megaphone, ScrollText, ShieldAlert, Box, Factory,

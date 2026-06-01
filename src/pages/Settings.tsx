@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { ArrowLeft, User, Shield, ScrollText, Globe, Plug, Database, Lock, FileText, Bell, ChevronRight, Plus, Trash2, Edit, Upload, Key, Webhook, Copy, ToggleLeft, ToggleRight, Clock, AlertTriangle, CreditCard, BookOpen, Search, Zap, Bot } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

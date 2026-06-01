@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { ArrowLeft, Plus, Edit, Trash2, Briefcase, X, Globe, Paperclip, Users } from "lucide-react";
 import { useEntities } from "@/hooks/useEntities";
 import { Button } from "@/components/ui/button";

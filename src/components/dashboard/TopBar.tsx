@@ -1,5 +1,6 @@
 import { Search, Bell, Crown, X, LogOut, Star } from "lucide-react";
 import { useState, useEffect, useMemo, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import { auditApi, settingsApi, dmsApi } from "@/services/system";
@@ -41,6 +42,7 @@ const TABLE_MSG: Record<string, string> = {
 const TopBar = () => {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [time, setTime] = useState("00:00:00");
   const [seconds, setSeconds] = useState(3 * 24 * 3600);
   const [showNotifications, setShowNotifications] = useState(false);
@@ -231,16 +233,16 @@ const TopBar = () => {
             {showNotifications && (
               <div className="absolute right-0 top-full mt-2 w-80 bg-card border border-border rounded-lg shadow-xl z-50">
                 <div className="flex items-center justify-between p-3 border-b border-border">
-                  <span className="font-display text-[10px] font-bold text-foreground tracking-wider">NOTIFICATIONS</span>
+                  <span className="font-display text-[10px] font-bold text-foreground tracking-wider">{t("notifications").toUpperCase()}</span>
                   {unreadCount > 0 && (
                     <button onClick={markAllRead} className="text-[10px] font-display text-primary hover:underline">
-                      Mark all read
+                      {t("mark_all_read")}
                     </button>
                   )}
                 </div>
                 <div className="max-h-64 overflow-auto">
                   {notifications.length === 0 ? (
-                    <p className="text-xs text-muted-foreground text-center py-6">No notifications</p>
+                    <p className="text-xs text-muted-foreground text-center py-6">{t("notification_empty")}</p>
                   ) : (
                     notifications.map((n) => (
                       <div
@@ -274,7 +276,7 @@ const TopBar = () => {
             </div>
             <div className="hidden sm:block">
               <p className="text-xs font-body text-foreground leading-none truncate max-w-[140px]">{user?.email || "Admin"}</p>
-              <p className="text-[10px] text-muted-foreground">Pharaoh (King)</p>
+              <p className="text-[10px] text-muted-foreground">{t("pharaoh_king")}</p>
             </div>
             <PresenceIndicator />
             <LanguageSwitcher />

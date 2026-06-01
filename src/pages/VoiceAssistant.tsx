@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import {
   ArrowLeft, Mic, MicOff, Volume2, Video, VideoOff, PhoneOff, Copy,
   Users, MessageSquare, Bot, RefreshCw, Trash2, Clock,
