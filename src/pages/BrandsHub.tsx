@@ -323,6 +323,10 @@ function EntityTab({ items, loading, create, update, remove, title, columns, fie
   const [form, setForm] = useState<Record<string,any>>({});
   const [docs, setDocs] = useState(emptyDocs());
   const [people, setPeople] = useState(emptyPeople());
+  const [teamDetails, setTeamDetails] = useState<{id:string;name:string;position:string;isAI:boolean;contacts:ContactEntry[]}[]>([]);
+  const [socialLinks, setSocialLinks] = useState({ website:"", facebook:"", instagram:"", twitter:"", linkedin:"", tiktok:"", youtube:"" });
+  const [socialAccounts, setSocialAccounts] = useState<{id:string;platform:string;url:string}[]>([]);
+  const [extraAttachments, setExtraAttachments] = useState<{id:string;name:string;label:string}[]>([]);
   const [q, setQ] = useState("");
 
   const setDoc    = (key: keyof ReturnType<typeof emptyDocs>)    => (v: AFile[])       => setDocs(p => ({ ...p, [key]: v }));
@@ -344,6 +348,10 @@ function EntityTab({ items, loading, create, update, remove, title, columns, fie
     setForm({ brand_id: activeBrandId ?? "" });
     setDocs(emptyDocs());
     setPeople(emptyPeople());
+    setTeamDetails([]);
+    setSocialLinks({ website:"", facebook:"", instagram:"", twitter:"", linkedin:"", tiktok:"", youtube:"" });
+    setSocialAccounts([]);
+    setExtraAttachments([]);
     setOpen(true);
   };
   const openEdit = (row: any) => {
@@ -362,6 +370,10 @@ function EntityTab({ items, loading, create, update, remove, title, columns, fie
       _key_personnel: (row._key_personnel   ?? row.data?._key_personnel   ?? []),
       _team:          (row._team            ?? row.data?._team            ?? []),
     });
+    setTeamDetails(row.data?._teamDetails ?? row.data?.teamDetails ?? []);
+    setSocialLinks(row.data?.socialLinks ?? { website:"", facebook:"", instagram:"", twitter:"", linkedin:"", tiktok:"", youtube:"" });
+    setSocialAccounts(row.data?.socialAccounts ?? []);
+    setExtraAttachments(row.data?.extraAttachments ?? []);
     setOpen(true);
   };
   const submit = async () => {
@@ -381,6 +393,10 @@ function EntityTab({ items, loading, create, update, remove, title, columns, fie
       _owners:          people._owners.filter(p => p.name.trim()),
       _key_personnel:   people._key_personnel.filter(p => p.name.trim()),
       _team:            people._team.filter(p => p.name.trim()),
+      _teamDetails:     teamDetails.filter(t => t.name.trim()),
+      socialLinks,
+      socialAccounts:   socialAccounts.filter(s => s.platform || s.url),
+      extraAttachments: extraAttachments.filter(a => a.name || a.label),
     };
     if (!payload.name && !payload.agent_name) { toast.error("Name is required"); return; }
     if (editId) await update(editId, payload);
@@ -497,28 +513,75 @@ function EntityTab({ items, loading, create, update, remove, title, columns, fie
               </div>
             ))}
 
-            {/* ── People ── */}
-            <div className="pt-2 border-t border-border/50">
-              <p className="text-[11px] uppercase tracking-wider text-muted-foreground mb-1">People</p>
-              <PeopleSection title="Owners" icon={User} color="text-amber-400"
-                people={people._owners} onChange={setPeople2("_owners")}/>
-              <PeopleSection title="Key Personnel" icon={UserCheck} color="text-primary"
-                people={people._key_personnel} onChange={setPeople2("_key_personnel")}/>
-              <PeopleSection title="Team Members" icon={Users} color="text-blue-400"
-                people={people._team} onChange={setPeople2("_team")}/>
+            {/* Key Personnel / Team */}
+            <div className="flex items-center gap-2 pb-1.5 border-b border-border mb-3 mt-5"><Users className="w-3.5 h-3.5 text-primary"/><span className="font-display text-[11px] tracking-wider text-primary uppercase">Key Personnel / Team</span></div>
+            <div className="space-y-3">
+              {teamDetails.map((t, i) => (
+                <div key={t.id} className="p-3 bg-secondary/30 rounded-md border border-border space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] text-muted-foreground">Member #{i+1}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] text-muted-foreground">{t.isAI ? "🤖 AI" : "👤 Human"}</span>
+                      <button type="button" onClick={() => setTeamDetails(p => p.map((tm, ti) => ti === i ? { ...tm, isAI: !tm.isAI } : tm))}
+                        className={`w-8 h-4 rounded-full transition-colors relative ${t.isAI ? "bg-primary" : "bg-muted border border-border"}`}>
+                        <span className={`absolute top-0.5 w-3 h-3 rounded-full bg-white transition-transform ${t.isAI ? "translate-x-4" : "translate-x-0.5"}`}/>
+                      </button>
+                      <button type="button" onClick={() => setTeamDetails(p => p.filter((_, idx) => idx !== i))} className="text-destructive hover:bg-destructive/10 rounded p-1"><X className="w-3.5 h-3.5"/></button>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div><Label className="text-xs">Name</Label><Input value={t.name} onChange={e => setTeamDetails(p => p.map((tm, ti) => ti === i ? { ...tm, name: e.target.value } : tm))} className="mt-1 bg-secondary border-border text-xs"/></div>
+                    <div><Label className="text-xs">Position</Label><Input value={t.position||""} onChange={e => setTeamDetails(p => p.map((tm, ti) => ti === i ? { ...tm, position: e.target.value } : tm))} className="mt-1 bg-secondary border-border text-xs"/></div>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Contact Info</p>
+                  {(t.contacts||[]).map((c, ci) => (
+                    <div key={c.id} className="flex items-center gap-1.5">
+                      <select value={c.type} onChange={e => setTeamDetails(p => p.map((tm, ti) => ti === i ? { ...tm, contacts: tm.contacts.map((cx, cxi) => cxi === ci ? { ...cx, type: e.target.value } : cx) } : tm))}
+                        className="bg-secondary border border-border rounded px-2 py-1 text-xs text-foreground shrink-0 w-28">
+                        <option value="phone">📞 Phone</option><option value="email">📧 Email</option><option value="whatsapp">💬 WhatsApp</option><option value="linkedin">🔗 LinkedIn</option><option value="twitter">𝕏 Twitter</option><option value="other">• Other</option>
+                      </select>
+                      <Input value={c.value} onChange={e => setTeamDetails(p => p.map((tm, ti) => ti === i ? { ...tm, contacts: tm.contacts.map((cx, cxi) => cxi === ci ? { ...cx, value: e.target.value } : cx) } : tm))} placeholder="Value…" className="flex-1 h-7 text-xs bg-secondary border-border"/>
+                      <button type="button" onClick={() => setTeamDetails(p => p.map((tm, ti) => ti === i ? { ...tm, contacts: tm.contacts.filter((_, cxi) => cxi !== ci) } : tm))} className="text-destructive p-0.5 shrink-0 hover:bg-destructive/10 rounded"><X className="w-3 h-3"/></button>
+                    </div>
+                  ))}
+                  <Button type="button" variant="ghost" size="sm" onClick={() => setTeamDetails(p => p.map((tm, ti) => ti === i ? { ...tm, contacts: [...tm.contacts, { id: crypto.randomUUID(), type: "phone", value: "" }] } : tm))} className="h-6 text-[11px] gap-1 text-muted-foreground hover:text-foreground"><Plus className="w-3 h-3"/>Add Contact</Button>
+                </div>
+              ))}
+              <Button type="button" variant="outline" size="sm" onClick={() => setTeamDetails(p => [...p, { id: crypto.randomUUID(), name: "", position: "", isAI: false, contacts: [] }])} className="gap-1 text-xs"><Plus className="w-3.5 h-3.5"/>Add Member</Button>
             </div>
 
-            {/* ── Attachments ── */}
-            <div className="pt-2 border-t border-border/50">
-              <p className="text-[11px] uppercase tracking-wider text-muted-foreground mb-1">Attachments</p>
-              <DocList label="Legal Papers" icon={ShieldCheck} color="text-blue-400"
-                items={docs._legal_docs} onChange={setDoc("_legal_docs")}/>
-              <DocList label="Contracts" icon={ScrollText} color="text-amber-400"
-                items={docs._contracts} onChange={setDoc("_contracts")}/>
-              <DocList label="Marketing Plans" icon={Megaphone} color="text-pink-400"
-                items={docs._marketing_plans} onChange={setDoc("_marketing_plans")}/>
-              <DocList label="Other Files" icon={Paperclip} color="text-muted-foreground"
-                items={docs._other_files} onChange={setDoc("_other_files")}/>
+            {/* Social Media & Contact */}
+            <div className="flex items-center gap-2 pb-1.5 border-b border-border mb-3 mt-5"><Globe className="w-3.5 h-3.5 text-primary"/><span className="font-display text-[11px] tracking-wider text-primary uppercase">Social Media & Contact</span></div>
+            <div className="grid grid-cols-2 gap-3">
+              {(["website","facebook","instagram","twitter","linkedin","tiktok","youtube"] as const).map(k => (
+                <div key={k}><Label className="text-xs capitalize">{k}</Label><Input value={(socialLinks as any)[k]||""} onChange={e => setSocialLinks(p => ({...p,[k]:e.target.value}))} placeholder={k==="website"?"https://...": k==="youtube"?"https://youtube.com/...":"@handle"} className="mt-1 bg-secondary border-border text-xs"/></div>
+              ))}
+            </div>
+            <div className="mt-3">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2">Additional Accounts</p>
+              {socialAccounts.map((sa, i) => (
+                <div key={sa.id} className="flex items-center gap-1.5 mb-1.5">
+                  <Input value={sa.platform} onChange={e => setSocialAccounts(p => p.map((s, si) => si === i ? { ...s, platform: e.target.value } : s))} placeholder="Platform…" className="w-28 h-7 text-xs bg-secondary border-border shrink-0"/>
+                  <Input value={sa.url} onChange={e => setSocialAccounts(p => p.map((s, si) => si === i ? { ...s, url: e.target.value } : s))} placeholder="URL or @handle" className="flex-1 h-7 text-xs bg-secondary border-border"/>
+                  <button type="button" onClick={() => setSocialAccounts(p => p.filter((_, si) => si !== i))} className="text-destructive p-0.5 shrink-0 hover:bg-destructive/10 rounded"><X className="w-3 h-3"/></button>
+                </div>
+              ))}
+              <Button type="button" variant="ghost" size="sm" onClick={() => setSocialAccounts(p => [...p, { id: crypto.randomUUID(), platform: "", url: "" }])} className="h-6 text-[11px] gap-1 text-muted-foreground hover:text-foreground"><Plus className="w-3 h-3"/>Add Account</Button>
+            </div>
+
+            {/* Extra Attachments */}
+            <div className="flex items-center gap-2 pb-1.5 border-b border-border mb-3 mt-5"><Paperclip className="w-3.5 h-3.5 text-primary"/><span className="font-display text-[11px] tracking-wider text-primary uppercase">Extra Attachments</span></div>
+            <div className="space-y-2">
+              {extraAttachments.map((a, i) => (
+                <div key={a.id} className="flex items-center gap-2 p-2 bg-secondary/50 rounded-md border border-border">
+                  <Paperclip className="w-3.5 h-3.5 text-muted-foreground shrink-0"/>
+                  <Input value={a.label} onChange={e => setExtraAttachments(p => p.map((att, ai2) => ai2 === i ? { ...att, label: e.target.value } : att))} placeholder="File description…" className="flex-1 h-7 text-xs bg-secondary border-border"/>
+                  <span className="text-xs text-muted-foreground truncate max-w-[90px]">{a.name||"No file"}</span>
+                  <label className="cursor-pointer px-2 py-0.5 text-xs text-primary hover:underline shrink-0">Browse<input type="file" className="hidden" onChange={e => { const f = e.target.files?.[0]; if(f) setExtraAttachments(p => p.map((att, ai2) => ai2 === i ? { ...att, name: f.name } : att)); }}/></label>
+                  <button type="button" onClick={() => setExtraAttachments(p => p.filter((_, ai2) => ai2 !== i))} className="text-destructive p-0.5 rounded hover:bg-destructive/10 shrink-0"><X className="w-3 h-3"/></button>
+                </div>
+              ))}
+              <Button type="button" variant="outline" size="sm" onClick={() => setExtraAttachments(p => [...p, { id: crypto.randomUUID(), name: "", label: "" }])} className="gap-1 text-xs"><Plus className="w-3.5 h-3.5"/>Add Attachment</Button>
             </div>
           </div>
           <DialogFooter>
@@ -1963,6 +2026,10 @@ function AgentTab({ items, loading, create, update, remove, columns, fields, act
   const [open, setOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState<Record<string,any>>({});
+  const [teamDetails, setTeamDetails] = useState<{id:string;name:string;position:string;isAI:boolean;contacts:ContactEntry[]}[]>([]);
+  const [socialLinks, setSocialLinks] = useState({ website:"", facebook:"", instagram:"", twitter:"", linkedin:"", tiktok:"", youtube:"" });
+  const [socialAccounts, setSocialAccounts] = useState<{id:string;platform:string;url:string}[]>([]);
+  const [extraAttachments, setExtraAttachments] = useState<{id:string;name:string;label:string}[]>([]);
   const [q, setQ] = useState("");
 
   const filtered = useMemo(() => {
@@ -1974,12 +2041,16 @@ function AgentTab({ items, loading, create, update, remove, columns, fields, act
     return list;
   }, [items, activeBrandId, q, fields]);
 
-  const openNew  = () => { setEditId(null); setForm({ brand_id: activeBrandId ?? "" }); setOpen(true); };
+  const openNew  = () => { setEditId(null); setForm({ brand_id: activeBrandId ?? "" }); setTeamDetails([]); setSocialLinks({ website:"", facebook:"", instagram:"", twitter:"", linkedin:"", tiktok:"", youtube:"" }); setSocialAccounts([]); setExtraAttachments([]); setOpen(true); };
   const openEdit = (row: any) => {
     setEditId(row.id);
     const base: Record<string,any> = { brand_id: row.brand_id ?? "" };
     for (const f of fields) base[f.key] = row[f.key] ?? "";
     setForm(base);
+    setTeamDetails(row.data?._teamDetails ?? row.data?.teamDetails ?? []);
+    setSocialLinks(row.data?.socialLinks ?? { website:"", facebook:"", instagram:"", twitter:"", linkedin:"", tiktok:"", youtube:"" });
+    setSocialAccounts(row.data?.socialAccounts ?? []);
+    setExtraAttachments(row.data?.extraAttachments ?? []);
     setOpen(true);
   };
   const submit = async () => {
@@ -1989,6 +2060,12 @@ function AgentTab({ items, loading, create, update, remove, columns, fields, act
       const v = form[f.key];
       if (v !== undefined && v !== "") payload[f.key] = f.type === "number" ? Number(v) : v;
     }
+    payload.data = {
+      _teamDetails: teamDetails.filter(t => t.name.trim()),
+      socialLinks,
+      socialAccounts: socialAccounts.filter(s => s.platform || s.url),
+      extraAttachments: extraAttachments.filter(a => a.name || a.label),
+    };
     if (editId) await update(editId, payload);
     else        await create(payload);
     setOpen(false);
@@ -2067,6 +2144,77 @@ function AgentTab({ items, loading, create, update, remove, columns, fields, act
                 <Input type={f.type||"text"} value={form[f.key]||""} onChange={e => setForm(p => ({...p,[f.key]:e.target.value}))} className="mt-1"/>
               </div>
             ))}
+
+            {/* Key Personnel / Team */}
+            <div className="flex items-center gap-2 pb-1.5 border-b border-border mb-3 mt-5"><Users className="w-3.5 h-3.5 text-primary"/><span className="font-display text-[11px] tracking-wider text-primary uppercase">Key Personnel / Team</span></div>
+            <div className="space-y-3">
+              {teamDetails.map((t, i) => (
+                <div key={t.id} className="p-3 bg-secondary/30 rounded-md border border-border space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] text-muted-foreground">Member #{i+1}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] text-muted-foreground">{t.isAI ? "🤖 AI" : "👤 Human"}</span>
+                      <button type="button" onClick={() => setTeamDetails(p => p.map((tm, ti) => ti === i ? { ...tm, isAI: !tm.isAI } : tm))}
+                        className={`w-8 h-4 rounded-full transition-colors relative ${t.isAI ? "bg-primary" : "bg-muted border border-border"}`}>
+                        <span className={`absolute top-0.5 w-3 h-3 rounded-full bg-white transition-transform ${t.isAI ? "translate-x-4" : "translate-x-0.5"}`}/>
+                      </button>
+                      <button type="button" onClick={() => setTeamDetails(p => p.filter((_, idx) => idx !== i))} className="text-destructive hover:bg-destructive/10 rounded p-1"><X className="w-3.5 h-3.5"/></button>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div><Label className="text-xs">Name</Label><Input value={t.name} onChange={e => setTeamDetails(p => p.map((tm, ti) => ti === i ? { ...tm, name: e.target.value } : tm))} className="mt-1 bg-secondary border-border text-xs"/></div>
+                    <div><Label className="text-xs">Position</Label><Input value={t.position||""} onChange={e => setTeamDetails(p => p.map((tm, ti) => ti === i ? { ...tm, position: e.target.value } : tm))} className="mt-1 bg-secondary border-border text-xs"/></div>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Contact Info</p>
+                  {(t.contacts||[]).map((c, ci) => (
+                    <div key={c.id} className="flex items-center gap-1.5">
+                      <select value={c.type} onChange={e => setTeamDetails(p => p.map((tm, ti) => ti === i ? { ...tm, contacts: tm.contacts.map((cx, cxi) => cxi === ci ? { ...cx, type: e.target.value } : cx) } : tm))}
+                        className="bg-secondary border border-border rounded px-2 py-1 text-xs text-foreground shrink-0 w-28">
+                        <option value="phone">📞 Phone</option><option value="email">📧 Email</option><option value="whatsapp">💬 WhatsApp</option><option value="linkedin">🔗 LinkedIn</option><option value="twitter">𝕏 Twitter</option><option value="other">• Other</option>
+                      </select>
+                      <Input value={c.value} onChange={e => setTeamDetails(p => p.map((tm, ti) => ti === i ? { ...tm, contacts: tm.contacts.map((cx, cxi) => cxi === ci ? { ...cx, value: e.target.value } : cx) } : tm))} placeholder="Value…" className="flex-1 h-7 text-xs bg-secondary border-border"/>
+                      <button type="button" onClick={() => setTeamDetails(p => p.map((tm, ti) => ti === i ? { ...tm, contacts: tm.contacts.filter((_, cxi) => cxi !== ci) } : tm))} className="text-destructive p-0.5 shrink-0 hover:bg-destructive/10 rounded"><X className="w-3 h-3"/></button>
+                    </div>
+                  ))}
+                  <Button type="button" variant="ghost" size="sm" onClick={() => setTeamDetails(p => p.map((tm, ti) => ti === i ? { ...tm, contacts: [...tm.contacts, { id: crypto.randomUUID(), type: "phone", value: "" }] } : tm))} className="h-6 text-[11px] gap-1 text-muted-foreground hover:text-foreground"><Plus className="w-3 h-3"/>Add Contact</Button>
+                </div>
+              ))}
+              <Button type="button" variant="outline" size="sm" onClick={() => setTeamDetails(p => [...p, { id: crypto.randomUUID(), name: "", position: "", isAI: false, contacts: [] }])} className="gap-1 text-xs"><Plus className="w-3.5 h-3.5"/>Add Member</Button>
+            </div>
+
+            {/* Social Media & Contact */}
+            <div className="flex items-center gap-2 pb-1.5 border-b border-border mb-3 mt-5"><Globe className="w-3.5 h-3.5 text-primary"/><span className="font-display text-[11px] tracking-wider text-primary uppercase">Social Media & Contact</span></div>
+            <div className="grid grid-cols-2 gap-3">
+              {(["website","facebook","instagram","twitter","linkedin","tiktok","youtube"] as const).map(k => (
+                <div key={k}><Label className="text-xs capitalize">{k}</Label><Input value={(socialLinks as any)[k]||""} onChange={e => setSocialLinks(p => ({...p,[k]:e.target.value}))} placeholder={k==="website"?"https://...": k==="youtube"?"https://youtube.com/...":"@handle"} className="mt-1 bg-secondary border-border text-xs"/></div>
+              ))}
+            </div>
+            <div className="mt-3">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2">Additional Accounts</p>
+              {socialAccounts.map((sa, i) => (
+                <div key={sa.id} className="flex items-center gap-1.5 mb-1.5">
+                  <Input value={sa.platform} onChange={e => setSocialAccounts(p => p.map((s, si) => si === i ? { ...s, platform: e.target.value } : s))} placeholder="Platform…" className="w-28 h-7 text-xs bg-secondary border-border shrink-0"/>
+                  <Input value={sa.url} onChange={e => setSocialAccounts(p => p.map((s, si) => si === i ? { ...s, url: e.target.value } : s))} placeholder="URL or @handle" className="flex-1 h-7 text-xs bg-secondary border-border"/>
+                  <button type="button" onClick={() => setSocialAccounts(p => p.filter((_, si) => si !== i))} className="text-destructive p-0.5 shrink-0 hover:bg-destructive/10 rounded"><X className="w-3 h-3"/></button>
+                </div>
+              ))}
+              <Button type="button" variant="ghost" size="sm" onClick={() => setSocialAccounts(p => [...p, { id: crypto.randomUUID(), platform: "", url: "" }])} className="h-6 text-[11px] gap-1 text-muted-foreground hover:text-foreground"><Plus className="w-3 h-3"/>Add Account</Button>
+            </div>
+
+            {/* Extra Attachments */}
+            <div className="flex items-center gap-2 pb-1.5 border-b border-border mb-3 mt-5"><Paperclip className="w-3.5 h-3.5 text-primary"/><span className="font-display text-[11px] tracking-wider text-primary uppercase">Extra Attachments</span></div>
+            <div className="space-y-2">
+              {extraAttachments.map((a, i) => (
+                <div key={a.id} className="flex items-center gap-2 p-2 bg-secondary/50 rounded-md border border-border">
+                  <Paperclip className="w-3.5 h-3.5 text-muted-foreground shrink-0"/>
+                  <Input value={a.label} onChange={e => setExtraAttachments(p => p.map((att, ai2) => ai2 === i ? { ...att, label: e.target.value } : att))} placeholder="File description…" className="flex-1 h-7 text-xs bg-secondary border-border"/>
+                  <span className="text-xs text-muted-foreground truncate max-w-[90px]">{a.name||"No file"}</span>
+                  <label className="cursor-pointer px-2 py-0.5 text-xs text-primary hover:underline shrink-0">Browse<input type="file" className="hidden" onChange={e => { const f = e.target.files?.[0]; if(f) setExtraAttachments(p => p.map((att, ai2) => ai2 === i ? { ...att, name: f.name } : att)); }}/></label>
+                  <button type="button" onClick={() => setExtraAttachments(p => p.filter((_, ai2) => ai2 !== i))} className="text-destructive p-0.5 rounded hover:bg-destructive/10 shrink-0"><X className="w-3 h-3"/></button>
+                </div>
+              ))}
+              <Button type="button" variant="outline" size="sm" onClick={() => setExtraAttachments(p => [...p, { id: crypto.randomUUID(), name: "", label: "" }])} className="gap-1 text-xs"><Plus className="w-3.5 h-3.5"/>Add Attachment</Button>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
