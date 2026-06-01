@@ -176,7 +176,7 @@ const App = () => (
                 <Route path="/notification-rules" element={<Navigate to="/notifications" replace />} />
                 <Route path="/help" element={<Protected><Help /></Protected>} />
                 <Route path="/voice" element={<Protected><VoiceAssistant /></Protected>} />
-                <Route path="/video" element={<Navigate to="/voice" replace />} />
+                <Route path="/video" element={<Protected><VideoConference /></Protected>} />
                 <Route path="/changelog" element={<Protected><Changelog /></Protected>} />
                 <Route path="/backups" element={<Protected><Backups /></Protected>} />
                 <Route path="/automations" element={<Protected><AutomationBuilder /></Protected>} />
