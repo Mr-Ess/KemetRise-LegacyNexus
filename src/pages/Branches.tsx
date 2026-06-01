@@ -20,12 +20,13 @@ type DocFile = { id: string; name: string; category: string };
 type ContactEntry = { id: string; type: string; value: string };
 type AttachmentFile = { id: string; name: string; label: string };
 type SocialAccount = { id: string; platform: string; url: string };
+type TeamMemberEntry = { id: string; name: string; isAI: boolean; contacts: ContactEntry[] };
 
 type Branch = {
   id: string; name: string; type: string; brandId?: string | null;
   address: string; humanCount: number; aiCount: number; status: "Active" | "Inactive" | "Maintenance";
   shifts: Shift[]; aiTasks: string; responsiblePerson: string; files: DocFile[];
-  contacts?: ContactEntry[]; extraAttachments?: AttachmentFile[]; socialAccounts?: SocialAccount[];
+  contacts?: ContactEntry[]; extraAttachments?: AttachmentFile[]; socialAccounts?: SocialAccount[]; teamDetails?: TeamMemberEntry[];
 };
 
 const defaultBranchTypes = ["Main", "Sub-branch", "Warehouse", "Data Center", "Office", "Lab", "Showroom"];
@@ -37,7 +38,7 @@ const Branches = () => {
   const navigate = useNavigate();
   const { items: rows, create, update, remove } = useEntities("branches");
   const emptyShift = (): Shift => ({ id: crypto.randomUUID(), name: "", start: "09:00", end: "17:00" });
-  const empty = (): Omit<Branch, "id"> => ({ name: "", type: "Main", brandId: null, address: "", humanCount: 0, aiCount: 0, status: "Active", shifts: [emptyShift()], aiTasks: "", responsiblePerson: "", files: [], contacts: [], extraAttachments: [] });
+  const empty = (): Omit<Branch, "id"> => ({ name: "", type: "Main", brandId: null, address: "", humanCount: 0, aiCount: 0, status: "Active", shifts: [emptyShift()], aiTasks: "", responsiblePerson: "", files: [], contacts: [], extraAttachments: [], teamDetails: [] });
   const items: Branch[] = useMemo(() => rows.map(r => ({
     id: r.id,
     ...empty(),
@@ -66,9 +67,10 @@ const Branches = () => {
   const [contacts, setContacts] = useState<ContactEntry[]>([]);
   const [extraAttachments, setExtraAttachments] = useState<AttachmentFile[]>([]);
   const [socialAccounts, setSocialAccounts] = useState<SocialAccount[]>([]);
+  const [teamDetails, setTeamDetails] = useState<TeamMemberEntry[]>([]);
 
-  const resetForm = () => { setForm(empty()); setContacts([]); setExtraAttachments([]); setSocialAccounts([]); setEditId(null); };
-  const openEdit = (b: Branch) => { const { id, ...rest } = b; setForm(rest); setContacts((b as any).contacts || []); setExtraAttachments((b as any).extraAttachments || []); setSocialAccounts((b as any).socialAccounts || []); setEditId(b.id); setShowForm(true); };
+  const resetForm = () => { setForm(empty()); setContacts([]); setExtraAttachments([]); setSocialAccounts([]); setTeamDetails([]); setEditId(null); };
+  const openEdit = (b: Branch) => { const { id, ...rest } = b; setForm(rest); setContacts((b as any).contacts || []); setExtraAttachments((b as any).extraAttachments || []); setSocialAccounts((b as any).socialAccounts || []); setTeamDetails((b as any).teamDetails || []); setEditId(b.id); setShowForm(true); };
 
   const handleSubmit = async () => {
     if (!form.name.trim()) { toast.error("Name required"); return; }
@@ -83,7 +85,7 @@ const Branches = () => {
       responsible_person: form.responsiblePerson  || null,
       shifts:             form.shifts             || [],
       ai_tasks:           form.aiTasks            || null,
-      data:               { ...form, contacts, extraAttachments, socialAccounts },
+      data:               { ...form, contacts, extraAttachments, socialAccounts, teamDetails },
     };
     if (editId) { await update(editId, payload); toast.success("Branch updated"); }
     else { await create(payload); toast.success("Branch added"); }
@@ -227,6 +229,35 @@ const Branches = () => {
               <Button type="button" variant="outline" size="sm" onClick={() => setForm(p => ({ ...p, shifts: [...p.shifts, emptyShift()] }))} className="gap-1 text-xs"><Plus className="w-3.5 h-3.5" />Add Shift</Button>
             </div>
             <div className="space-y-2"><Label>AI Tasks</Label><Input value={form.aiTasks} onChange={e => setForm(p => ({ ...p, aiTasks: e.target.value }))} className="bg-secondary border-border text-foreground" placeholder="Data analysis, Support..." /></div>
+            {/* Key Personnel / Team */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label>Key Personnel / Team</Label>
+                <Button type="button" variant="outline" size="sm" onClick={() => setTeamDetails(p => [...p, { id: crypto.randomUUID(), name: "", isAI: false, contacts: [] }])} className="gap-1 text-xs"><Plus className="w-3 h-3" />Add Member</Button>
+              </div>
+              {teamDetails.map((member, mi) => (
+                <div key={member.id} className="p-3 bg-secondary/30 rounded-md border border-border space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Input value={member.name} onChange={e => setTeamDetails(p => p.map((m, idx) => idx === mi ? { ...m, name: e.target.value } : m))} placeholder="Member name" className="bg-secondary border-border text-foreground text-xs flex-1" />
+                    <button type="button" onClick={() => setTeamDetails(p => p.map((m, idx) => idx === mi ? { ...m, isAI: !m.isAI } : m))} className={`px-3 py-1.5 rounded-full text-[11px] font-display transition-colors shrink-0 ${member.isAI ? "bg-nile/20 text-nile border border-nile/30" : "bg-primary/10 text-primary border border-primary/20"}`}>{member.isAI ? "🤖 AI" : "👤 Human"}</button>
+                    <button type="button" onClick={() => setTeamDetails(p => p.filter((_, idx) => idx !== mi))} className="p-1 text-destructive shrink-0"><X className="w-3.5 h-3.5" /></button>
+                  </div>
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] text-muted-foreground">Contacts</span>
+                      <Button type="button" variant="ghost" size="sm" onClick={() => setTeamDetails(p => p.map((m, idx) => idx === mi ? { ...m, contacts: [...m.contacts, { id: crypto.randomUUID(), type: "Phone", value: "" }] } : m))} className="h-5 text-[10px] px-2 gap-1"><Plus className="w-2.5 h-2.5" />Add</Button>
+                    </div>
+                    {member.contacts.map((c, ci) => (
+                      <div key={c.id} className="flex items-center gap-1">
+                        <select value={c.type} onChange={e => setTeamDetails(p => p.map((m, idx) => idx === mi ? { ...m, contacts: m.contacts.map((x, cidx) => cidx === ci ? { ...x, type: e.target.value } : x) } : m))} className="rounded bg-secondary border border-border px-1 py-1 text-[10px] font-body text-foreground w-24 shrink-0"><option>Phone</option><option>Email</option><option>WhatsApp</option><option>LinkedIn</option><option>Twitter</option><option>Other</option></select>
+                        <Input value={c.value} onChange={e => setTeamDetails(p => p.map((m, idx) => idx === mi ? { ...m, contacts: m.contacts.map((x, cidx) => cidx === ci ? { ...x, value: e.target.value } : x) } : m))} placeholder="Value" className="bg-secondary border-border text-foreground text-[10px] h-7" />
+                        <button type="button" onClick={() => setTeamDetails(p => p.map((m, idx) => idx === mi ? { ...m, contacts: m.contacts.filter((_, cidx) => cidx !== ci) } : m))} className="p-0.5 text-destructive shrink-0"><X className="w-3 h-3" /></button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
             {/* Social Media Accounts */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
@@ -296,6 +327,20 @@ const Branches = () => {
                   <div className="bg-secondary/50 rounded p-2"><Bot className="w-3.5 h-3.5 text-nile mx-auto mb-1" /><p className="font-display text-xs text-foreground">{detail.aiCount}</p><p className="text-[9px] text-muted-foreground">AI</p></div>
                   <div className="bg-secondary/50 rounded p-2"><Clock className="w-3.5 h-3.5 text-muted-foreground mx-auto mb-1" /><p className="font-display text-[10px] text-foreground">{detail.shifts.length}</p><p className="text-[9px] text-muted-foreground">Shifts</p></div>
                 </div>
+                {((detail as any).teamDetails?.length > 0) && (
+                  <div className="space-y-1 border-t border-border pt-2">
+                    <p className="text-[10px] font-display text-muted-foreground uppercase tracking-wider">Key Personnel / Team</p>
+                    {(detail as any).teamDetails.map((m: TeamMemberEntry) => (
+                      <div key={m.id} className="flex items-start gap-2">
+                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-display shrink-0 ${m.isAI ? "bg-nile/20 text-nile" : "bg-primary/10 text-primary"}`}>{m.isAI ? "🤖 AI" : "👤 Human"}</span>
+                        <div>
+                          <span className="text-xs text-foreground">{m.name}</span>
+                          {m.contacts?.length > 0 && <div className="flex flex-wrap gap-1 mt-0.5">{m.contacts.map((c: ContactEntry) => <span key={c.id} className="text-[9px] text-muted-foreground bg-secondary/50 px-1.5 py-0.5 rounded">{c.type}: {c.value}</span>)}</div>}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
                 {((detail as any).socialAccounts?.length > 0) && (
                   <div className="space-y-1 border-t border-border pt-2">
                     <p className="text-[10px] font-display text-muted-foreground uppercase tracking-wider">Social Media</p>
