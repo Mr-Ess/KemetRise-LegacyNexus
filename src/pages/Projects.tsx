@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Plus, X, FolderOpen, Calendar, Users, Edit, Trash2 } from "lucide-react";
+import { ArrowLeft, Plus, X, FolderOpen, Calendar, Users, Edit, Trash2, Globe, Paperclip } from "lucide-react";
 import { useEntities } from "@/hooks/useEntities";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,7 +21,8 @@ type DocFile = { id: string; name: string; category: string };
 type ContactEntry = { id: string; type: string; value: string };
 type AttachmentFile = { id: string; name: string; label: string };
 type SocialAccount = { id: string; platform: string; url: string };
-type TeamMemberEntry = { id: string; name: string; isAI: boolean; contacts: ContactEntry[] };
+type SocialLinks = { website: string; facebook: string; instagram: string; twitter: string; linkedin: string; tiktok: string; youtube: string };
+type TeamMemberEntry = { id: string; name: string; position: string; isAI: boolean; contacts: ContactEntry[] };
 type Project = {
   id: string; name: string; description: string;
   status: "Active" | "On Hold" | "Completed" | "Cancelled";
@@ -37,6 +38,7 @@ const statusColors: Record<string, string> = {
 const emptyForm: Omit<Project, "id"> = { name: "", description: "", status: "Active", brand: "", brandId: null, startDate: "", endDate: "", team: [], budget: "", responsiblePerson: "", humanCount: 0, aiCount: 0, files: [], teamDetails: [], extraAttachments: [] };
 
 const statusToDb = (s: string) => s === "Active" ? "active" : s === "Completed" ? "inactive" : s === "On Hold" ? "maintenance" : "pending";
+const emptySocialLinks: SocialLinks = { website: "", facebook: "", instagram: "", twitter: "", linkedin: "", tiktok: "", youtube: "" };
 
 const Projects = () => {
   const navigate = useNavigate();
@@ -66,8 +68,9 @@ const Projects = () => {
   const [teamDetails, setTeamDetails] = useState<TeamMemberEntry[]>([]);
   const [extraAttachments, setExtraAttachments] = useState<AttachmentFile[]>([]);
   const [socialAccounts, setSocialAccounts] = useState<SocialAccount[]>([]);
+  const [socialLinks, setSocialLinks] = useState<SocialLinks>(emptySocialLinks);
 
-  const resetForm = () => { setForm(emptyForm); setTeamDetails([]); setExtraAttachments([]); setSocialAccounts([]); setEditId(null); };
+  const resetForm = () => { setForm(emptyForm); setTeamDetails([]); setExtraAttachments([]); setSocialAccounts([]); setSocialLinks(emptySocialLinks); setEditId(null); };
   const openEdit = (p: Project) => {
     const { id, ...rest } = p;
     setForm(rest);
@@ -75,10 +78,11 @@ const Projects = () => {
     if (existingTeamDetails && existingTeamDetails.length > 0) {
       setTeamDetails(existingTeamDetails);
     } else {
-      setTeamDetails(p.team.map((name: string) => ({ id: crypto.randomUUID(), name, isAI: false, contacts: [] })));
+      setTeamDetails(p.team.map((name: string) => ({ id: crypto.randomUUID(), name, position: "", isAI: false, contacts: [] })));
     }
     setExtraAttachments((p as any).extraAttachments || []);
     setSocialAccounts((p as any).socialAccounts || []);
+    setSocialLinks((p as any).socialLinks || emptySocialLinks);
     setEditId(p.id); setShowForm(true);
   };
 
@@ -97,7 +101,7 @@ const Projects = () => {
       ai_count:           form.aiCount            || 0,
       responsible_person: form.responsiblePerson  || null,
       team:               teamDetails.map(t => t.name).filter(Boolean),
-      data:               { ...form, teamDetails, extraAttachments, socialAccounts },
+      data:               { ...form, teamDetails, extraAttachments, socialAccounts, socialLinks },
     };
     if (editId) { await update(editId, payload); toast.success("Updated"); }
     else { await create(payload); toast.success("Created"); }
@@ -185,75 +189,73 @@ const Projects = () => {
                 <option>Active</option><option>On Hold</option><option>Completed</option><option>Cancelled</option>
               </select>
             </div>
-            {/* Social Media Accounts */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label>Social Media Accounts</Label>
-                <Button type="button" variant="outline" size="sm" onClick={() => setSocialAccounts(p => [...p, { id: crypto.randomUUID(), platform: "Facebook", url: "" }])} className="gap-1 text-xs"><Plus className="w-3 h-3" />Add</Button>
-              </div>
-              {socialAccounts.map((acc, i) => (
-                <div key={acc.id} className="flex items-center gap-2">
-                  <select value={acc.platform} onChange={e => setSocialAccounts(p => p.map((x, idx) => idx === i ? { ...x, platform: e.target.value } : x))} className="rounded-md bg-secondary border border-border px-2 py-1.5 text-xs font-body text-foreground w-32 shrink-0">
-                    <option>Facebook</option><option>Instagram</option><option>Twitter/X</option><option>LinkedIn</option><option>TikTok</option><option>YouTube</option><option>WhatsApp</option><option>Telegram</option><option>Snapchat</option><option>Pinterest</option><option>Other</option>
-                  </select>
-                  <Input value={acc.url} onChange={e => setSocialAccounts(p => p.map((x, idx) => idx === i ? { ...x, url: e.target.value } : x))} placeholder="URL or username" className="bg-secondary border-border text-foreground text-xs" />
-                  <button type="button" onClick={() => setSocialAccounts(p => p.filter((_, idx) => idx !== i))} className="p-1 text-destructive shrink-0"><X className="w-3.5 h-3.5" /></button>
+            {/* Key Personnel / Team */}
+            <div className="flex items-center gap-2 pb-1.5 border-b border-border mb-3 mt-5"><Users className="w-3.5 h-3.5 text-primary"/><span className="font-display text-[11px] tracking-wider text-primary uppercase">Key Personnel / Team</span></div>
+            <div className="space-y-3">
+              {teamDetails.map((t, i) => (
+                <div key={t.id} className="p-3 bg-secondary/30 rounded-md border border-border space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] text-muted-foreground">Member #{i+1}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] text-muted-foreground">{t.isAI ? "🤖 AI" : "👤 Human"}</span>
+                      <button type="button" onClick={() => setTeamDetails(p => p.map((tm, ti) => ti === i ? { ...tm, isAI: !tm.isAI } : tm))}
+                        className={`w-8 h-4 rounded-full transition-colors relative ${t.isAI ? "bg-primary" : "bg-muted border border-border"}`}>
+                        <span className={`absolute top-0.5 w-3 h-3 rounded-full bg-white transition-transform ${t.isAI ? "translate-x-4" : "translate-x-0.5"}`}/>
+                      </button>
+                      <button type="button" onClick={() => setTeamDetails(p => p.filter((_, idx) => idx !== i))} className="text-destructive hover:bg-destructive/10 rounded p-1"><X className="w-3.5 h-3.5"/></button>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div><Label className="text-xs">Name</Label><Input value={t.name} onChange={e => setTeamDetails(p => p.map((tm, ti) => ti === i ? { ...tm, name: e.target.value } : tm))} className="mt-1 bg-secondary border-border text-xs"/></div>
+                    <div><Label className="text-xs">Position</Label><Input value={(t as any).position||""} onChange={e => setTeamDetails(p => p.map((tm, ti) => ti === i ? { ...tm, position: e.target.value } : tm))} className="mt-1 bg-secondary border-border text-xs"/></div>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Contact Info</p>
+                  {(t.contacts||[]).map((c, ci) => (
+                    <div key={c.id} className="flex items-center gap-1.5">
+                      <select value={c.type} onChange={e => setTeamDetails(p => p.map((tm, ti) => ti === i ? { ...tm, contacts: tm.contacts.map((cx, cxi) => cxi === ci ? { ...cx, type: e.target.value } : cx) } : tm))}
+                        className="bg-secondary border border-border rounded px-2 py-1 text-xs text-foreground shrink-0 w-28">
+                        <option value="phone">📞 Phone</option><option value="email">📧 Email</option><option value="whatsapp">💬 WhatsApp</option><option value="linkedin">🔗 LinkedIn</option><option value="twitter">𝕏 Twitter</option><option value="other">• Other</option>
+                      </select>
+                      <Input value={c.value} onChange={e => setTeamDetails(p => p.map((tm, ti) => ti === i ? { ...tm, contacts: tm.contacts.map((cx, cxi) => cxi === ci ? { ...cx, value: e.target.value } : cx) } : tm))} placeholder="Value…" className="flex-1 h-7 text-xs bg-secondary border-border"/>
+                      <button type="button" onClick={() => setTeamDetails(p => p.map((tm, ti) => ti === i ? { ...tm, contacts: tm.contacts.filter((_, cxi) => cxi !== ci) } : tm))} className="text-destructive p-0.5 shrink-0 hover:bg-destructive/10 rounded"><X className="w-3 h-3"/></button>
+                    </div>
+                  ))}
+                  <Button type="button" variant="ghost" size="sm" onClick={() => setTeamDetails(p => p.map((tm, ti) => ti === i ? { ...tm, contacts: [...tm.contacts, { id: crypto.randomUUID(), type: "phone", value: "" }] } : tm))} className="h-6 text-[11px] gap-1 text-muted-foreground hover:text-foreground"><Plus className="w-3 h-3"/>Add Contact</Button>
                 </div>
+              ))}
+              <Button type="button" variant="outline" size="sm" onClick={() => setTeamDetails(p => [...p, { id: crypto.randomUUID(), name: "", position: "", isAI: false, contacts: [] }])} className="gap-1 text-xs"><Plus className="w-3.5 h-3.5"/>Add Member</Button>
+            </div>
+            {/* Social Media & Contact */}
+            <div className="flex items-center gap-2 pb-1.5 border-b border-border mb-3 mt-5"><Globe className="w-3.5 h-3.5 text-primary"/><span className="font-display text-[11px] tracking-wider text-primary uppercase">Social Media & Contact</span></div>
+            <div className="grid grid-cols-2 gap-3">
+              {(["website","facebook","instagram","twitter","linkedin","tiktok","youtube"] as const).map(k => (
+                <div key={k}><Label className="text-xs capitalize">{k}</Label><Input value={(socialLinks as any)[k]||""} onChange={e => setSocialLinks(p => ({...p,[k]:e.target.value}))} placeholder={k==="website"?"https://...": k==="youtube"?"https://youtube.com/...":"@handle"} className="mt-1 bg-secondary border-border text-xs"/></div>
               ))}
             </div>
-            {/* Team Members with isAI toggle and contacts */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label>Team Members</Label>
-                <Button type="button" variant="outline" size="sm" onClick={() => setTeamDetails(p => [...p, { id: crypto.randomUUID(), name: "", isAI: false, contacts: [] }])} className="gap-1 text-xs"><Plus className="w-3 h-3" />Add Member</Button>
-              </div>
-              {teamDetails.map((member, mi) => (
-                <div key={member.id} className="p-3 bg-secondary/30 rounded-md border border-border space-y-2">
-                  <div className="flex items-center gap-2">
-                    <Input value={member.name} onChange={e => setTeamDetails(p => p.map((m, idx) => idx === mi ? { ...m, name: e.target.value } : m))} placeholder="Member name" className="bg-secondary border-border text-foreground text-xs flex-1" />
-                    <button
-                      type="button"
-                      onClick={() => setTeamDetails(p => p.map((m, idx) => idx === mi ? { ...m, isAI: !m.isAI } : m))}
-                      className={`px-3 py-1.5 rounded-full text-[11px] font-display transition-colors shrink-0 ${member.isAI ? "bg-nile/20 text-nile border border-nile/30" : "bg-primary/10 text-primary border border-primary/20"}`}
-                    >
-                      {member.isAI ? "🤖 AI" : "👤 Human"}
-                    </button>
-                    <button type="button" onClick={() => setTeamDetails(p => p.filter((_, idx) => idx !== mi))} className="p-1 text-destructive shrink-0"><X className="w-3.5 h-3.5" /></button>
-                  </div>
-                  <div className="space-y-1">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[10px] text-muted-foreground">Contacts</span>
-                      <Button type="button" variant="ghost" size="sm" onClick={() => setTeamDetails(p => p.map((m, idx) => idx === mi ? { ...m, contacts: [...m.contacts, { id: crypto.randomUUID(), type: "Phone", value: "" }] } : m))} className="h-5 text-[10px] px-2 gap-1"><Plus className="w-2.5 h-2.5" />Add</Button>
-                    </div>
-                    {member.contacts.map((c, ci) => (
-                      <div key={c.id} className="flex items-center gap-1">
-                        <select value={c.type} onChange={e => setTeamDetails(p => p.map((m, idx) => idx === mi ? { ...m, contacts: m.contacts.map((x, cidx) => cidx === ci ? { ...x, type: e.target.value } : x) } : m))} className="rounded bg-secondary border border-border px-1 py-1 text-[10px] font-body text-foreground w-24 shrink-0">
-                          <option>Phone</option><option>Email</option><option>WhatsApp</option><option>LinkedIn</option><option>Twitter</option><option>Other</option>
-                        </select>
-                        <Input value={c.value} onChange={e => setTeamDetails(p => p.map((m, idx) => idx === mi ? { ...m, contacts: m.contacts.map((x, cidx) => cidx === ci ? { ...x, value: e.target.value } : x) } : m))} placeholder="Value" className="bg-secondary border-border text-foreground text-[10px] h-7" />
-                        <button type="button" onClick={() => setTeamDetails(p => p.map((m, idx) => idx === mi ? { ...m, contacts: m.contacts.filter((_, cidx) => cidx !== ci) } : m))} className="p-0.5 text-destructive shrink-0"><X className="w-3 h-3" /></button>
-                      </div>
-                    ))}
-                  </div>
+            <div className="mt-3">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2">Additional Accounts</p>
+              {socialAccounts.map((sa, i) => (
+                <div key={sa.id} className="flex items-center gap-1.5 mb-1.5">
+                  <Input value={sa.platform} onChange={e => setSocialAccounts(p => p.map((s, si) => si === i ? { ...s, platform: e.target.value } : s))} placeholder="Platform…" className="w-28 h-7 text-xs bg-secondary border-border shrink-0"/>
+                  <Input value={sa.url} onChange={e => setSocialAccounts(p => p.map((s, si) => si === i ? { ...s, url: e.target.value } : s))} placeholder="URL or @handle" className="flex-1 h-7 text-xs bg-secondary border-border"/>
+                  <button type="button" onClick={() => setSocialAccounts(p => p.filter((_, si) => si !== i))} className="text-destructive p-0.5 shrink-0 hover:bg-destructive/10 rounded"><X className="w-3 h-3"/></button>
                 </div>
               ))}
+              <Button type="button" variant="ghost" size="sm" onClick={() => setSocialAccounts(p => [...p, { id: crypto.randomUUID(), platform: "", url: "" }])} className="h-6 text-[11px] gap-1 text-muted-foreground hover:text-foreground"><Plus className="w-3 h-3"/>Add Account</Button>
             </div>
             {/* Extra Attachments */}
+            <div className="flex items-center gap-2 pb-1.5 border-b border-border mb-3 mt-5"><Paperclip className="w-3.5 h-3.5 text-primary"/><span className="font-display text-[11px] tracking-wider text-primary uppercase">Extra Attachments</span></div>
             <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label>Extra Attachments</Label>
-                <Button type="button" variant="outline" size="sm" onClick={() => setExtraAttachments(p => [...p, { id: crypto.randomUUID(), name: "", label: "" }])} className="gap-1 text-xs"><Plus className="w-3 h-3" />Add</Button>
-              </div>
               {extraAttachments.map((a, i) => (
-                <div key={a.id} className="flex items-center gap-2">
-                  <Input value={a.label} onChange={e => setExtraAttachments(p => p.map((x, idx) => idx === i ? { ...x, label: e.target.value } : x))} placeholder="Description / Label" className="bg-secondary border-border text-foreground text-xs flex-1" />
-                  <label className="flex items-center gap-1 cursor-pointer px-2 py-1.5 rounded-md bg-secondary border border-border text-[10px] text-muted-foreground hover:text-primary transition-colors shrink-0">
-                    📎 <span className="max-w-[80px] truncate">{a.name || "Browse…"}</span>
-                    <input type="file" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) setExtraAttachments(p => p.map((x, idx) => idx === i ? { ...x, name: f.name } : x)); e.target.value = ""; }} />
-                  </label>
-                  <button type="button" onClick={() => setExtraAttachments(p => p.filter((_, idx) => idx !== i))} className="p-1 text-destructive shrink-0"><X className="w-3.5 h-3.5" /></button>
+                <div key={a.id} className="flex items-center gap-2 p-2 bg-secondary/50 rounded-md border border-border">
+                  <Paperclip className="w-3.5 h-3.5 text-muted-foreground shrink-0"/>
+                  <Input value={a.label} onChange={e => setExtraAttachments(p => p.map((att, ai2) => ai2 === i ? { ...att, label: e.target.value } : att))} placeholder="File description…" className="flex-1 h-7 text-xs bg-secondary border-border"/>
+                  <span className="text-xs text-muted-foreground truncate max-w-[90px]">{a.name||"No file"}</span>
+                  <label className="cursor-pointer px-2 py-0.5 text-xs text-primary hover:underline shrink-0">Browse<input type="file" className="hidden" onChange={e => { const f = e.target.files?.[0]; if(f) setExtraAttachments(p => p.map((att, ai2) => ai2 === i ? { ...att, name: f.name } : att)); }}/></label>
+                  <button type="button" onClick={() => setExtraAttachments(p => p.filter((_, ai2) => ai2 !== i))} className="text-destructive p-0.5 rounded hover:bg-destructive/10 shrink-0"><X className="w-3 h-3"/></button>
                 </div>
               ))}
+              <Button type="button" variant="outline" size="sm" onClick={() => setExtraAttachments(p => [...p, { id: crypto.randomUUID(), name: "", label: "" }])} className="gap-1 text-xs"><Plus className="w-3.5 h-3.5"/>Add Attachment</Button>
             </div>
             <EntityFileUpload files={form.files} onChange={files => setForm(p => ({ ...p, files }))} ownerKind="project" ownerId={editId || undefined} />
             <EntityApiHub entityName={form.name || "New Project"} ownerKind="project" ownerId={editId || undefined} />
