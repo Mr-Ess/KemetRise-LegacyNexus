@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Plus, Edit, Trash2, Briefcase } from "lucide-react";
+import { ArrowLeft, Plus, Edit, Trash2, Briefcase, X } from "lucide-react";
 import { useEntities } from "@/hooks/useEntities";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,9 +18,11 @@ import ExportButton from "@/components/shared/ExportButton";
 import { SavedViews } from "@/components/shared/SavedViews";
 
 type DocFile = { id: string; name: string; category: string };
-type Service = { id: string; name: string; description: string; category: string; price: string; status: "Active" | "Inactive"; brandId?: string | null; responsiblePerson: string; humanCount: number; aiCount: number; files: DocFile[] };
+type ContactEntry = { id: string; type: string; value: string };
+type AttachmentFile = { id: string; name: string; label: string };
+type Service = { id: string; name: string; description: string; category: string; price: string; status: "Active" | "Inactive"; brandId?: string | null; responsiblePerson: string; humanCount: number; aiCount: number; files: DocFile[]; contacts?: ContactEntry[]; extraAttachments?: AttachmentFile[] };
 
-const emptyForm: Omit<Service, "id"> = { name: "", description: "", category: "", price: "", status: "Active", brandId: null, responsiblePerson: "", humanCount: 0, aiCount: 0, files: [] };
+const emptyForm: Omit<Service, "id"> = { name: "", description: "", category: "", price: "", status: "Active", brandId: null, responsiblePerson: "", humanCount: 0, aiCount: 0, files: [], contacts: [], extraAttachments: [] };
 const statusToDb = (s: string) => s === "Active" ? "active" : "inactive";
 
 const Services = () => {
@@ -46,9 +48,11 @@ const Services = () => {
   const [detailId, setDetailId] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState("all");
   const [form, setForm] = useState<Omit<Service, "id">>(emptyForm);
+  const [contacts, setContacts] = useState<ContactEntry[]>([]);
+  const [extraAttachments, setExtraAttachments] = useState<AttachmentFile[]>([]);
 
-  const resetForm = () => { setForm(emptyForm); setEditId(null); };
-  const openEdit = (s: Service) => { const { id, ...rest } = s; setForm(rest); setEditId(s.id); setShowForm(true); };
+  const resetForm = () => { setForm(emptyForm); setContacts([]); setExtraAttachments([]); setEditId(null); };
+  const openEdit = (s: Service) => { const { id, ...rest } = s; setForm(rest); setContacts((s as any).contacts || []); setExtraAttachments((s as any).extraAttachments || []); setEditId(s.id); setShowForm(true); };
 
   const handleSubmit = async () => {
     if (!form.name.trim()) { toast.error("Name required"); return; }
@@ -62,7 +66,7 @@ const Services = () => {
       human_count:        form.humanCount         || 0,
       ai_count:           form.aiCount            || 0,
       responsible_person: form.responsiblePerson  || null,
-      data:               form,
+      data:               { ...form, contacts, extraAttachments },
     };
     if (editId) { await update(editId, payload); toast.success("Updated"); }
     else { await create(payload); toast.success("Created"); }
@@ -144,6 +148,36 @@ const Services = () => {
             <div className="space-y-2">
               <Label>Status</Label>
               <select value={form.status} onChange={e => setForm(p => ({ ...p, status: e.target.value as Service["status"] }))} className="w-full rounded-md bg-secondary border border-border px-3 py-2 text-sm font-body text-foreground"><option>Active</option><option>Inactive</option></select>
+            </div>
+            {/* Contact Methods */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label>Contact Methods</Label>
+                <Button type="button" variant="outline" size="sm" onClick={() => setContacts(p => [...p, { id: crypto.randomUUID(), type: "Phone", value: "" }])} className="gap-1 text-xs"><Plus className="w-3 h-3" />Add</Button>
+              </div>
+              {contacts.map((c, i) => (
+                <div key={c.id} className="flex items-center gap-2">
+                  <select value={c.type} onChange={e => setContacts(p => p.map((x, idx) => idx === i ? { ...x, type: e.target.value } : x))} className="rounded-md bg-secondary border border-border px-2 py-1.5 text-xs font-body text-foreground w-28 shrink-0">
+                    <option>Phone</option><option>Email</option><option>WhatsApp</option><option>LinkedIn</option><option>Twitter</option><option>Other</option>
+                  </select>
+                  <Input value={c.value} onChange={e => setContacts(p => p.map((x, idx) => idx === i ? { ...x, value: e.target.value } : x))} placeholder="Value" className="bg-secondary border-border text-foreground text-xs" />
+                  <button type="button" onClick={() => setContacts(p => p.filter((_, idx) => idx !== i))} className="p-1 text-destructive shrink-0"><X className="w-3.5 h-3.5" /></button>
+                </div>
+              ))}
+            </div>
+            {/* Extra Attachments */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label>Extra Attachments</Label>
+                <Button type="button" variant="outline" size="sm" onClick={() => setExtraAttachments(p => [...p, { id: crypto.randomUUID(), name: "", label: "" }])} className="gap-1 text-xs"><Plus className="w-3 h-3" />Add</Button>
+              </div>
+              {extraAttachments.map((a, i) => (
+                <div key={a.id} className="flex items-center gap-2">
+                  <Input value={a.label} onChange={e => setExtraAttachments(p => p.map((x, idx) => idx === i ? { ...x, label: e.target.value } : x))} placeholder="Label / Description" className="bg-secondary border-border text-foreground text-xs" />
+                  <Input value={a.name} onChange={e => setExtraAttachments(p => p.map((x, idx) => idx === i ? { ...x, name: e.target.value } : x))} placeholder="File name" className="bg-secondary border-border text-foreground text-xs" />
+                  <button type="button" onClick={() => setExtraAttachments(p => p.filter((_, idx) => idx !== i))} className="p-1 text-destructive shrink-0"><X className="w-3.5 h-3.5" /></button>
+                </div>
+              ))}
             </div>
             <EntityFileUpload files={form.files} onChange={files => setForm(p => ({ ...p, files }))} ownerKind="service" ownerId={editId || undefined} />
             <EntityApiHub entityName={form.name || "New Service"} ownerKind="service" ownerId={editId || undefined} />

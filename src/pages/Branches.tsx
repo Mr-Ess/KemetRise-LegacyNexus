@@ -17,11 +17,14 @@ import { SavedViews } from "@/components/shared/SavedViews";
 
 type Shift = { id: string; name: string; start: string; end: string };
 type DocFile = { id: string; name: string; category: string };
+type ContactEntry = { id: string; type: string; value: string };
+type AttachmentFile = { id: string; name: string; label: string };
 
 type Branch = {
   id: string; name: string; type: string; brandId?: string | null;
   address: string; humanCount: number; aiCount: number; status: "Active" | "Inactive" | "Maintenance";
   shifts: Shift[]; aiTasks: string; responsiblePerson: string; files: DocFile[];
+  contacts?: ContactEntry[]; extraAttachments?: AttachmentFile[];
 };
 
 const defaultBranchTypes = ["Main", "Sub-branch", "Warehouse", "Data Center", "Office", "Lab", "Showroom"];
@@ -33,7 +36,7 @@ const Branches = () => {
   const navigate = useNavigate();
   const { items: rows, create, update, remove } = useEntities("branches");
   const emptyShift = (): Shift => ({ id: crypto.randomUUID(), name: "", start: "09:00", end: "17:00" });
-  const empty = (): Omit<Branch, "id"> => ({ name: "", type: "Main", brandId: null, address: "", humanCount: 0, aiCount: 0, status: "Active", shifts: [emptyShift()], aiTasks: "", responsiblePerson: "", files: [] });
+  const empty = (): Omit<Branch, "id"> => ({ name: "", type: "Main", brandId: null, address: "", humanCount: 0, aiCount: 0, status: "Active", shifts: [emptyShift()], aiTasks: "", responsiblePerson: "", files: [], contacts: [], extraAttachments: [] });
   const items: Branch[] = useMemo(() => rows.map(r => ({
     id: r.id,
     ...empty(),
@@ -59,9 +62,11 @@ const Branches = () => {
   const [customTypeInput, setCustomTypeInput] = useState("");
 
   const [form, setForm] = useState<Omit<Branch, "id">>(empty());
+  const [contacts, setContacts] = useState<ContactEntry[]>([]);
+  const [extraAttachments, setExtraAttachments] = useState<AttachmentFile[]>([]);
 
-  const resetForm = () => { setForm(empty()); setEditId(null); };
-  const openEdit = (b: Branch) => { const { id, ...rest } = b; setForm(rest); setEditId(b.id); setShowForm(true); };
+  const resetForm = () => { setForm(empty()); setContacts([]); setExtraAttachments([]); setEditId(null); };
+  const openEdit = (b: Branch) => { const { id, ...rest } = b; setForm(rest); setContacts((b as any).contacts || []); setExtraAttachments((b as any).extraAttachments || []); setEditId(b.id); setShowForm(true); };
 
   const handleSubmit = async () => {
     if (!form.name.trim()) { toast.error("Name required"); return; }
@@ -76,7 +81,7 @@ const Branches = () => {
       responsible_person: form.responsiblePerson  || null,
       shifts:             form.shifts             || [],
       ai_tasks:           form.aiTasks            || null,
-      data:               form,
+      data:               { ...form, contacts, extraAttachments },
     };
     if (editId) { await update(editId, payload); toast.success("Branch updated"); }
     else { await create(payload); toast.success("Branch added"); }
@@ -220,6 +225,36 @@ const Branches = () => {
               <Button type="button" variant="outline" size="sm" onClick={() => setForm(p => ({ ...p, shifts: [...p.shifts, emptyShift()] }))} className="gap-1 text-xs"><Plus className="w-3.5 h-3.5" />Add Shift</Button>
             </div>
             <div className="space-y-2"><Label>AI Tasks</Label><Input value={form.aiTasks} onChange={e => setForm(p => ({ ...p, aiTasks: e.target.value }))} className="bg-secondary border-border text-foreground" placeholder="Data analysis, Support..." /></div>
+            {/* Contact Methods */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label>Contact Methods</Label>
+                <Button type="button" variant="outline" size="sm" onClick={() => setContacts(p => [...p, { id: crypto.randomUUID(), type: "Phone", value: "" }])} className="gap-1 text-xs"><Plus className="w-3 h-3" />Add</Button>
+              </div>
+              {contacts.map((c, i) => (
+                <div key={c.id} className="flex items-center gap-2">
+                  <select value={c.type} onChange={e => setContacts(p => p.map((x, idx) => idx === i ? { ...x, type: e.target.value } : x))} className="rounded-md bg-secondary border border-border px-2 py-1.5 text-xs font-body text-foreground w-28 shrink-0">
+                    <option>Phone</option><option>Email</option><option>WhatsApp</option><option>LinkedIn</option><option>Twitter</option><option>Other</option>
+                  </select>
+                  <Input value={c.value} onChange={e => setContacts(p => p.map((x, idx) => idx === i ? { ...x, value: e.target.value } : x))} placeholder="Value" className="bg-secondary border-border text-foreground text-xs" />
+                  <button type="button" onClick={() => setContacts(p => p.filter((_, idx) => idx !== i))} className="p-1 text-destructive shrink-0"><X className="w-3.5 h-3.5" /></button>
+                </div>
+              ))}
+            </div>
+            {/* Extra Attachments */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label>Extra Attachments</Label>
+                <Button type="button" variant="outline" size="sm" onClick={() => setExtraAttachments(p => [...p, { id: crypto.randomUUID(), name: "", label: "" }])} className="gap-1 text-xs"><Plus className="w-3 h-3" />Add</Button>
+              </div>
+              {extraAttachments.map((a, i) => (
+                <div key={a.id} className="flex items-center gap-2">
+                  <Input value={a.label} onChange={e => setExtraAttachments(p => p.map((x, idx) => idx === i ? { ...x, label: e.target.value } : x))} placeholder="Label / Description" className="bg-secondary border-border text-foreground text-xs" />
+                  <Input value={a.name} onChange={e => setExtraAttachments(p => p.map((x, idx) => idx === i ? { ...x, name: e.target.value } : x))} placeholder="File name" className="bg-secondary border-border text-foreground text-xs" />
+                  <button type="button" onClick={() => setExtraAttachments(p => p.filter((_, idx) => idx !== i))} className="p-1 text-destructive shrink-0"><X className="w-3.5 h-3.5" /></button>
+                </div>
+              ))}
+            </div>
             <EntityFileUpload files={form.files} onChange={files => setForm(p => ({ ...p, files }))} ownerKind="branch" ownerId={editId || undefined} />
             <EntityApiHub entityName={form.name || "New Branch"} ownerKind="branch" ownerId={editId || undefined} />
           </div>

@@ -18,18 +18,22 @@ import ExportButton from "@/components/shared/ExportButton";
 import { SavedViews } from "@/components/shared/SavedViews";
 
 type DocFile = { id: string; name: string; category: string };
+type ContactEntry = { id: string; type: string; value: string };
+type AttachmentFile = { id: string; name: string; label: string };
+type TeamMemberEntry = { id: string; name: string; isAI: boolean; contacts: ContactEntry[] };
 type Project = {
   id: string; name: string; description: string;
   status: "Active" | "On Hold" | "Completed" | "Cancelled";
   brand: string; brandId?: string | null; startDate: string; endDate: string; team: string[]; budget: string;
   responsiblePerson: string; humanCount: number; aiCount: number; files: DocFile[];
+  teamDetails?: TeamMemberEntry[]; extraAttachments?: AttachmentFile[];
 };
 
 const statusColors: Record<string, string> = {
   Active: "bg-scarab/20 text-scarab", "On Hold": "bg-primary/20 text-primary", Completed: "bg-nile/20 text-nile", Cancelled: "bg-blood-red/20 text-blood-red",
 };
 
-const emptyForm: Omit<Project, "id"> = { name: "", description: "", status: "Active", brand: "", brandId: null, startDate: "", endDate: "", team: [], budget: "", responsiblePerson: "", humanCount: 0, aiCount: 0, files: [] };
+const emptyForm: Omit<Project, "id"> = { name: "", description: "", status: "Active", brand: "", brandId: null, startDate: "", endDate: "", team: [], budget: "", responsiblePerson: "", humanCount: 0, aiCount: 0, files: [], teamDetails: [], extraAttachments: [] };
 
 const statusToDb = (s: string) => s === "Active" ? "active" : s === "Completed" ? "inactive" : s === "On Hold" ? "maintenance" : "pending";
 
@@ -58,10 +62,22 @@ const Projects = () => {
   const [detailId, setDetailId] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [form, setForm] = useState<Omit<Project, "id">>(emptyForm);
-  const [teamInput, setTeamInput] = useState("");
+  const [teamDetails, setTeamDetails] = useState<TeamMemberEntry[]>([]);
+  const [extraAttachments, setExtraAttachments] = useState<AttachmentFile[]>([]);
 
-  const resetForm = () => { setForm(emptyForm); setTeamInput(""); setEditId(null); };
-  const openEdit = (p: Project) => { const { id, ...rest } = p; setForm(rest); setEditId(p.id); setShowForm(true); };
+  const resetForm = () => { setForm(emptyForm); setTeamDetails([]); setExtraAttachments([]); setEditId(null); };
+  const openEdit = (p: Project) => {
+    const { id, ...rest } = p;
+    setForm(rest);
+    const existingTeamDetails = (p as any).teamDetails;
+    if (existingTeamDetails && existingTeamDetails.length > 0) {
+      setTeamDetails(existingTeamDetails);
+    } else {
+      setTeamDetails(p.team.map((name: string) => ({ id: crypto.randomUUID(), name, isAI: false, contacts: [] })));
+    }
+    setExtraAttachments((p as any).extraAttachments || []);
+    setEditId(p.id); setShowForm(true);
+  };
 
   const handleSubmit = async () => {
     if (!form.name.trim()) { toast.error("Project name required"); return; }
@@ -77,14 +93,14 @@ const Projects = () => {
       human_count:        form.humanCount         || 0,
       ai_count:           form.aiCount            || 0,
       responsible_person: form.responsiblePerson  || null,
-      data:               form,
+      team:               teamDetails.map(t => t.name).filter(Boolean),
+      data:               { ...form, teamDetails, extraAttachments },
     };
     if (editId) { await update(editId, payload); toast.success("Updated"); }
     else { await create(payload); toast.success("Created"); }
     setShowForm(false); resetForm();
   };
 
-  const addTeamMember = () => { if (teamInput.trim()) { setForm(prev => ({ ...prev, team: [...prev.team, teamInput.trim()] })); setTeamInput(""); } };
   const filtered = statusFilter === "all" ? projects : projects.filter(p => p.status === statusFilter);
   const detail = detailId ? projects.find(p => p.id === detailId) : null;
 
@@ -166,14 +182,56 @@ const Projects = () => {
                 <option>Active</option><option>On Hold</option><option>Completed</option><option>Cancelled</option>
               </select>
             </div>
+            {/* Team Members with isAI toggle and contacts */}
             <div className="space-y-2">
-              <Label>Team Members</Label>
-              <div className="flex gap-2"><Input value={teamInput} onChange={e => setTeamInput(e.target.value)} placeholder="Add member" className="bg-secondary border-border text-foreground" onKeyDown={e => e.key === "Enter" && (e.preventDefault(), addTeamMember())} /><Button type="button" variant="outline" size="sm" onClick={addTeamMember}><Plus className="w-4 h-4" /></Button></div>
-              <div className="flex flex-wrap gap-1.5 mt-1">
-                {form.team.map((t, i) => (
-                  <span key={i} className="flex items-center gap-1 px-2 py-0.5 bg-primary/10 rounded-full text-xs text-primary font-body">{t}<button onClick={() => setForm(p => ({ ...p, team: p.team.filter((_, idx) => idx !== i) }))}><X className="w-3 h-3" /></button></span>
-                ))}
+              <div className="flex items-center justify-between">
+                <Label>Team Members</Label>
+                <Button type="button" variant="outline" size="sm" onClick={() => setTeamDetails(p => [...p, { id: crypto.randomUUID(), name: "", isAI: false, contacts: [] }])} className="gap-1 text-xs"><Plus className="w-3 h-3" />Add Member</Button>
               </div>
+              {teamDetails.map((member, mi) => (
+                <div key={member.id} className="p-3 bg-secondary/30 rounded-md border border-border space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Input value={member.name} onChange={e => setTeamDetails(p => p.map((m, idx) => idx === mi ? { ...m, name: e.target.value } : m))} placeholder="Member name" className="bg-secondary border-border text-foreground text-xs flex-1" />
+                    <button
+                      type="button"
+                      onClick={() => setTeamDetails(p => p.map((m, idx) => idx === mi ? { ...m, isAI: !m.isAI } : m))}
+                      className={`px-3 py-1.5 rounded-full text-[11px] font-display transition-colors shrink-0 ${member.isAI ? "bg-nile/20 text-nile border border-nile/30" : "bg-primary/10 text-primary border border-primary/20"}`}
+                    >
+                      {member.isAI ? "🤖 AI" : "👤 Human"}
+                    </button>
+                    <button type="button" onClick={() => setTeamDetails(p => p.filter((_, idx) => idx !== mi))} className="p-1 text-destructive shrink-0"><X className="w-3.5 h-3.5" /></button>
+                  </div>
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] text-muted-foreground">Contacts</span>
+                      <Button type="button" variant="ghost" size="sm" onClick={() => setTeamDetails(p => p.map((m, idx) => idx === mi ? { ...m, contacts: [...m.contacts, { id: crypto.randomUUID(), type: "Phone", value: "" }] } : m))} className="h-5 text-[10px] px-2 gap-1"><Plus className="w-2.5 h-2.5" />Add</Button>
+                    </div>
+                    {member.contacts.map((c, ci) => (
+                      <div key={c.id} className="flex items-center gap-1">
+                        <select value={c.type} onChange={e => setTeamDetails(p => p.map((m, idx) => idx === mi ? { ...m, contacts: m.contacts.map((x, cidx) => cidx === ci ? { ...x, type: e.target.value } : x) } : m))} className="rounded bg-secondary border border-border px-1 py-1 text-[10px] font-body text-foreground w-24 shrink-0">
+                          <option>Phone</option><option>Email</option><option>WhatsApp</option><option>LinkedIn</option><option>Twitter</option><option>Other</option>
+                        </select>
+                        <Input value={c.value} onChange={e => setTeamDetails(p => p.map((m, idx) => idx === mi ? { ...m, contacts: m.contacts.map((x, cidx) => cidx === ci ? { ...x, value: e.target.value } : x) } : m))} placeholder="Value" className="bg-secondary border-border text-foreground text-[10px] h-7" />
+                        <button type="button" onClick={() => setTeamDetails(p => p.map((m, idx) => idx === mi ? { ...m, contacts: m.contacts.filter((_, cidx) => cidx !== ci) } : m))} className="p-0.5 text-destructive shrink-0"><X className="w-3 h-3" /></button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+            {/* Extra Attachments */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label>Extra Attachments</Label>
+                <Button type="button" variant="outline" size="sm" onClick={() => setExtraAttachments(p => [...p, { id: crypto.randomUUID(), name: "", label: "" }])} className="gap-1 text-xs"><Plus className="w-3 h-3" />Add</Button>
+              </div>
+              {extraAttachments.map((a, i) => (
+                <div key={a.id} className="flex items-center gap-2">
+                  <Input value={a.label} onChange={e => setExtraAttachments(p => p.map((x, idx) => idx === i ? { ...x, label: e.target.value } : x))} placeholder="Label / Description" className="bg-secondary border-border text-foreground text-xs" />
+                  <Input value={a.name} onChange={e => setExtraAttachments(p => p.map((x, idx) => idx === i ? { ...x, name: e.target.value } : x))} placeholder="File name" className="bg-secondary border-border text-foreground text-xs" />
+                  <button type="button" onClick={() => setExtraAttachments(p => p.filter((_, idx) => idx !== i))} className="p-1 text-destructive shrink-0"><X className="w-3.5 h-3.5" /></button>
+                </div>
+              ))}
             </div>
             <EntityFileUpload files={form.files} onChange={files => setForm(p => ({ ...p, files }))} ownerKind="project" ownerId={editId || undefined} />
             <EntityApiHub entityName={form.name || "New Project"} ownerKind="project" ownerId={editId || undefined} />
