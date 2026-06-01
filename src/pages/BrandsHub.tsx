@@ -327,6 +327,12 @@ function EntityTab({ items, loading, create, update, remove, title, columns, fie
   const [socialLinks, setSocialLinks] = useState({ website:"", facebook:"", instagram:"", twitter:"", linkedin:"", tiktok:"", youtube:"" });
   const [socialAccounts, setSocialAccounts] = useState<{id:string;platform:string;url:string}[]>([]);
   const [extraAttachments, setExtraAttachments] = useState<{id:string;name:string;label:string}[]>([]);
+  const [keyPersonName, setKeyPersonName] = useState("");
+  const [keyPersonContacts, setKeyPersonContacts] = useState<ContactEntry[]>([]);
+  const [owners, setOwners] = useState<{id:string;name:string;contacts:ContactEntry[]}[]>([]);
+  const [legalDocs, setLegalDocs] = useState<AFile[]>([]);
+  const [financialDocs, setFinancialDocs] = useState<AFile[]>([]);
+  const [marketingPlans, setMarketingPlans] = useState<{id:string;title:string;description:string;attachments:{id:string;name:string;label:string}[]}[]>([]);
   const [q, setQ] = useState("");
 
   const setDoc    = (key: keyof ReturnType<typeof emptyDocs>)    => (v: AFile[])       => setDocs(p => ({ ...p, [key]: v }));
@@ -352,6 +358,12 @@ function EntityTab({ items, loading, create, update, remove, title, columns, fie
     setSocialLinks({ website:"", facebook:"", instagram:"", twitter:"", linkedin:"", tiktok:"", youtube:"" });
     setSocialAccounts([]);
     setExtraAttachments([]);
+    setKeyPersonName("");
+    setKeyPersonContacts([]);
+    setOwners([]);
+    setLegalDocs([]);
+    setFinancialDocs([]);
+    setMarketingPlans([]);
     setOpen(true);
   };
   const openEdit = (row: any) => {
@@ -374,6 +386,12 @@ function EntityTab({ items, loading, create, update, remove, title, columns, fie
     setSocialLinks(row.data?.socialLinks ?? { website:"", facebook:"", instagram:"", twitter:"", linkedin:"", tiktok:"", youtube:"" });
     setSocialAccounts(row.data?.socialAccounts ?? []);
     setExtraAttachments(row.data?.extraAttachments ?? []);
+    setKeyPersonName(row.data?.keyPersonName ?? "");
+    setKeyPersonContacts(row.data?.keyPersonContacts ?? []);
+    setOwners(row.data?.owners ?? []);
+    setLegalDocs(row.data?.legalDocs ?? []);
+    setFinancialDocs(row.data?.financialDocs ?? []);
+    setMarketingPlans(row.data?.marketingPlans ?? []);
     setOpen(true);
   };
   const submit = async () => {
@@ -397,6 +415,12 @@ function EntityTab({ items, loading, create, update, remove, title, columns, fie
       socialLinks,
       socialAccounts:   socialAccounts.filter(s => s.platform || s.url),
       extraAttachments: extraAttachments.filter(a => a.name || a.label),
+      keyPersonName,
+      keyPersonContacts,
+      owners:           owners.filter(o => o.name.trim()),
+      legalDocs:        legalDocs.filter(d => d.name),
+      financialDocs:    financialDocs.filter(d => d.name),
+      marketingPlans:   marketingPlans.filter(m => m.title.trim()),
     };
     if (!payload.name && !payload.agent_name) { toast.error("Name is required"); return; }
     if (editId) await update(editId, payload);
@@ -513,6 +537,48 @@ function EntityTab({ items, loading, create, update, remove, title, columns, fie
               </div>
             ))}
 
+            {/* Key Person */}
+            <div className="flex items-center gap-2 pb-1.5 border-b border-border mb-3 mt-5"><User className="w-3.5 h-3.5 text-primary"/><span className="font-display text-[11px] tracking-wider text-primary uppercase">Key Person</span></div>
+            <div><Label className="text-xs">Name</Label><Input value={keyPersonName} onChange={e => setKeyPersonName(e.target.value)} placeholder="Name" className="mt-1 bg-secondary border-border text-xs"/></div>
+            <div className="mt-2 p-3 bg-secondary/30 rounded-md border border-border space-y-2">
+              <p className="text-[11px] text-muted-foreground font-medium">Key Person Contact</p>
+              {keyPersonContacts.map((c, ci) => (
+                <div key={c.id} className="flex items-center gap-1.5">
+                  <select value={c.type} onChange={e => setKeyPersonContacts(p => p.map((cx, cxi) => cxi === ci ? {...cx, type: e.target.value} : cx))}
+                    className="bg-secondary border border-border rounded px-2 py-1 text-xs text-foreground shrink-0 w-28">
+                    <option value="phone">📞 Phone</option><option value="email">📧 Email</option><option value="whatsapp">💬 WhatsApp</option><option value="linkedin">🔗 LinkedIn</option><option value="twitter">𝕏 Twitter</option><option value="other">• Other</option>
+                  </select>
+                  <Input value={c.value} onChange={e => setKeyPersonContacts(p => p.map((cx, cxi) => cxi === ci ? {...cx, value: e.target.value} : cx))} placeholder="Value…" className="flex-1 h-7 text-xs bg-secondary border-border"/>
+                  <button type="button" onClick={() => setKeyPersonContacts(p => p.filter((_, cxi) => cxi !== ci))} className="text-destructive p-0.5 shrink-0 hover:bg-destructive/10 rounded"><X className="w-3 h-3"/></button>
+                </div>
+              ))}
+              <Button type="button" variant="ghost" size="sm" onClick={() => setKeyPersonContacts(p => [...p, {id: crypto.randomUUID(), type: "phone", value: ""}])} className="h-6 text-[11px] gap-1 text-muted-foreground hover:text-foreground"><Plus className="w-3 h-3"/>Add Contact</Button>
+            </div>
+
+            {/* Owners */}
+            <div className="flex items-center gap-2 pb-1.5 border-b border-border mb-3 mt-5"><User className="w-3.5 h-3.5 text-primary"/><span className="font-display text-[11px] tracking-wider text-primary uppercase">Owners</span></div>
+            <div className="space-y-3">
+              {owners.map((o, i) => (
+                <div key={o.id} className="p-3 bg-secondary/30 rounded-md border border-border space-y-2">
+                  <div className="flex items-center justify-between"><span className="text-[11px] text-muted-foreground">Owner #{i+1}</span><button type="button" onClick={() => setOwners(p => p.filter((_, idx) => idx !== i))} className="text-destructive hover:bg-destructive/10 rounded p-1"><X className="w-3.5 h-3.5"/></button></div>
+                  <div><Label className="text-xs">Name</Label><Input value={o.name} onChange={e => setOwners(p => p.map((ow, oi) => oi === i ? {...ow, name: e.target.value} : ow))} className="mt-1 bg-secondary border-border text-xs"/></div>
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Contact Info</p>
+                  {(o.contacts||[]).map((c, ci) => (
+                    <div key={c.id} className="flex items-center gap-1.5">
+                      <select value={c.type} onChange={e => setOwners(p => p.map((ow, oi) => oi === i ? {...ow, contacts: (ow.contacts||[]).map((cx, cxi) => cxi === ci ? {...cx, type: e.target.value} : cx)} : ow))}
+                        className="bg-secondary border border-border rounded px-2 py-1 text-xs text-foreground shrink-0 w-28">
+                        <option value="phone">📞 Phone</option><option value="email">📧 Email</option><option value="whatsapp">💬 WhatsApp</option><option value="linkedin">🔗 LinkedIn</option><option value="twitter">𝕏 Twitter</option><option value="other">• Other</option>
+                      </select>
+                      <Input value={c.value} onChange={e => setOwners(p => p.map((ow, oi) => oi === i ? {...ow, contacts: (ow.contacts||[]).map((cx, cxi) => cxi === ci ? {...cx, value: e.target.value} : cx)} : ow))} placeholder="Value…" className="flex-1 h-7 text-xs bg-secondary border-border"/>
+                      <button type="button" onClick={() => setOwners(p => p.map((ow, oi) => oi === i ? {...ow, contacts: (ow.contacts||[]).filter((_, cxi) => cxi !== ci)} : ow))} className="text-destructive p-0.5 shrink-0 hover:bg-destructive/10 rounded"><X className="w-3 h-3"/></button>
+                    </div>
+                  ))}
+                  <Button type="button" variant="ghost" size="sm" onClick={() => setOwners(p => p.map((ow, oi) => oi === i ? {...ow, contacts: [...(ow.contacts||[]), {id: crypto.randomUUID(), type: "phone", value: ""}]} : ow))} className="h-6 text-[11px] gap-1 text-muted-foreground hover:text-foreground"><Plus className="w-3 h-3"/>Add Contact</Button>
+                </div>
+              ))}
+              <Button type="button" variant="outline" size="sm" onClick={() => setOwners(p => [...p, {id: crypto.randomUUID(), name: "", contacts: []}])} className="gap-1 text-xs"><Plus className="w-3.5 h-3.5"/>Add Owner</Button>
+            </div>
+
             {/* Key Personnel / Team */}
             <div className="flex items-center gap-2 pb-1.5 border-b border-border mb-3 mt-5"><Users className="w-3.5 h-3.5 text-primary"/><span className="font-display text-[11px] tracking-wider text-primary uppercase">Key Personnel / Team</span></div>
             <div className="space-y-3">
@@ -582,6 +648,58 @@ function EntityTab({ items, loading, create, update, remove, title, columns, fie
                 </div>
               ))}
               <Button type="button" variant="outline" size="sm" onClick={() => setExtraAttachments(p => [...p, { id: crypto.randomUUID(), name: "", label: "" }])} className="gap-1 text-xs"><Plus className="w-3.5 h-3.5"/>Add Attachment</Button>
+            </div>
+
+            {/* Legal Documents */}
+            <div className="flex items-center gap-2 pb-1.5 border-b border-border mb-3 mt-5"><FileText className="w-3.5 h-3.5 text-primary"/><span className="font-display text-[11px] tracking-wider text-primary uppercase">Legal Documents</span></div>
+            <div className="space-y-2">
+              {legalDocs.map((d, i) => (
+                <div key={d.id} className="flex items-center gap-2 p-2 bg-secondary/50 rounded-md border border-border">
+                  <FileText className="w-3.5 h-3.5 text-muted-foreground shrink-0"/>
+                  <span className="flex-1 text-xs truncate">{d.name||"No file"}</span>
+                  <label className="cursor-pointer px-2 py-0.5 text-xs text-primary hover:underline shrink-0">Upload<input type="file" className="hidden" onChange={e => {const f=e.target.files?.[0];if(f)setLegalDocs(p=>p.map((doc,idx)=>idx===i?{...doc,name:f.name}:doc));}}/></label>
+                  <button type="button" onClick={() => setLegalDocs(p => p.filter((_, idx) => idx !== i))} className="text-destructive p-0.5 rounded hover:bg-destructive/10 shrink-0"><X className="w-3 h-3"/></button>
+                </div>
+              ))}
+              <Button type="button" variant="outline" size="sm" onClick={() => setLegalDocs(p => [...p, {id: crypto.randomUUID(), name: ""}])} className="gap-1 text-xs"><Plus className="w-3.5 h-3.5"/>Add Legal Doc</Button>
+            </div>
+
+            {/* Financial Documents */}
+            <div className="flex items-center gap-2 pb-1.5 border-b border-border mb-3 mt-5"><DollarSign className="w-3.5 h-3.5 text-emerald-400"/><span className="font-display text-[11px] tracking-wider text-primary uppercase">Financial Documents</span></div>
+            <div className="space-y-2">
+              {financialDocs.map((d, i) => (
+                <div key={d.id} className="flex items-center gap-2 p-2 bg-secondary/50 rounded-md border border-border">
+                  <DollarSign className="w-3.5 h-3.5 text-emerald-400/60 shrink-0"/>
+                  <span className="flex-1 text-xs truncate">{d.name||"No file"}</span>
+                  <label className="cursor-pointer px-2 py-0.5 text-xs text-primary hover:underline shrink-0">Upload<input type="file" className="hidden" onChange={e => {const f=e.target.files?.[0];if(f)setFinancialDocs(p=>p.map((doc,idx)=>idx===i?{...doc,name:f.name}:doc));}}/></label>
+                  <button type="button" onClick={() => setFinancialDocs(p => p.filter((_, idx) => idx !== i))} className="text-destructive p-0.5 rounded hover:bg-destructive/10 shrink-0"><X className="w-3 h-3"/></button>
+                </div>
+              ))}
+              <Button type="button" variant="outline" size="sm" onClick={() => setFinancialDocs(p => [...p, {id: crypto.randomUUID(), name: ""}])} className="gap-1 text-xs"><Plus className="w-3.5 h-3.5"/>Add Financial Doc</Button>
+            </div>
+
+            {/* Marketing Plans */}
+            <div className="flex items-center gap-2 pb-1.5 border-b border-border mb-3 mt-5"><Megaphone className="w-3.5 h-3.5 text-pink-400"/><span className="font-display text-[11px] tracking-wider text-primary uppercase">Marketing Plans</span></div>
+            <div className="space-y-3">
+              {marketingPlans.map((m, i) => (
+                <div key={m.id} className="p-3 bg-secondary/30 rounded-md border border-border space-y-2">
+                  <div className="flex items-center justify-between"><span className="text-[11px] text-muted-foreground">Plan #{i+1}</span><button type="button" onClick={() => setMarketingPlans(p => p.filter((_, idx) => idx !== i))} className="text-destructive hover:bg-destructive/10 rounded p-1"><X className="w-3.5 h-3.5"/></button></div>
+                  <div><Label className="text-xs">Title</Label><Input value={m.title} onChange={e => setMarketingPlans(p => p.map((pl, pi) => pi === i ? {...pl, title: e.target.value} : pl))} className="mt-1 bg-secondary border-border text-xs"/></div>
+                  <div><Label className="text-xs">Description</Label><Textarea value={m.description} onChange={e => setMarketingPlans(p => p.map((pl, pi) => pi === i ? {...pl, description: e.target.value} : pl))} className="mt-1 bg-secondary border-border text-xs min-h-[56px]"/></div>
+                  <div>
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1.5">Attachments</p>
+                    {(m.attachments||[]).map((att, ai) => (
+                      <div key={att.id} className="flex items-center gap-1.5 mb-1.5">
+                        <Input value={att.label} onChange={e => setMarketingPlans(p => p.map((pl, pi) => pi === i ? {...pl, attachments: (pl.attachments||[]).map((a, aidx) => aidx === ai ? {...a, label: e.target.value} : a)} : pl))} placeholder="File description…" className="flex-1 h-7 text-xs bg-secondary border-border"/>
+                        <label className="cursor-pointer px-2 py-0.5 text-[11px] text-primary hover:underline shrink-0 max-w-[90px] truncate">{att.name||"Browse"}<input type="file" className="hidden" onChange={e => {const f=e.target.files?.[0];if(f)setMarketingPlans(p=>p.map((pl,pi)=>pi===i?{...pl,attachments:(pl.attachments||[]).map((a,aidx)=>aidx===ai?{...a,name:f.name}:a)}:pl));}}/></label>
+                        <button type="button" onClick={() => setMarketingPlans(p => p.map((pl, pi) => pi === i ? {...pl, attachments: (pl.attachments||[]).filter((_, aidx) => aidx !== ai)} : pl))} className="text-destructive p-0.5 shrink-0 hover:bg-destructive/10 rounded"><X className="w-3 h-3"/></button>
+                      </div>
+                    ))}
+                    <Button type="button" variant="ghost" size="sm" onClick={() => setMarketingPlans(p => p.map((pl, pi) => pi === i ? {...pl, attachments: [...(pl.attachments||[]), {id: crypto.randomUUID(), name: "", label: ""}]} : pl))} className="h-6 text-[11px] gap-1 text-muted-foreground hover:text-foreground"><Paperclip className="w-3 h-3"/>Add Attachment</Button>
+                  </div>
+                </div>
+              ))}
+              <Button type="button" variant="outline" size="sm" onClick={() => setMarketingPlans(p => [...p, {id: crypto.randomUUID(), title: "", description: "", attachments: []}])} className="gap-1 text-xs"><Plus className="w-3.5 h-3.5"/>Add Plan</Button>
             </div>
           </div>
           <DialogFooter>
@@ -2030,6 +2148,12 @@ function AgentTab({ items, loading, create, update, remove, columns, fields, act
   const [socialLinks, setSocialLinks] = useState({ website:"", facebook:"", instagram:"", twitter:"", linkedin:"", tiktok:"", youtube:"" });
   const [socialAccounts, setSocialAccounts] = useState<{id:string;platform:string;url:string}[]>([]);
   const [extraAttachments, setExtraAttachments] = useState<{id:string;name:string;label:string}[]>([]);
+  const [keyPersonName, setKeyPersonName] = useState("");
+  const [keyPersonContacts, setKeyPersonContacts] = useState<ContactEntry[]>([]);
+  const [owners, setOwners] = useState<{id:string;name:string;contacts:ContactEntry[]}[]>([]);
+  const [legalDocs, setLegalDocs] = useState<AFile[]>([]);
+  const [financialDocs, setFinancialDocs] = useState<AFile[]>([]);
+  const [marketingPlans, setMarketingPlans] = useState<{id:string;title:string;description:string;attachments:{id:string;name:string;label:string}[]}[]>([]);
   const [q, setQ] = useState("");
 
   const filtered = useMemo(() => {
@@ -2041,7 +2165,7 @@ function AgentTab({ items, loading, create, update, remove, columns, fields, act
     return list;
   }, [items, activeBrandId, q, fields]);
 
-  const openNew  = () => { setEditId(null); setForm({ brand_id: activeBrandId ?? "" }); setTeamDetails([]); setSocialLinks({ website:"", facebook:"", instagram:"", twitter:"", linkedin:"", tiktok:"", youtube:"" }); setSocialAccounts([]); setExtraAttachments([]); setOpen(true); };
+  const openNew  = () => { setEditId(null); setForm({ brand_id: activeBrandId ?? "" }); setTeamDetails([]); setSocialLinks({ website:"", facebook:"", instagram:"", twitter:"", linkedin:"", tiktok:"", youtube:"" }); setSocialAccounts([]); setExtraAttachments([]); setKeyPersonName(""); setKeyPersonContacts([]); setOwners([]); setLegalDocs([]); setFinancialDocs([]); setMarketingPlans([]); setOpen(true); };
   const openEdit = (row: any) => {
     setEditId(row.id);
     const base: Record<string,any> = { brand_id: row.brand_id ?? "" };
@@ -2051,6 +2175,12 @@ function AgentTab({ items, loading, create, update, remove, columns, fields, act
     setSocialLinks(row.data?.socialLinks ?? { website:"", facebook:"", instagram:"", twitter:"", linkedin:"", tiktok:"", youtube:"" });
     setSocialAccounts(row.data?.socialAccounts ?? []);
     setExtraAttachments(row.data?.extraAttachments ?? []);
+    setKeyPersonName(row.data?.keyPersonName ?? "");
+    setKeyPersonContacts(row.data?.keyPersonContacts ?? []);
+    setOwners(row.data?.owners ?? []);
+    setLegalDocs(row.data?.legalDocs ?? []);
+    setFinancialDocs(row.data?.financialDocs ?? []);
+    setMarketingPlans(row.data?.marketingPlans ?? []);
     setOpen(true);
   };
   const submit = async () => {
@@ -2065,6 +2195,12 @@ function AgentTab({ items, loading, create, update, remove, columns, fields, act
       socialLinks,
       socialAccounts: socialAccounts.filter(s => s.platform || s.url),
       extraAttachments: extraAttachments.filter(a => a.name || a.label),
+      keyPersonName,
+      keyPersonContacts,
+      owners:           owners.filter(o => o.name.trim()),
+      legalDocs:        legalDocs.filter(d => d.name),
+      financialDocs:    financialDocs.filter(d => d.name),
+      marketingPlans:   marketingPlans.filter(m => m.title.trim()),
     };
     if (editId) await update(editId, payload);
     else        await create(payload);
@@ -2145,6 +2281,48 @@ function AgentTab({ items, loading, create, update, remove, columns, fields, act
               </div>
             ))}
 
+            {/* Key Person */}
+            <div className="flex items-center gap-2 pb-1.5 border-b border-border mb-3 mt-5"><User className="w-3.5 h-3.5 text-primary"/><span className="font-display text-[11px] tracking-wider text-primary uppercase">Key Person</span></div>
+            <div><Label className="text-xs">Name</Label><Input value={keyPersonName} onChange={e => setKeyPersonName(e.target.value)} placeholder="Name" className="mt-1 bg-secondary border-border text-xs"/></div>
+            <div className="mt-2 p-3 bg-secondary/30 rounded-md border border-border space-y-2">
+              <p className="text-[11px] text-muted-foreground font-medium">Key Person Contact</p>
+              {keyPersonContacts.map((c, ci) => (
+                <div key={c.id} className="flex items-center gap-1.5">
+                  <select value={c.type} onChange={e => setKeyPersonContacts(p => p.map((cx, cxi) => cxi === ci ? {...cx, type: e.target.value} : cx))}
+                    className="bg-secondary border border-border rounded px-2 py-1 text-xs text-foreground shrink-0 w-28">
+                    <option value="phone">📞 Phone</option><option value="email">📧 Email</option><option value="whatsapp">💬 WhatsApp</option><option value="linkedin">🔗 LinkedIn</option><option value="twitter">𝕏 Twitter</option><option value="other">• Other</option>
+                  </select>
+                  <Input value={c.value} onChange={e => setKeyPersonContacts(p => p.map((cx, cxi) => cxi === ci ? {...cx, value: e.target.value} : cx))} placeholder="Value…" className="flex-1 h-7 text-xs bg-secondary border-border"/>
+                  <button type="button" onClick={() => setKeyPersonContacts(p => p.filter((_, cxi) => cxi !== ci))} className="text-destructive p-0.5 shrink-0 hover:bg-destructive/10 rounded"><X className="w-3 h-3"/></button>
+                </div>
+              ))}
+              <Button type="button" variant="ghost" size="sm" onClick={() => setKeyPersonContacts(p => [...p, {id: crypto.randomUUID(), type: "phone", value: ""}])} className="h-6 text-[11px] gap-1 text-muted-foreground hover:text-foreground"><Plus className="w-3 h-3"/>Add Contact</Button>
+            </div>
+
+            {/* Owners */}
+            <div className="flex items-center gap-2 pb-1.5 border-b border-border mb-3 mt-5"><User className="w-3.5 h-3.5 text-primary"/><span className="font-display text-[11px] tracking-wider text-primary uppercase">Owners</span></div>
+            <div className="space-y-3">
+              {owners.map((o, i) => (
+                <div key={o.id} className="p-3 bg-secondary/30 rounded-md border border-border space-y-2">
+                  <div className="flex items-center justify-between"><span className="text-[11px] text-muted-foreground">Owner #{i+1}</span><button type="button" onClick={() => setOwners(p => p.filter((_, idx) => idx !== i))} className="text-destructive hover:bg-destructive/10 rounded p-1"><X className="w-3.5 h-3.5"/></button></div>
+                  <div><Label className="text-xs">Name</Label><Input value={o.name} onChange={e => setOwners(p => p.map((ow, oi) => oi === i ? {...ow, name: e.target.value} : ow))} className="mt-1 bg-secondary border-border text-xs"/></div>
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Contact Info</p>
+                  {(o.contacts||[]).map((c, ci) => (
+                    <div key={c.id} className="flex items-center gap-1.5">
+                      <select value={c.type} onChange={e => setOwners(p => p.map((ow, oi) => oi === i ? {...ow, contacts: (ow.contacts||[]).map((cx, cxi) => cxi === ci ? {...cx, type: e.target.value} : cx)} : ow))}
+                        className="bg-secondary border border-border rounded px-2 py-1 text-xs text-foreground shrink-0 w-28">
+                        <option value="phone">📞 Phone</option><option value="email">📧 Email</option><option value="whatsapp">💬 WhatsApp</option><option value="linkedin">🔗 LinkedIn</option><option value="twitter">𝕏 Twitter</option><option value="other">• Other</option>
+                      </select>
+                      <Input value={c.value} onChange={e => setOwners(p => p.map((ow, oi) => oi === i ? {...ow, contacts: (ow.contacts||[]).map((cx, cxi) => cxi === ci ? {...cx, value: e.target.value} : cx)} : ow))} placeholder="Value…" className="flex-1 h-7 text-xs bg-secondary border-border"/>
+                      <button type="button" onClick={() => setOwners(p => p.map((ow, oi) => oi === i ? {...ow, contacts: (ow.contacts||[]).filter((_, cxi) => cxi !== ci)} : ow))} className="text-destructive p-0.5 shrink-0 hover:bg-destructive/10 rounded"><X className="w-3 h-3"/></button>
+                    </div>
+                  ))}
+                  <Button type="button" variant="ghost" size="sm" onClick={() => setOwners(p => p.map((ow, oi) => oi === i ? {...ow, contacts: [...(ow.contacts||[]), {id: crypto.randomUUID(), type: "phone", value: ""}]} : ow))} className="h-6 text-[11px] gap-1 text-muted-foreground hover:text-foreground"><Plus className="w-3 h-3"/>Add Contact</Button>
+                </div>
+              ))}
+              <Button type="button" variant="outline" size="sm" onClick={() => setOwners(p => [...p, {id: crypto.randomUUID(), name: "", contacts: []}])} className="gap-1 text-xs"><Plus className="w-3.5 h-3.5"/>Add Owner</Button>
+            </div>
+
             {/* Key Personnel / Team */}
             <div className="flex items-center gap-2 pb-1.5 border-b border-border mb-3 mt-5"><Users className="w-3.5 h-3.5 text-primary"/><span className="font-display text-[11px] tracking-wider text-primary uppercase">Key Personnel / Team</span></div>
             <div className="space-y-3">
@@ -2214,6 +2392,58 @@ function AgentTab({ items, loading, create, update, remove, columns, fields, act
                 </div>
               ))}
               <Button type="button" variant="outline" size="sm" onClick={() => setExtraAttachments(p => [...p, { id: crypto.randomUUID(), name: "", label: "" }])} className="gap-1 text-xs"><Plus className="w-3.5 h-3.5"/>Add Attachment</Button>
+            </div>
+
+            {/* Legal Documents */}
+            <div className="flex items-center gap-2 pb-1.5 border-b border-border mb-3 mt-5"><FileText className="w-3.5 h-3.5 text-primary"/><span className="font-display text-[11px] tracking-wider text-primary uppercase">Legal Documents</span></div>
+            <div className="space-y-2">
+              {legalDocs.map((d, i) => (
+                <div key={d.id} className="flex items-center gap-2 p-2 bg-secondary/50 rounded-md border border-border">
+                  <FileText className="w-3.5 h-3.5 text-muted-foreground shrink-0"/>
+                  <span className="flex-1 text-xs truncate">{d.name||"No file"}</span>
+                  <label className="cursor-pointer px-2 py-0.5 text-xs text-primary hover:underline shrink-0">Upload<input type="file" className="hidden" onChange={e => {const f=e.target.files?.[0];if(f)setLegalDocs(p=>p.map((doc,idx)=>idx===i?{...doc,name:f.name}:doc));}}/></label>
+                  <button type="button" onClick={() => setLegalDocs(p => p.filter((_, idx) => idx !== i))} className="text-destructive p-0.5 rounded hover:bg-destructive/10 shrink-0"><X className="w-3 h-3"/></button>
+                </div>
+              ))}
+              <Button type="button" variant="outline" size="sm" onClick={() => setLegalDocs(p => [...p, {id: crypto.randomUUID(), name: ""}])} className="gap-1 text-xs"><Plus className="w-3.5 h-3.5"/>Add Legal Doc</Button>
+            </div>
+
+            {/* Financial Documents */}
+            <div className="flex items-center gap-2 pb-1.5 border-b border-border mb-3 mt-5"><DollarSign className="w-3.5 h-3.5 text-emerald-400"/><span className="font-display text-[11px] tracking-wider text-primary uppercase">Financial Documents</span></div>
+            <div className="space-y-2">
+              {financialDocs.map((d, i) => (
+                <div key={d.id} className="flex items-center gap-2 p-2 bg-secondary/50 rounded-md border border-border">
+                  <DollarSign className="w-3.5 h-3.5 text-emerald-400/60 shrink-0"/>
+                  <span className="flex-1 text-xs truncate">{d.name||"No file"}</span>
+                  <label className="cursor-pointer px-2 py-0.5 text-xs text-primary hover:underline shrink-0">Upload<input type="file" className="hidden" onChange={e => {const f=e.target.files?.[0];if(f)setFinancialDocs(p=>p.map((doc,idx)=>idx===i?{...doc,name:f.name}:doc));}}/></label>
+                  <button type="button" onClick={() => setFinancialDocs(p => p.filter((_, idx) => idx !== i))} className="text-destructive p-0.5 rounded hover:bg-destructive/10 shrink-0"><X className="w-3 h-3"/></button>
+                </div>
+              ))}
+              <Button type="button" variant="outline" size="sm" onClick={() => setFinancialDocs(p => [...p, {id: crypto.randomUUID(), name: ""}])} className="gap-1 text-xs"><Plus className="w-3.5 h-3.5"/>Add Financial Doc</Button>
+            </div>
+
+            {/* Marketing Plans */}
+            <div className="flex items-center gap-2 pb-1.5 border-b border-border mb-3 mt-5"><Megaphone className="w-3.5 h-3.5 text-pink-400"/><span className="font-display text-[11px] tracking-wider text-primary uppercase">Marketing Plans</span></div>
+            <div className="space-y-3">
+              {marketingPlans.map((m, i) => (
+                <div key={m.id} className="p-3 bg-secondary/30 rounded-md border border-border space-y-2">
+                  <div className="flex items-center justify-between"><span className="text-[11px] text-muted-foreground">Plan #{i+1}</span><button type="button" onClick={() => setMarketingPlans(p => p.filter((_, idx) => idx !== i))} className="text-destructive hover:bg-destructive/10 rounded p-1"><X className="w-3.5 h-3.5"/></button></div>
+                  <div><Label className="text-xs">Title</Label><Input value={m.title} onChange={e => setMarketingPlans(p => p.map((pl, pi) => pi === i ? {...pl, title: e.target.value} : pl))} className="mt-1 bg-secondary border-border text-xs"/></div>
+                  <div><Label className="text-xs">Description</Label><Textarea value={m.description} onChange={e => setMarketingPlans(p => p.map((pl, pi) => pi === i ? {...pl, description: e.target.value} : pl))} className="mt-1 bg-secondary border-border text-xs min-h-[56px]"/></div>
+                  <div>
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1.5">Attachments</p>
+                    {(m.attachments||[]).map((att, ai) => (
+                      <div key={att.id} className="flex items-center gap-1.5 mb-1.5">
+                        <Input value={att.label} onChange={e => setMarketingPlans(p => p.map((pl, pi) => pi === i ? {...pl, attachments: (pl.attachments||[]).map((a, aidx) => aidx === ai ? {...a, label: e.target.value} : a)} : pl))} placeholder="File description…" className="flex-1 h-7 text-xs bg-secondary border-border"/>
+                        <label className="cursor-pointer px-2 py-0.5 text-[11px] text-primary hover:underline shrink-0 max-w-[90px] truncate">{att.name||"Browse"}<input type="file" className="hidden" onChange={e => {const f=e.target.files?.[0];if(f)setMarketingPlans(p=>p.map((pl,pi)=>pi===i?{...pl,attachments:(pl.attachments||[]).map((a,aidx)=>aidx===ai?{...a,name:f.name}:a)}:pl));}}/></label>
+                        <button type="button" onClick={() => setMarketingPlans(p => p.map((pl, pi) => pi === i ? {...pl, attachments: (pl.attachments||[]).filter((_, aidx) => aidx !== ai)} : pl))} className="text-destructive p-0.5 shrink-0 hover:bg-destructive/10 rounded"><X className="w-3 h-3"/></button>
+                      </div>
+                    ))}
+                    <Button type="button" variant="ghost" size="sm" onClick={() => setMarketingPlans(p => p.map((pl, pi) => pi === i ? {...pl, attachments: [...(pl.attachments||[]), {id: crypto.randomUUID(), name: "", label: ""}]} : pl))} className="h-6 text-[11px] gap-1 text-muted-foreground hover:text-foreground"><Paperclip className="w-3 h-3"/>Add Attachment</Button>
+                  </div>
+                </div>
+              ))}
+              <Button type="button" variant="outline" size="sm" onClick={() => setMarketingPlans(p => [...p, {id: crypto.randomUUID(), title: "", description: "", attachments: []}])} className="gap-1 text-xs"><Plus className="w-3.5 h-3.5"/>Add Plan</Button>
             </div>
           </div>
           <DialogFooter>
