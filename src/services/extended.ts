@@ -14,7 +14,13 @@ export type ExtTable =
   | "departments" | "sub_tasks"
   | "responsible_personnel" | "payment_splits" | "payment_methods"
   | "workflow_steps" | "workflow_executions"
-  | "role_permissions" | "sector_permissions" | "agent_permissions";
+  | "role_permissions" | "sector_permissions" | "agent_permissions"
+  /* HR & Workforce */
+  | "hr_employees" | "hr_attendance" | "hr_leave_requests" | "hr_payroll" | "hr_performance"
+  /* Procurement */
+  | "purchase_orders" | "vendor_contracts" | "rfq_requests" | "procurement_budget"
+  /* Support */
+  | "support_tickets" | "ticket_replies";
 
 const TENANT_SCOPED_TABLES: ExtTable[] = [
   "affiliated_agents", "workflow_map",

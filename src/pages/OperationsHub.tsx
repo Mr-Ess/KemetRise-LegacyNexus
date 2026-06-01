@@ -7,6 +7,8 @@ import {
   RefreshCw, Heart, Users, Shield, Key, FileText, Clock, Zap,
   BookOpen, UserCheck, Activity, CheckCircle, XCircle, Timer,
   Landmark, Globe, Phone, Mail, GitBranch, Eye, EyeOff, Copy,
+  Briefcase, ClipboardList, BadgeDollarSign, UserCog, ShoppingCart,
+  CreditCard, Layers, PieChart, BarChart, LineChart, Target,
 } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -244,6 +246,281 @@ const LOGISTICS_MODULES: ModuleDef[] = [
     {key:"project_name",label:"Project"},{key:"media_type",label:"Media"},{key:"production_status",label:"Status"},
   ]},
 ];
+/* ─── HR Column & Field Definitions ─────────────────────────────────────── */
+const HR_EMP_COLS: ColDef[] = [
+  { key:"full_name",       label:"Name",       render:(v)=><span className="font-semibold">{v||"—"}</span> },
+  { key:"job_title",       label:"Title",      render:(v)=>v||<span className="text-muted-foreground">—</span> },
+  { key:"department",      label:"Dept",       render:(v)=>v||<span className="text-muted-foreground">—</span> },
+  { key:"employment_type", label:"Type",       render:(v)=><Badge variant="outline" className="text-[10px]">{v||"full-time"}</Badge> },
+  { key:"email",           label:"Email",      render:(v)=>v?<a href={`mailto:${v}`} className="text-primary text-xs underline">{v}</a>:<span className="text-muted-foreground">—</span> },
+  { key:"salary",          label:"Salary/mo",  render:(v)=>v?<span className="text-emerald-400 font-mono text-xs">${Number(v).toLocaleString()}</span>:<span className="text-muted-foreground">—</span> },
+  { key:"status",          label:"Status",     render:(v)=><Badge variant={!v||v==="active"?"default":"outline"} className="text-[10px]">{v||"active"}</Badge> },
+];
+const HR_EMP_FIELDS: FieldDef[] = [
+  {key:"full_name",label:"Full Name *"},{key:"job_title",label:"Job Title"},
+  {key:"department",label:"Department"},{key:"hire_date",label:"Hire Date",type:"date"},
+  {key:"salary",label:"Monthly Salary ($)",type:"number"},
+  {key:"employment_type",label:"Type (full-time / part-time / contract / intern)"},
+  {key:"status",label:"Status (active / inactive / on-leave)"},
+  {key:"email",label:"Email"},{key:"phone",label:"Phone"},
+  {key:"notes",label:"Notes",type:"textarea"},
+];
+
+const HR_ATT_COLS: ColDef[] = [
+  { key:"employee_id", label:"Employee ID", render:(v)=><span className="font-mono text-[10px] text-muted-foreground">{v?String(v).slice(0,8)+"…":"—"}</span> },
+  { key:"date",        label:"Date",        render:(v)=>v?new Date(v).toLocaleDateString():"—" },
+  { key:"check_in",    label:"Check-in",    render:(v)=>v||<span className="text-muted-foreground">—</span> },
+  { key:"check_out",   label:"Check-out",   render:(v)=>v||<span className="text-muted-foreground">—</span> },
+  { key:"status",      label:"Status",      render:(v)=>{
+    const c:Record<string,string>={present:"border-emerald-500 text-emerald-400",absent:"border-red-500 text-red-400",late:"border-amber-500 text-amber-400",remote:"border-blue-500 text-blue-400",holiday:"border-violet-500 text-violet-400"};
+    return <Badge variant="outline" className={`text-[10px] ${c[v]||""}`}>{v||"—"}</Badge>;
+  }},
+  { key:"notes",       label:"Notes",       render:(v)=>v?<span className="text-xs max-w-[120px] truncate block">{v}</span>:<span className="text-muted-foreground">—</span> },
+];
+const HR_ATT_FIELDS: FieldDef[] = [
+  {key:"employee_id",label:"Employee ID (UUID)"},{key:"date",label:"Date",type:"date"},
+  {key:"check_in",label:"Check-in (HH:MM)"},{key:"check_out",label:"Check-out (HH:MM)"},
+  {key:"status",label:"Status (present / absent / late / remote / holiday)"},
+  {key:"notes",label:"Notes",type:"textarea"},
+];
+
+const HR_LEAVE_COLS: ColDef[] = [
+  { key:"employee_id", label:"Employee ID", render:(v)=><span className="font-mono text-[10px] text-muted-foreground">{v?String(v).slice(0,8)+"…":"—"}</span> },
+  { key:"leave_type",  label:"Type",        render:(v)=><Badge variant="outline" className="text-[10px]">{v||"—"}</Badge> },
+  { key:"start_date",  label:"From",        render:(v)=>v?new Date(v).toLocaleDateString():"—" },
+  { key:"end_date",    label:"To",          render:(v)=>v?new Date(v).toLocaleDateString():"—" },
+  { key:"_days",       label:"Days",        render:(_,row)=>{
+    if(!row.start_date||!row.end_date) return <span className="text-muted-foreground">—</span>;
+    return <span className="font-bold">{Math.ceil((new Date(row.end_date).getTime()-new Date(row.start_date).getTime())/86400000)+1}</span>;
+  }},
+  { key:"status",      label:"Status",      render:(v)=>{
+    const c:Record<string,string>={approved:"border-emerald-500 text-emerald-400",rejected:"border-red-500 text-red-400",pending:"border-amber-500 text-amber-400"};
+    return <Badge variant="outline" className={`text-[10px] ${c[v]||c.pending}`}>{v||"pending"}</Badge>;
+  }},
+];
+const HR_LEAVE_FIELDS: FieldDef[] = [
+  {key:"employee_id",label:"Employee ID (UUID)"},
+  {key:"leave_type",label:"Type (annual / sick / emergency / unpaid / maternity)"},
+  {key:"start_date",label:"From",type:"date"},{key:"end_date",label:"To",type:"date"},
+  {key:"reason",label:"Reason",type:"textarea"},
+  {key:"status",label:"Status (pending / approved / rejected)"},
+  {key:"approved_by",label:"Approved By"},
+];
+
+const HR_PAY_COLS: ColDef[] = [
+  { key:"employee_id", label:"Employee ID", render:(v)=><span className="font-mono text-[10px] text-muted-foreground">{v?String(v).slice(0,8)+"…":"—"}</span> },
+  { key:"month_year",  label:"Period",      render:(v)=><span className="font-semibold">{v||"—"}</span> },
+  { key:"base_salary", label:"Base",        render:(v)=><span className="font-mono text-xs">${Number(v||0).toLocaleString()}</span> },
+  { key:"bonuses",     label:"Bonuses",     render:(v)=>v?<span className="text-emerald-400 font-mono text-xs">+${Number(v).toLocaleString()}</span>:<span className="text-muted-foreground">—</span> },
+  { key:"deductions",  label:"Deductions",  render:(v)=>v?<span className="text-red-400 font-mono text-xs">-${Number(v).toLocaleString()}</span>:<span className="text-muted-foreground">—</span> },
+  { key:"net_pay",     label:"Net Pay",     render:(v)=><span className="font-bold text-emerald-400 font-mono">${Number(v||0).toLocaleString()}</span> },
+  { key:"status",      label:"Status",      render:(v)=><Badge variant={v==="paid"?"default":v==="approved"?"outline":"secondary"} className="text-[10px]">{v||"pending"}</Badge> },
+];
+const HR_PAY_FIELDS: FieldDef[] = [
+  {key:"employee_id",label:"Employee ID (UUID)"},{key:"month_year",label:"Month / Year (e.g. 2025-06)"},
+  {key:"base_salary",label:"Base Salary ($)",type:"number"},{key:"bonuses",label:"Bonuses ($)",type:"number"},
+  {key:"deductions",label:"Deductions ($)",type:"number"},{key:"net_pay",label:"Net Pay ($)",type:"number"},
+  {key:"status",label:"Status (pending / approved / paid)"},
+  {key:"notes",label:"Notes",type:"textarea"},
+];
+
+const HR_PERF_COLS: ColDef[] = [
+  { key:"employee_id",   label:"Employee ID",  render:(v)=><span className="font-mono text-[10px] text-muted-foreground">{v?String(v).slice(0,8)+"…":"—"}</span> },
+  { key:"review_period", label:"Period",        render:(v)=><span className="font-semibold">{v||"—"}</span> },
+  { key:"score",         label:"Score",         render:(v)=>{
+    const s=Number(v||0);
+    const color=s>=8?"text-emerald-400":s>=6?"text-blue-400":s>=4?"text-amber-400":"text-red-400";
+    return <span className={`font-bold text-base ${color}`}>{s}<span className="text-muted-foreground text-xs">/10</span></span>;
+  }},
+  { key:"strengths",     label:"Strengths",     render:(v)=>v?<span className="max-w-[150px] truncate block text-xs">{v}</span>:<span className="text-muted-foreground">—</span> },
+  { key:"improvements",  label:"Improvements",  render:(v)=>v?<span className="max-w-[150px] truncate block text-xs">{v}</span>:<span className="text-muted-foreground">—</span> },
+  { key:"reviewer",      label:"Reviewer",      render:(v)=>v||<span className="text-muted-foreground">—</span> },
+];
+const HR_PERF_FIELDS: FieldDef[] = [
+  {key:"employee_id",label:"Employee ID (UUID)"},{key:"review_period",label:"Review Period (e.g. Q1 2025)"},
+  {key:"score",label:"Score (0–10)",type:"number"},{key:"strengths",label:"Strengths",type:"textarea"},
+  {key:"improvements",label:"Areas for Improvement",type:"textarea"},{key:"reviewer",label:"Reviewer Name"},
+];
+
+/* ─── HR Panel ───────────────────────────────────────────────────────────── */
+function HRPanel() {
+  const [hrTab, setHrTab] = useState("employees");
+  const { items: employees } = useExtTable("hr_employees");
+  const { items: leaves }    = useExtTable("hr_leave_requests");
+  const { items: payroll }   = useExtTable("hr_payroll");
+  const { items: perf }      = useExtTable("hr_performance");
+
+  const activeEmp    = employees.filter(e => !e.status || e.status === "active").length;
+  const pendingLeave = leaves.filter(l => l.status === "pending").length;
+  const paidPayroll  = payroll.filter(p => p.status === "paid");
+  const totalPaid    = paidPayroll.reduce((s,p)=>s+Number(p.net_pay||0),0);
+  const avgScore     = perf.length > 0
+    ? (perf.reduce((s,p)=>s+Number(p.score||0),0)/perf.length).toFixed(1) : "—";
+
+  return (
+    <div className="space-y-4">
+      {/* ── KPI row ── */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+        <KpiCard icon={Briefcase}       label="Total Employees"   value={employees.length} sub={`${activeEmp} active`}                       color="primary"/>
+        <KpiCard icon={Calendar}        label="Leave Requests"    value={leaves.length}    sub={pendingLeave>0?`${pendingLeave} pending`:"All resolved"} color={pendingLeave>0?"amber":"emerald"}/>
+        <KpiCard icon={BadgeDollarSign} label="Payroll Paid"      value={`$${totalPaid.toLocaleString()}`} sub={`${paidPayroll.length} of ${payroll.length} records`} color="blue"/>
+        <KpiCard icon={BarChart}        label="Avg Performance"   value={avgScore}         sub="out of 10"                                   color="violet"/>
+        <KpiCard icon={ClipboardList}   label="Reviews"           value={perf.length}      sub="all-time"                                    color="rose"/>
+      </div>
+
+      {/* ── Sub-tabs ── */}
+      <Tabs value={hrTab} onValueChange={setHrTab}>
+        <TabsList className="flex flex-wrap gap-1 h-auto p-1">
+          <TabsTrigger value="employees"   className="text-xs"><Briefcase       className="w-3.5 h-3.5 mr-1"/>Employees ({employees.length})</TabsTrigger>
+          <TabsTrigger value="attendance"  className="text-xs"><UserCheck       className="w-3.5 h-3.5 mr-1"/>Attendance</TabsTrigger>
+          <TabsTrigger value="leaves"      className="text-xs"><Calendar        className="w-3.5 h-3.5 mr-1"/>Leave Requests{pendingLeave>0&&<Badge variant="destructive" className="ml-1 text-[9px] px-1">{pendingLeave}</Badge>}</TabsTrigger>
+          <TabsTrigger value="payroll"     className="text-xs"><BadgeDollarSign className="w-3.5 h-3.5 mr-1"/>Payroll ({payroll.length})</TabsTrigger>
+          <TabsTrigger value="performance" className="text-xs"><BarChart        className="w-3.5 h-3.5 mr-1"/>Performance ({perf.length})</TabsTrigger>
+        </TabsList>
+        <TabsContent value="employees" className="mt-3">
+          <CrudPanel table="hr_employees"     title="Employee"           fields={HR_EMP_FIELDS}   columns={HR_EMP_COLS}  emptyHint="Add your first employee to get started"/>
+        </TabsContent>
+        <TabsContent value="attendance" className="mt-3">
+          <CrudPanel table="hr_attendance"    title="Attendance Record"  fields={HR_ATT_FIELDS}   columns={HR_ATT_COLS}  emptyHint="Log daily attendance records"/>
+        </TabsContent>
+        <TabsContent value="leaves" className="mt-3">
+          <CrudPanel table="hr_leave_requests" title="Leave Request"     fields={HR_LEAVE_FIELDS} columns={HR_LEAVE_COLS} emptyHint="No leave requests yet"/>
+        </TabsContent>
+        <TabsContent value="payroll" className="mt-3">
+          <CrudPanel table="hr_payroll"       title="Payroll Record"     fields={HR_PAY_FIELDS}   columns={HR_PAY_COLS}  emptyHint="Add payroll records for employees"/>
+        </TabsContent>
+        <TabsContent value="performance" className="mt-3">
+          <CrudPanel table="hr_performance"   title="Performance Review" fields={HR_PERF_FIELDS}  columns={HR_PERF_COLS} emptyHint="No performance reviews yet"/>
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+}
+
+/* ─── Procurement Column & Field Definitions ─────────────────────────────── */
+const PO_COLS: ColDef[] = [
+  { key:"po_number",    label:"PO #",     render:(v)=><span className="font-mono font-bold text-primary text-xs">{v||"—"}</span> },
+  { key:"vendor_name",  label:"Vendor",   render:(v)=>v||<span className="text-muted-foreground">—</span> },
+  { key:"order_date",   label:"Ordered",  render:(v)=>v?new Date(v).toLocaleDateString():"—" },
+  { key:"delivery_date",label:"Delivery", render:(v)=>v?<ExpiryBadge date={v}/>:<span className="text-muted-foreground">—</span> },
+  { key:"total_amount", label:"Amount",   render:(v)=>v?<span className="font-bold text-emerald-400 font-mono text-xs">${Number(v).toLocaleString()}</span>:<span className="text-muted-foreground">—</span> },
+  { key:"status",       label:"Status",   render:(v)=>{
+    const c:Record<string,string>={confirmed:"border-emerald-500 text-emerald-400",received:"border-blue-500 text-blue-400",cancelled:"border-red-500 text-red-400",sent:"border-amber-500 text-amber-400",draft:"border-muted text-muted-foreground"};
+    return <Badge variant="outline" className={`text-[10px] ${c[v]||c.draft}`}>{v||"draft"}</Badge>;
+  }},
+];
+const PO_FIELDS: FieldDef[] = [
+  {key:"po_number",label:"PO Number"},{key:"vendor_name",label:"Vendor Name"},
+  {key:"order_date",label:"Order Date",type:"date"},{key:"delivery_date",label:"Expected Delivery",type:"date"},
+  {key:"total_amount",label:"Total Amount ($)",type:"number"},
+  {key:"status",label:"Status (draft / sent / confirmed / received / cancelled)"},
+  {key:"notes",label:"Notes",type:"textarea"},
+];
+
+const VC_COLS: ColDef[] = [
+  { key:"vendor_name",   label:"Vendor",  render:(v)=><span className="font-semibold">{v||"—"}</span> },
+  { key:"contract_value",label:"Value",   render:(v)=>v?<span className="font-bold text-emerald-400 font-mono text-xs">${Number(v).toLocaleString()}</span>:<span className="text-muted-foreground">—</span> },
+  { key:"start_date",    label:"Start",   render:(v)=>v?new Date(v).toLocaleDateString():"—" },
+  { key:"end_date",      label:"Expires", render:(v)=>v?<ExpiryBadge date={v}/>:<span className="text-muted-foreground">—</span> },
+  { key:"payment_terms", label:"Terms",   render:(v)=>v||<span className="text-muted-foreground">—</span> },
+  { key:"status",        label:"Status",  render:(v)=>{
+    const c:Record<string,string>={active:"border-emerald-500 text-emerald-400",expired:"border-red-500 text-red-400",terminated:"border-red-500 text-red-400",pending:"border-amber-500 text-amber-400"};
+    return <Badge variant="outline" className={`text-[10px] ${c[v]||""}`}>{v||"pending"}</Badge>;
+  }},
+];
+const VC_FIELDS: FieldDef[] = [
+  {key:"vendor_name",label:"Vendor Name *"},{key:"contract_value",label:"Contract Value ($)",type:"number"},
+  {key:"start_date",label:"Start Date",type:"date"},{key:"end_date",label:"End Date",type:"date"},
+  {key:"payment_terms",label:"Payment Terms"},
+  {key:"status",label:"Status (active / expired / pending / terminated)"},
+  {key:"file_url",label:"Contract File URL"},
+  {key:"notes",label:"Notes",type:"textarea"},
+];
+
+const RFQ_COLS: ColDef[] = [
+  { key:"item_description",label:"Item",     render:(v)=><span className="max-w-[200px] truncate block font-medium text-xs">{v||"—"}</span> },
+  { key:"quantity",         label:"Qty",      render:(v)=>v||<span className="text-muted-foreground">—</span> },
+  { key:"deadline",         label:"Deadline", render:(v)=>v?<ExpiryBadge date={v}/>:<span className="text-muted-foreground">—</span> },
+  { key:"preferred_vendor", label:"Vendor",   render:(v)=>v||<span className="text-muted-foreground">—</span> },
+  { key:"budget_limit",     label:"Budget",   render:(v)=>v?<span className="font-mono text-amber-400 text-xs">${Number(v).toLocaleString()}</span>:<span className="text-muted-foreground">—</span> },
+  { key:"status",           label:"Status",   render:(v)=><Badge variant={v==="open"?"default":v==="awarded"?"outline":"secondary"} className="text-[10px]">{v||"open"}</Badge> },
+];
+const RFQ_FIELDS: FieldDef[] = [
+  {key:"item_description",label:"Item / Service Description *"},
+  {key:"quantity",label:"Quantity",type:"number"},{key:"deadline",label:"Deadline",type:"date"},
+  {key:"preferred_vendor",label:"Preferred Vendor"},{key:"budget_limit",label:"Budget Limit ($)",type:"number"},
+  {key:"status",label:"Status (open / closed / awarded / cancelled)"},
+  {key:"notes",label:"Notes",type:"textarea"},
+];
+
+const PROCBUD_COLS: ColDef[] = [
+  { key:"department",       label:"Department",render:(v)=><span className="font-semibold">{v||"—"}</span> },
+  { key:"fiscal_year",      label:"Year",      render:(v)=>v||<span className="text-muted-foreground">—</span> },
+  { key:"allocated_budget", label:"Allocated", render:(v)=><span className="font-mono text-xs">${Number(v||0).toLocaleString()}</span> },
+  { key:"spent_amount",     label:"Spent",     render:(v)=><span className="font-mono text-amber-400 text-xs">${Number(v||0).toLocaleString()}</span> },
+  { key:"_rem",             label:"Remaining", render:(_,row)=>{
+    const rem=(Number(row.allocated_budget)||0)-(Number(row.spent_amount)||0);
+    return <span className={`font-bold font-mono text-xs ${rem<0?"text-red-400":"text-emerald-400"}`}>${rem.toLocaleString()}</span>;
+  }},
+];
+const PROCBUD_FIELDS: FieldDef[] = [
+  {key:"department",label:"Department"},{key:"fiscal_year",label:"Fiscal Year (e.g. 2025)"},
+  {key:"allocated_budget",label:"Allocated Budget ($)",type:"number"},
+  {key:"spent_amount",label:"Amount Spent ($)",type:"number"},
+  {key:"notes",label:"Notes",type:"textarea"},
+];
+
+/* ─── Procurement Panel ─────────────────────────────────────────────────── */
+function ProcurementPanel() {
+  const [procTab, setProcTab] = useState("orders");
+  const { items: orders }    = useExtTable("purchase_orders");
+  const { items: contracts } = useExtTable("vendor_contracts");
+  const { items: rfqs }      = useExtTable("rfq_requests");
+  const { items: budgets }   = useExtTable("procurement_budget");
+
+  const totalOrderVal   = orders.reduce((s,o)=>s+Number(o.total_amount||0),0);
+  const activeContracts = contracts.filter(c=>c.status==="active").length;
+  const openRFQs        = rfqs.filter(r=>r.status==="open").length;
+  const totalBudget     = budgets.reduce((s,b)=>s+Number(b.allocated_budget||0),0);
+  const totalSpent      = budgets.reduce((s,b)=>s+Number(b.spent_amount||0),0);
+  const remaining       = totalBudget - totalSpent;
+
+  return (
+    <div className="space-y-4">
+      {/* ── KPI row ── */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+        <KpiCard icon={ShoppingCart}  label="Purchase Orders"  value={orders.length}            sub={`$${totalOrderVal.toLocaleString()} total`}  color="primary"/>
+        <KpiCard icon={CreditCard}    label="Active Contracts" value={activeContracts}          sub={`${contracts.length} total`}                color="blue"/>
+        <KpiCard icon={ClipboardList} label="Open RFQs"        value={openRFQs}                 sub={`${rfqs.length} total`}                     color={openRFQs>0?"amber":"emerald"}/>
+        <KpiCard icon={Layers}        label="Total Budget"     value={`$${totalBudget.toLocaleString()}`} sub={`$${totalSpent.toLocaleString()} spent`}  color="violet"/>
+        <KpiCard icon={PieChart}      label="Remaining"        value={`$${remaining.toLocaleString()}`}   sub={totalBudget>0?`${Math.round((remaining/totalBudget)*100)}% left`:"—"} color={remaining<0?"red":"emerald"}/>
+      </div>
+
+      {/* ── Sub-tabs ── */}
+      <Tabs value={procTab} onValueChange={setProcTab}>
+        <TabsList className="flex flex-wrap gap-1 h-auto p-1">
+          <TabsTrigger value="orders"    className="text-xs"><ShoppingCart  className="w-3.5 h-3.5 mr-1"/>Purchase Orders ({orders.length})</TabsTrigger>
+          <TabsTrigger value="contracts" className="text-xs"><CreditCard    className="w-3.5 h-3.5 mr-1"/>Vendor Contracts ({contracts.length})</TabsTrigger>
+          <TabsTrigger value="rfq"       className="text-xs"><ClipboardList className="w-3.5 h-3.5 mr-1"/>RFQ Requests{openRFQs>0&&<Badge variant="destructive" className="ml-1 text-[9px] px-1">{openRFQs}</Badge>}</TabsTrigger>
+          <TabsTrigger value="budget"    className="text-xs"><Layers        className="w-3.5 h-3.5 mr-1"/>Budget ({budgets.length})</TabsTrigger>
+        </TabsList>
+        <TabsContent value="orders" className="mt-3">
+          <CrudPanel table="purchase_orders"    title="Purchase Order"    fields={PO_FIELDS}      columns={PO_COLS}      emptyHint="Create your first purchase order"/>
+        </TabsContent>
+        <TabsContent value="contracts" className="mt-3">
+          <CrudPanel table="vendor_contracts"   title="Vendor Contract"   fields={VC_FIELDS}      columns={VC_COLS}      emptyHint="Add vendor contracts and agreements"/>
+        </TabsContent>
+        <TabsContent value="rfq" className="mt-3">
+          <CrudPanel table="rfq_requests"       title="RFQ Request"       fields={RFQ_FIELDS}     columns={RFQ_COLS}     emptyHint="Submit requests for quotation"/>
+        </TabsContent>
+        <TabsContent value="budget" className="mt-3">
+          <CrudPanel table="procurement_budget" title="Budget Allocation"  fields={PROCBUD_FIELDS} columns={PROCBUD_COLS} emptyHint="Define procurement budgets by department"/>
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+}
+
 const FINANCE_MODULES: ModuleDef[] = [
   { table:"finance_analytics",  title:"Financial Analytics", titleKey:"month_year", fields:[
     {key:"month_year",label:"Month/Year"},{key:"total_revenue",label:"Revenue",type:"number"},
@@ -823,6 +1100,8 @@ export default function OperationsHub() {
             <TabsTrigger value="marketing"  className="text-xs"><Megaphone className="w-3.5 h-3.5 mr-1"/>Marketing</TabsTrigger>
             <TabsTrigger value="legal"      className="text-xs"><ScrollText className="w-3.5 h-3.5 mr-1"/>Legal Vault{expiringSoon>0&&<Badge variant="destructive" className="ml-1 text-[9px] px-1">{expiringSoon}</Badge>}</TabsTrigger>
             <TabsTrigger value="legacy"     className="text-xs"><Heart className="w-3.5 h-3.5 mr-1"/>Legacy Protocol</TabsTrigger>
+            <TabsTrigger value="hr"          className="text-xs"><Briefcase className="w-3.5 h-3.5 mr-1"/>HR &amp; Workforce</TabsTrigger>
+            <TabsTrigger value="procurement" className="text-xs"><ShoppingCart className="w-3.5 h-3.5 mr-1"/>Procurement</TabsTrigger>
           </TabsList>
 
           {/* ═══════════════════════════════════ OVERVIEW ══ */}
@@ -939,6 +1218,16 @@ export default function OperationsHub() {
           {/* ══════════════════════════ LEGACY PROTOCOL ══ */}
           <TabsContent value="legacy" className="mt-2">
             <LegacyProtocolPanel/>
+          </TabsContent>
+
+          {/* ══════════════════════════ HR & WORKFORCE ══ */}
+          <TabsContent value="hr" className="mt-2">
+            <HRPanel/>
+          </TabsContent>
+
+          {/* ══════════════════════════ PROCUREMENT ══ */}
+          <TabsContent value="procurement" className="mt-2">
+            <ProcurementPanel/>
           </TabsContent>
 
         </Tabs>

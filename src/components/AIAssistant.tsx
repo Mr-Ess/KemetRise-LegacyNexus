@@ -1,8 +1,8 @@
 import { useState, useRef, useEffect } from "react";
 import {
   MessageCircle, X, Send, Sparkles, Loader2, Ticket,
-  Plus, ChevronLeft, CheckCircle, Clock, AlertTriangle,
-  Circle, Tag, RefreshCw, ChevronDown,
+  Plus, ChevronLeft, CheckCircle, Clock,
+  Circle, RefreshCw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -145,8 +145,12 @@ function SupportPanel() {
 
   const loadReplies = async (ticketId: string) => {
     try {
-      const data = await tenantDb.select("ticket_replies", { eq: { ticket_id: ticketId }, orderBy: "created_at", ascending: true }) as any[];
-      setReplies(data || []);
+      const { data } = await supabase
+        .from("ticket_replies" as any)
+        .select("*")
+        .eq("ticket_id", ticketId)
+        .order("created_at", { ascending: true });
+      setReplies((data as any[]) || []);
     } catch { setReplies([]); }
   };
 
