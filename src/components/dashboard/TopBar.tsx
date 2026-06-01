@@ -211,34 +211,7 @@ const TopBar = () => {
         </div>
 
         <div className="flex items-center gap-3">
-          <div className="relative hidden md:block">
-            <Search className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
-            <input
-              ref={searchRef}
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              placeholder="Search empire... (⌘K)"
-              className="bg-secondary/50 border border-border rounded-md pl-9 pr-4 py-1.5 text-xs font-body text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/50 w-48"
-            />
-            {results.length > 0 && (
-              <div className="absolute left-0 top-full mt-2 w-72 bg-card border border-border rounded-lg shadow-xl z-50 max-h-64 overflow-auto">
-                {results.map(r => (
-                  <button key={`${r.table}-${r.id}`} onClick={() => { setSearch(""); navigate(r.path); }}
-                    className="w-full text-left px-3 py-2 hover:bg-secondary/50 border-b border-border/40 last:border-0">
-                    <div className="flex items-center justify-between gap-2">
-                      <p className="text-xs text-foreground truncate">{r.name}</p>
-                      <span className="text-[9px] text-muted-foreground bg-secondary px-1.5 py-0.5 rounded shrink-0">{r.table}</span>
-                    </div>
-                    {r.sub && <p className="text-[10px] text-muted-foreground truncate">{r.sub}</p>}
-                  </button>
-                ))}
-                <button onClick={() => { setSearch(""); window.dispatchEvent(new KeyboardEvent("keydown", { key: "k", ctrlKey: true, bubbles: true })); }}
-                  className="w-full text-center px-3 py-2 text-[10px] text-primary hover:bg-secondary/50">
-                  بحث متقدم في كل المنصة ←
-                </button>
-              </div>
-            )}
-          </div>
+
 
           {/* Notification Bell */}
           <div className="relative">
