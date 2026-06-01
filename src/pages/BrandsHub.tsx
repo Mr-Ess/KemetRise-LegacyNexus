@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback, useEffect } from "react";
+﻿import React, { useState, useMemo, useCallback, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   ArrowLeft, Crown, FolderOpen, Briefcase, Building2, Users, UserCheck, Handshake,
@@ -635,21 +635,6 @@ function EntityTab({ items, loading, create, update, remove, title, columns, fie
               <Button type="button" variant="ghost" size="sm" onClick={() => setSocialAccounts(p => [...p, { id: crypto.randomUUID(), platform: "", url: "" }])} className="h-6 text-[11px] gap-1 text-muted-foreground hover:text-foreground"><Plus className="w-3 h-3"/>Add Account</Button>
             </div>
 
-            {/* Extra Attachments */}
-            <div className="flex items-center gap-2 pb-1.5 border-b border-border mb-3 mt-5"><Paperclip className="w-3.5 h-3.5 text-primary"/><span className="font-display text-[11px] tracking-wider text-primary uppercase">Extra Attachments</span></div>
-            <div className="space-y-2">
-              {extraAttachments.map((a, i) => (
-                <div key={a.id} className="flex items-center gap-2 p-2 bg-secondary/50 rounded-md border border-border">
-                  <Paperclip className="w-3.5 h-3.5 text-muted-foreground shrink-0"/>
-                  <Input value={a.label} onChange={e => setExtraAttachments(p => p.map((att, ai2) => ai2 === i ? { ...att, label: e.target.value } : att))} placeholder="File description…" className="flex-1 h-7 text-xs bg-secondary border-border"/>
-                  <span className="text-xs text-muted-foreground truncate max-w-[90px]">{a.name||"No file"}</span>
-                  <label className="cursor-pointer px-2 py-0.5 text-xs text-primary hover:underline shrink-0">Browse<input type="file" className="hidden" onChange={e => { const f = e.target.files?.[0]; if(f) setExtraAttachments(p => p.map((att, ai2) => ai2 === i ? { ...att, name: f.name } : att)); }}/></label>
-                  <button type="button" onClick={() => setExtraAttachments(p => p.filter((_, ai2) => ai2 !== i))} className="text-destructive p-0.5 rounded hover:bg-destructive/10 shrink-0"><X className="w-3 h-3"/></button>
-                </div>
-              ))}
-              <Button type="button" variant="outline" size="sm" onClick={() => setExtraAttachments(p => [...p, { id: crypto.randomUUID(), name: "", label: "" }])} className="gap-1 text-xs"><Plus className="w-3.5 h-3.5"/>Add Attachment</Button>
-            </div>
-
             {/* Legal Documents */}
             <div className="flex items-center gap-2 pb-1.5 border-b border-border mb-3 mt-5"><FileText className="w-3.5 h-3.5 text-primary"/><span className="font-display text-[11px] tracking-wider text-primary uppercase">Legal Documents</span></div>
             <div className="space-y-2">
@@ -701,6 +686,21 @@ function EntityTab({ items, loading, create, update, remove, title, columns, fie
               ))}
               <Button type="button" variant="outline" size="sm" onClick={() => setMarketingPlans(p => [...p, {id: crypto.randomUUID(), title: "", description: "", attachments: []}])} className="gap-1 text-xs"><Plus className="w-3.5 h-3.5"/>Add Plan</Button>
             </div>
+            {/* Extra Attachments */}
+            <div className="flex items-center gap-2 pb-1.5 border-b border-border mb-3 mt-5"><Paperclip className="w-3.5 h-3.5 text-primary"/><span className="font-display text-[11px] tracking-wider text-primary uppercase">Extra Attachments</span></div>
+            <div className="space-y-2">
+              {extraAttachments.map((a, i) => (
+                <div key={a.id} className="flex items-center gap-2 p-2 bg-secondary/50 rounded-md border border-border">
+                  <Paperclip className="w-3.5 h-3.5 text-muted-foreground shrink-0"/>
+                  <Input value={a.label} onChange={e => setExtraAttachments(p => p.map((att, ai2) => ai2 === i ? { ...att, label: e.target.value } : att))} placeholder="File description…" className="flex-1 h-7 text-xs bg-secondary border-border"/>
+                  <span className="text-xs text-muted-foreground truncate max-w-[90px]">{a.name||"No file"}</span>
+                  <label className="cursor-pointer px-2 py-0.5 text-xs text-primary hover:underline shrink-0">Browse<input type="file" className="hidden" onChange={e => { const f = e.target.files?.[0]; if(f) setExtraAttachments(p => p.map((att, ai2) => ai2 === i ? { ...att, name: f.name } : att)); }}/></label>
+                  <button type="button" onClick={() => setExtraAttachments(p => p.filter((_, ai2) => ai2 !== i))} className="text-destructive p-0.5 rounded hover:bg-destructive/10 shrink-0"><X className="w-3 h-3"/></button>
+                </div>
+              ))}
+              <Button type="button" variant="outline" size="sm" onClick={() => setExtraAttachments(p => [...p, { id: crypto.randomUUID(), name: "", label: "" }])} className="gap-1 text-xs"><Plus className="w-3.5 h-3.5"/>Add Attachment</Button>
+            </div>
+
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
@@ -2260,7 +2260,7 @@ function AgentTab({ items, loading, create, update, remove, columns, fields, act
       )}
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-lg max-h-[85vh] overflow-auto">
           <DialogHeader><DialogTitle className="font-display">{editId ? "Edit" : "New"} Affiliated Agent</DialogTitle></DialogHeader>
           <div className="space-y-3 py-1">
             <div>
@@ -2379,21 +2379,6 @@ function AgentTab({ items, loading, create, update, remove, columns, fields, act
               <Button type="button" variant="ghost" size="sm" onClick={() => setSocialAccounts(p => [...p, { id: crypto.randomUUID(), platform: "", url: "" }])} className="h-6 text-[11px] gap-1 text-muted-foreground hover:text-foreground"><Plus className="w-3 h-3"/>Add Account</Button>
             </div>
 
-            {/* Extra Attachments */}
-            <div className="flex items-center gap-2 pb-1.5 border-b border-border mb-3 mt-5"><Paperclip className="w-3.5 h-3.5 text-primary"/><span className="font-display text-[11px] tracking-wider text-primary uppercase">Extra Attachments</span></div>
-            <div className="space-y-2">
-              {extraAttachments.map((a, i) => (
-                <div key={a.id} className="flex items-center gap-2 p-2 bg-secondary/50 rounded-md border border-border">
-                  <Paperclip className="w-3.5 h-3.5 text-muted-foreground shrink-0"/>
-                  <Input value={a.label} onChange={e => setExtraAttachments(p => p.map((att, ai2) => ai2 === i ? { ...att, label: e.target.value } : att))} placeholder="File description…" className="flex-1 h-7 text-xs bg-secondary border-border"/>
-                  <span className="text-xs text-muted-foreground truncate max-w-[90px]">{a.name||"No file"}</span>
-                  <label className="cursor-pointer px-2 py-0.5 text-xs text-primary hover:underline shrink-0">Browse<input type="file" className="hidden" onChange={e => { const f = e.target.files?.[0]; if(f) setExtraAttachments(p => p.map((att, ai2) => ai2 === i ? { ...att, name: f.name } : att)); }}/></label>
-                  <button type="button" onClick={() => setExtraAttachments(p => p.filter((_, ai2) => ai2 !== i))} className="text-destructive p-0.5 rounded hover:bg-destructive/10 shrink-0"><X className="w-3 h-3"/></button>
-                </div>
-              ))}
-              <Button type="button" variant="outline" size="sm" onClick={() => setExtraAttachments(p => [...p, { id: crypto.randomUUID(), name: "", label: "" }])} className="gap-1 text-xs"><Plus className="w-3.5 h-3.5"/>Add Attachment</Button>
-            </div>
-
             {/* Legal Documents */}
             <div className="flex items-center gap-2 pb-1.5 border-b border-border mb-3 mt-5"><FileText className="w-3.5 h-3.5 text-primary"/><span className="font-display text-[11px] tracking-wider text-primary uppercase">Legal Documents</span></div>
             <div className="space-y-2">
@@ -2445,6 +2430,21 @@ function AgentTab({ items, loading, create, update, remove, columns, fields, act
               ))}
               <Button type="button" variant="outline" size="sm" onClick={() => setMarketingPlans(p => [...p, {id: crypto.randomUUID(), title: "", description: "", attachments: []}])} className="gap-1 text-xs"><Plus className="w-3.5 h-3.5"/>Add Plan</Button>
             </div>
+            {/* Extra Attachments */}
+            <div className="flex items-center gap-2 pb-1.5 border-b border-border mb-3 mt-5"><Paperclip className="w-3.5 h-3.5 text-primary"/><span className="font-display text-[11px] tracking-wider text-primary uppercase">Extra Attachments</span></div>
+            <div className="space-y-2">
+              {extraAttachments.map((a, i) => (
+                <div key={a.id} className="flex items-center gap-2 p-2 bg-secondary/50 rounded-md border border-border">
+                  <Paperclip className="w-3.5 h-3.5 text-muted-foreground shrink-0"/>
+                  <Input value={a.label} onChange={e => setExtraAttachments(p => p.map((att, ai2) => ai2 === i ? { ...att, label: e.target.value } : att))} placeholder="File description…" className="flex-1 h-7 text-xs bg-secondary border-border"/>
+                  <span className="text-xs text-muted-foreground truncate max-w-[90px]">{a.name||"No file"}</span>
+                  <label className="cursor-pointer px-2 py-0.5 text-xs text-primary hover:underline shrink-0">Browse<input type="file" className="hidden" onChange={e => { const f = e.target.files?.[0]; if(f) setExtraAttachments(p => p.map((att, ai2) => ai2 === i ? { ...att, name: f.name } : att)); }}/></label>
+                  <button type="button" onClick={() => setExtraAttachments(p => p.filter((_, ai2) => ai2 !== i))} className="text-destructive p-0.5 rounded hover:bg-destructive/10 shrink-0"><X className="w-3 h-3"/></button>
+                </div>
+              ))}
+              <Button type="button" variant="outline" size="sm" onClick={() => setExtraAttachments(p => [...p, { id: crypto.randomUUID(), name: "", label: "" }])} className="gap-1 text-xs"><Plus className="w-3.5 h-3.5"/>Add Attachment</Button>
+            </div>
+
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
