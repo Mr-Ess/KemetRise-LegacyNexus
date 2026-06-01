@@ -44,6 +44,7 @@ export default function AffiliatedAgents() {
   const [editId, setEditId] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState("all");
+  const [detailId, setDetailId] = useState<string | null>(null);
   const [form, setForm] = useState<Omit<Agent, "id">>(emptyForm);
   const [contacts, setContacts] = useState<ContactEntry[]>([]);
   const [extraAttachments, setExtraAttachments] = useState<AttachmentFile[]>([]);
@@ -75,6 +76,7 @@ export default function AffiliatedAgents() {
   };
 
   const filtered = statusFilter === "all" ? items : items.filter(a => a.status === statusFilter);
+  const detail = detailId ? items.find(a => a.id === detailId) : null;
 
   return (
     <div className="min-h-screen bg-background p-4 md:p-8">
@@ -95,7 +97,7 @@ export default function AffiliatedAgents() {
         </div>
         <div className="space-y-3">
           {filtered.map(a => (
-            <div key={a.id} className="bg-card border border-border rounded-lg p-4 hover:border-primary/30 transition-colors">
+            <div key={a.id} className="bg-card border border-border rounded-lg p-4 hover:border-primary/30 transition-colors cursor-pointer" onClick={() => setDetailId(a.id)}>
               <div className="flex items-start justify-between">
                 <div>
                   <h3 className="font-display text-sm text-foreground">{a.agentName}</h3>
@@ -113,7 +115,7 @@ export default function AffiliatedAgents() {
                     </div>
                   )}
                 </div>
-                <div className="flex gap-1">
+                <div className="flex gap-1" onClick={e => e.stopPropagation()}>
                   <button onClick={() => openEdit(a)} className="p-1.5 rounded-md text-muted-foreground hover:text-primary hover:bg-primary/10"><Edit className="w-4 h-4" /></button>
                   <button onClick={() => setDeleteId(a.id)} className="p-1.5 rounded-md text-muted-foreground hover:text-blood-red hover:bg-blood-red/10"><Trash2 className="w-4 h-4" /></button>
                 </div>
@@ -179,8 +181,11 @@ export default function AffiliatedAgents() {
               </div>
               {extraAttachments.map((a, i) => (
                 <div key={a.id} className="flex items-center gap-2">
-                  <Input value={a.label} onChange={e => setExtraAttachments(p => p.map((x, idx) => idx === i ? { ...x, label: e.target.value } : x))} placeholder="Label / Description" className="bg-secondary border-border text-foreground text-xs" />
-                  <Input value={a.name} onChange={e => setExtraAttachments(p => p.map((x, idx) => idx === i ? { ...x, name: e.target.value } : x))} placeholder="File name" className="bg-secondary border-border text-foreground text-xs" />
+                  <Input value={a.label} onChange={e => setExtraAttachments(p => p.map((x, idx) => idx === i ? { ...x, label: e.target.value } : x))} placeholder="Description / Label" className="bg-secondary border-border text-foreground text-xs flex-1" />
+                  <label className="flex items-center gap-1 cursor-pointer px-2 py-1.5 rounded-md bg-secondary border border-border text-[10px] text-muted-foreground hover:text-primary transition-colors shrink-0">
+                    📎 <span className="max-w-[80px] truncate">{a.name || "Browse…"}</span>
+                    <input type="file" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) setExtraAttachments(p => p.map((x, idx) => idx === i ? { ...x, name: f.name } : x)); e.target.value = ""; }} />
+                  </label>
                   <button type="button" onClick={() => setExtraAttachments(p => p.filter((_, idx) => idx !== i))} className="p-1 text-destructive shrink-0"><X className="w-3.5 h-3.5" /></button>
                 </div>
               ))}
@@ -189,6 +194,57 @@ export default function AffiliatedAgents() {
             <EntityApiHub entityName={form.agentName || "New Agent"} ownerKind="affiliated_agent" ownerId={editId || undefined} />
           </div>
           <DialogFooter><Button onClick={handleSubmit} className="font-display text-xs">{editId ? "Save" : "Create"}</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!detailId} onOpenChange={() => setDetailId(null)}>
+        <DialogContent className="bg-card border-border max-w-lg max-h-[85vh] overflow-auto">
+          {detail && (
+            <>
+              <DialogHeader><DialogTitle className="font-display text-primary">{detail.agentName}</DialogTitle></DialogHeader>
+              <div className="space-y-3">
+                <div className="flex items-center gap-3 flex-wrap">
+                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-display ${detail.status === "Active" ? "bg-scarab/20 text-scarab" : "bg-muted text-muted-foreground"}`}>{detail.status}</span>
+                  <span className="text-[10px] text-muted-foreground">Rate: <span className="text-scarab font-display">{(detail.commissionRate * 100).toFixed(1)}%</span></span>
+                  <span className="text-[10px] text-muted-foreground">Sales: <span className="text-primary font-display">{detail.totalSales}</span></span>
+                </div>
+                {detail.notes && <p className="text-xs text-muted-foreground">{detail.notes}</p>}
+                {((detail as any).socialAccounts?.length > 0) && (
+                  <div className="space-y-1 border-t border-border pt-2">
+                    <p className="text-[10px] font-display text-muted-foreground uppercase tracking-wider">Social Media</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {(detail as any).socialAccounts.map((acc: SocialAccount) => (
+                        <span key={acc.id} className="text-[10px] bg-secondary/60 px-2 py-0.5 rounded-full border border-border text-foreground">{acc.platform}{acc.url ? ` · ${acc.url}` : ""}</span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {((detail as any).contacts?.length > 0) && (
+                  <div className="space-y-1 border-t border-border pt-2">
+                    <p className="text-[10px] font-display text-muted-foreground uppercase tracking-wider">Contact Methods</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {(detail as any).contacts.map((c: ContactEntry) => (
+                        <span key={c.id} className="text-[10px] bg-secondary/60 px-2 py-0.5 rounded border border-border text-foreground">{c.type}: {c.value}</span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {((detail as any).extraAttachments?.length > 0) && (
+                  <div className="space-y-1 border-t border-border pt-2">
+                    <p className="text-[10px] font-display text-muted-foreground uppercase tracking-wider">Attachments</p>
+                    {(detail as any).extraAttachments.map((a: AttachmentFile) => (
+                      <div key={a.id} className="flex items-center gap-2 text-[10px]">
+                        <span>📎</span>
+                        {a.label && <span className="text-primary font-display">{a.label}:</span>}
+                        <span className="text-foreground">{a.name}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <EntityApiHub entityName={detail.agentName} ownerKind="affiliated_agent" ownerId={detail.id} />
+              </div>
+            </>
+          )}
         </DialogContent>
       </Dialog>
 

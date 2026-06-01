@@ -246,8 +246,11 @@ const Projects = () => {
               </div>
               {extraAttachments.map((a, i) => (
                 <div key={a.id} className="flex items-center gap-2">
-                  <Input value={a.label} onChange={e => setExtraAttachments(p => p.map((x, idx) => idx === i ? { ...x, label: e.target.value } : x))} placeholder="Label / Description" className="bg-secondary border-border text-foreground text-xs" />
-                  <Input value={a.name} onChange={e => setExtraAttachments(p => p.map((x, idx) => idx === i ? { ...x, name: e.target.value } : x))} placeholder="File name" className="bg-secondary border-border text-foreground text-xs" />
+                  <Input value={a.label} onChange={e => setExtraAttachments(p => p.map((x, idx) => idx === i ? { ...x, label: e.target.value } : x))} placeholder="Description / Label" className="bg-secondary border-border text-foreground text-xs flex-1" />
+                  <label className="flex items-center gap-1 cursor-pointer px-2 py-1.5 rounded-md bg-secondary border border-border text-[10px] text-muted-foreground hover:text-primary transition-colors shrink-0">
+                    📎 <span className="max-w-[80px] truncate">{a.name || "Browse…"}</span>
+                    <input type="file" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) setExtraAttachments(p => p.map((x, idx) => idx === i ? { ...x, name: f.name } : x)); e.target.value = ""; }} />
+                  </label>
                   <button type="button" onClick={() => setExtraAttachments(p => p.filter((_, idx) => idx !== i))} className="p-1 text-destructive shrink-0"><X className="w-3.5 h-3.5" /></button>
                 </div>
               ))}
@@ -269,6 +272,46 @@ const Projects = () => {
                 <p className="text-xs text-muted-foreground">{detail.description}</p>
                 {detail.responsiblePerson && <p className="text-xs text-primary">Key Person: {summarizeKeyPersons(detail.responsiblePerson)}</p>}
                 <StaffMetrics humanCount={detail.humanCount} aiCount={detail.aiCount} />
+                {((detail as any).teamDetails?.length > 0) && (
+                  <div className="space-y-1 border-t border-border pt-2">
+                    <p className="text-[10px] font-display text-muted-foreground uppercase tracking-wider">Team Members</p>
+                    {(detail as any).teamDetails.map((m: TeamMemberEntry) => (
+                      <div key={m.id} className="flex items-start gap-2">
+                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-display shrink-0 ${m.isAI ? "bg-nile/20 text-nile" : "bg-primary/10 text-primary"}`}>{m.isAI ? "🤖 AI" : "👤 Human"}</span>
+                        <div>
+                          <span className="text-xs text-foreground">{m.name}</span>
+                          {m.contacts?.length > 0 && (
+                            <div className="flex flex-wrap gap-1 mt-0.5">
+                              {m.contacts.map((c: ContactEntry) => <span key={c.id} className="text-[9px] text-muted-foreground bg-secondary/50 px-1.5 py-0.5 rounded">{c.type}: {c.value}</span>)}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {((detail as any).socialAccounts?.length > 0) && (
+                  <div className="space-y-1 border-t border-border pt-2">
+                    <p className="text-[10px] font-display text-muted-foreground uppercase tracking-wider">Social Media</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {(detail as any).socialAccounts.map((acc: SocialAccount) => (
+                        <span key={acc.id} className="text-[10px] bg-secondary/60 px-2 py-0.5 rounded-full border border-border text-foreground">{acc.platform}{acc.url ? ` · ${acc.url}` : ""}</span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {((detail as any).extraAttachments?.length > 0) && (
+                  <div className="space-y-1 border-t border-border pt-2">
+                    <p className="text-[10px] font-display text-muted-foreground uppercase tracking-wider">Attachments</p>
+                    {(detail as any).extraAttachments.map((a: AttachmentFile) => (
+                      <div key={a.id} className="flex items-center gap-2 text-[10px]">
+                        <span>📎</span>
+                        {a.label && <span className="text-primary font-display">{a.label}:</span>}
+                        <span className="text-foreground">{a.name}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
                 <EntityApiHub entityName={detail.name} ownerKind="project" ownerId={detail.id} />
               </div>
             </>
