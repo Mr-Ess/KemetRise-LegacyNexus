@@ -1665,6 +1665,7 @@ export default function BrandsHub() {
   const { brands, loading: brandsLoading } = useBrands();
   const [activeBrandId, setActiveBrandId] = useState<string | null>(null);
   const [tab, setTab] = useState("overview");
+  const [brandAddTrigger, setBrandAddTrigger] = useState(0);
 
   // All entity data at component level
   const { items: projRows,   loading: projLoading,   create: projCreate,   update: projUpdate,   remove: projRemove   } = useEntities("projects");
@@ -1805,7 +1806,7 @@ export default function BrandsHub() {
               <p className="text-xs text-muted-foreground">Brands · Projects · Services · Branches · Customers · Agents</p>
             </div>
           </div>
-          <Button onClick={() => setTab("brands")} className="gap-1.5 font-display text-xs">
+          <Button onClick={() => { setTab("brands"); setBrandAddTrigger(t => t + 1); }} className="gap-1.5 font-display text-xs">
             <Plus className="w-4 h-4"/>New Brand
           </Button>
         </div>
@@ -1845,7 +1846,7 @@ export default function BrandsHub() {
           </TabsContent>
 
           <TabsContent value="brands" className="mt-2">
-            <BrandsManageTab/>
+            <BrandsManageTab openTrigger={brandAddTrigger}/>
           </TabsContent>
 
           <TabsContent value="projects" className="mt-2">
@@ -2410,7 +2411,7 @@ function EmployeesTab({ activeBrandId, brands }: { activeBrandId: string | null;
 }
 
 /* ─── Brands Management Tab ─────────────────────────────────── */
-function BrandsManageTab() {
+function BrandsManageTab({ openTrigger }: { openTrigger?: number }) {
   const { brands, loading, addBrand, updateBrand, deleteBrand } = useBrands();
   const [sheetOpen, setSheetOpen]   = useState(false);
   const [editId, setEditId]         = useState<string | null>(null);
@@ -2448,6 +2449,7 @@ function BrandsManageTab() {
     setEditId(null);
   };
   const openNew = () => { resetForm(); setSheetOpen(true); };
+  useEffect(() => { if (openTrigger) openNew(); }, [openTrigger]);
   const openEdit = useCallback((b: Brand) => {
     setEditId(b.id); setName(b.name); setAddress(b.address); setIndustry(b.industry); setLogoUrl(b.logoUrl||"");
     setResponsiblePerson(b.responsiblePerson||""); setHumanCount(b.humanCount||0); setAiCount(b.aiCount||0);
