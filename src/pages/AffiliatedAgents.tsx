@@ -16,10 +16,11 @@ import { SavedViews } from "@/components/shared/SavedViews";
 type DocFile = { id: string; name: string; category: string };
 type ContactEntry = { id: string; type: string; value: string };
 type AttachmentFile = { id: string; name: string; label: string };
+type SocialAccount = { id: string; platform: string; url: string };
 type Agent = {
   id: string; agentName: string; commissionRate: number; totalSales: number;
   status: "Active" | "Inactive"; notes: string; files: DocFile[];
-  contacts?: ContactEntry[]; extraAttachments?: AttachmentFile[];
+  contacts?: ContactEntry[]; extraAttachments?: AttachmentFile[]; socialAccounts?: SocialAccount[];
 };
 
 const emptyForm: Omit<Agent, "id"> = { agentName: "", commissionRate: 0.05, totalSales: 0, status: "Active", notes: "", files: [], contacts: [], extraAttachments: [] };
@@ -46,13 +47,15 @@ export default function AffiliatedAgents() {
   const [form, setForm] = useState<Omit<Agent, "id">>(emptyForm);
   const [contacts, setContacts] = useState<ContactEntry[]>([]);
   const [extraAttachments, setExtraAttachments] = useState<AttachmentFile[]>([]);
+  const [socialAccounts, setSocialAccounts] = useState<SocialAccount[]>([]);
 
-  const resetForm = () => { setForm(emptyForm); setContacts([]); setExtraAttachments([]); setEditId(null); };
+  const resetForm = () => { setForm(emptyForm); setContacts([]); setExtraAttachments([]); setSocialAccounts([]); setEditId(null); };
   const openEdit = (a: Agent) => {
     const { id, ...rest } = a;
     setForm(rest);
     setContacts((a as any).contacts || []);
     setExtraAttachments((a as any).extraAttachments || []);
+    setSocialAccounts((a as any).socialAccounts || []);
     setEditId(a.id); setShowForm(true);
   };
 
@@ -64,7 +67,7 @@ export default function AffiliatedAgents() {
       total_sales:     form.totalSales     || 0,
       status:          statusToDb(form.status),
       notes:           form.notes          || null,
-      data:            { ...form, contacts, extraAttachments },
+      data:            { ...form, contacts, extraAttachments, socialAccounts },
     };
     if (editId) { await update(editId, payload); toast.success("Updated"); }
     else { await create(payload); toast.success("Created"); }
@@ -136,6 +139,22 @@ export default function AffiliatedAgents() {
               <select value={form.status} onChange={e => setForm(p => ({ ...p, status: e.target.value as Agent["status"] }))} className="w-full rounded-md bg-secondary border border-border px-3 py-2 text-sm font-body text-foreground"><option>Active</option><option>Inactive</option></select>
             </div>
             <div className="space-y-2"><Label>Notes</Label><Input value={form.notes} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))} className="bg-secondary border-border text-foreground" /></div>
+            {/* Social Media Accounts */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label>Social Media Accounts</Label>
+                <Button type="button" variant="outline" size="sm" onClick={() => setSocialAccounts(p => [...p, { id: crypto.randomUUID(), platform: "Facebook", url: "" }])} className="gap-1 text-xs"><Plus className="w-3 h-3" />Add</Button>
+              </div>
+              {socialAccounts.map((acc, i) => (
+                <div key={acc.id} className="flex items-center gap-2">
+                  <select value={acc.platform} onChange={e => setSocialAccounts(p => p.map((x, idx) => idx === i ? { ...x, platform: e.target.value } : x))} className="rounded-md bg-secondary border border-border px-2 py-1.5 text-xs font-body text-foreground w-32 shrink-0">
+                    <option>Facebook</option><option>Instagram</option><option>Twitter/X</option><option>LinkedIn</option><option>TikTok</option><option>YouTube</option><option>WhatsApp</option><option>Telegram</option><option>Snapchat</option><option>Pinterest</option><option>Other</option>
+                  </select>
+                  <Input value={acc.url} onChange={e => setSocialAccounts(p => p.map((x, idx) => idx === i ? { ...x, url: e.target.value } : x))} placeholder="URL or username" className="bg-secondary border-border text-foreground text-xs" />
+                  <button type="button" onClick={() => setSocialAccounts(p => p.filter((_, idx) => idx !== i))} className="p-1 text-destructive shrink-0"><X className="w-3.5 h-3.5" /></button>
+                </div>
+              ))}
+            </div>
             {/* Contact Methods */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">

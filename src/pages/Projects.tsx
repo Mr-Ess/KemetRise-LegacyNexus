@@ -20,13 +20,14 @@ import { SavedViews } from "@/components/shared/SavedViews";
 type DocFile = { id: string; name: string; category: string };
 type ContactEntry = { id: string; type: string; value: string };
 type AttachmentFile = { id: string; name: string; label: string };
+type SocialAccount = { id: string; platform: string; url: string };
 type TeamMemberEntry = { id: string; name: string; isAI: boolean; contacts: ContactEntry[] };
 type Project = {
   id: string; name: string; description: string;
   status: "Active" | "On Hold" | "Completed" | "Cancelled";
   brand: string; brandId?: string | null; startDate: string; endDate: string; team: string[]; budget: string;
   responsiblePerson: string; humanCount: number; aiCount: number; files: DocFile[];
-  teamDetails?: TeamMemberEntry[]; extraAttachments?: AttachmentFile[];
+  teamDetails?: TeamMemberEntry[]; extraAttachments?: AttachmentFile[]; socialAccounts?: SocialAccount[];
 };
 
 const statusColors: Record<string, string> = {
@@ -64,8 +65,9 @@ const Projects = () => {
   const [form, setForm] = useState<Omit<Project, "id">>(emptyForm);
   const [teamDetails, setTeamDetails] = useState<TeamMemberEntry[]>([]);
   const [extraAttachments, setExtraAttachments] = useState<AttachmentFile[]>([]);
+  const [socialAccounts, setSocialAccounts] = useState<SocialAccount[]>([]);
 
-  const resetForm = () => { setForm(emptyForm); setTeamDetails([]); setExtraAttachments([]); setEditId(null); };
+  const resetForm = () => { setForm(emptyForm); setTeamDetails([]); setExtraAttachments([]); setSocialAccounts([]); setEditId(null); };
   const openEdit = (p: Project) => {
     const { id, ...rest } = p;
     setForm(rest);
@@ -76,6 +78,7 @@ const Projects = () => {
       setTeamDetails(p.team.map((name: string) => ({ id: crypto.randomUUID(), name, isAI: false, contacts: [] })));
     }
     setExtraAttachments((p as any).extraAttachments || []);
+    setSocialAccounts((p as any).socialAccounts || []);
     setEditId(p.id); setShowForm(true);
   };
 
@@ -94,7 +97,7 @@ const Projects = () => {
       ai_count:           form.aiCount            || 0,
       responsible_person: form.responsiblePerson  || null,
       team:               teamDetails.map(t => t.name).filter(Boolean),
-      data:               { ...form, teamDetails, extraAttachments },
+      data:               { ...form, teamDetails, extraAttachments, socialAccounts },
     };
     if (editId) { await update(editId, payload); toast.success("Updated"); }
     else { await create(payload); toast.success("Created"); }
@@ -181,6 +184,22 @@ const Projects = () => {
               <select value={form.status} onChange={e => setForm(p => ({ ...p, status: e.target.value as Project["status"] }))} className="w-full rounded-md bg-secondary border border-border px-3 py-2 text-sm font-body text-foreground">
                 <option>Active</option><option>On Hold</option><option>Completed</option><option>Cancelled</option>
               </select>
+            </div>
+            {/* Social Media Accounts */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label>Social Media Accounts</Label>
+                <Button type="button" variant="outline" size="sm" onClick={() => setSocialAccounts(p => [...p, { id: crypto.randomUUID(), platform: "Facebook", url: "" }])} className="gap-1 text-xs"><Plus className="w-3 h-3" />Add</Button>
+              </div>
+              {socialAccounts.map((acc, i) => (
+                <div key={acc.id} className="flex items-center gap-2">
+                  <select value={acc.platform} onChange={e => setSocialAccounts(p => p.map((x, idx) => idx === i ? { ...x, platform: e.target.value } : x))} className="rounded-md bg-secondary border border-border px-2 py-1.5 text-xs font-body text-foreground w-32 shrink-0">
+                    <option>Facebook</option><option>Instagram</option><option>Twitter/X</option><option>LinkedIn</option><option>TikTok</option><option>YouTube</option><option>WhatsApp</option><option>Telegram</option><option>Snapchat</option><option>Pinterest</option><option>Other</option>
+                  </select>
+                  <Input value={acc.url} onChange={e => setSocialAccounts(p => p.map((x, idx) => idx === i ? { ...x, url: e.target.value } : x))} placeholder="URL or username" className="bg-secondary border-border text-foreground text-xs" />
+                  <button type="button" onClick={() => setSocialAccounts(p => p.filter((_, idx) => idx !== i))} className="p-1 text-destructive shrink-0"><X className="w-3.5 h-3.5" /></button>
+                </div>
+              ))}
             </div>
             {/* Team Members with isAI toggle and contacts */}
             <div className="space-y-2">
