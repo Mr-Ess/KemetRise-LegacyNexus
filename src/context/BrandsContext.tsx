@@ -2,13 +2,15 @@ import { createContext, useContext, useEffect, useState, ReactNode, useCallback 
 import { useAuth } from "@/hooks/useAuth";
 import { tenantDb } from "@/lib/tenantDb";
 
+export type AttachmentFile = { id: string; name: string; label: string };
+export type ContactEntry = { id: string; type: string; value: string };
 export type ContactInfo = { name: string; phone: string; email: string; whatsapp: string; };
-export type Owner = ContactInfo & { id: string };
-export type TeamMember = ContactInfo & { id: string; position: string };
-export type ProductItem = { id: string; name: string; description: string; attachmentName?: string };
+export type Owner = ContactInfo & { id: string; contacts?: ContactEntry[] };
+export type TeamMember = ContactInfo & { id: string; position: string; contacts?: ContactEntry[]; isAI?: boolean };
+export type ProductItem = { id: string; name: string; description: string; attachmentName?: string; attachments?: AttachmentFile[] };
 export type DocFile = { id: string; name: string; url?: string };
-export type MarketingPlan = { id: string; title: string; description: string; attachmentName?: string };
-export type SocialLinks = { website: string; facebook: string; instagram: string; twitter: string; linkedin: string; tiktok: string; };
+export type MarketingPlan = { id: string; title: string; description: string; attachmentName?: string; attachments?: AttachmentFile[] };
+export type SocialLinks = { website: string; facebook: string; instagram: string; twitter: string; linkedin: string; tiktok: string; youtube?: string };
 export type ResponsiblePersonContact = { phone: string; email: string; whatsapp: string; linkedin: string; twitter: string; };
 
 export type Brand = {
@@ -29,10 +31,13 @@ export type Brand = {
   marketingPlans: MarketingPlan[];
   companyProfiles: DocFile[];
   socialLinks: SocialLinks;
+  socialAccounts?: { id: string; platform: string; url: string }[];
+  responsiblePersonContacts?: ContactEntry[];
+  extraAttachments?: AttachmentFile[];
   createdAt: string;
 };
 
-const emptySocial = (): SocialLinks => ({ website: "", facebook: "", instagram: "", twitter: "", linkedin: "", tiktok: "" });
+const emptySocial = (): SocialLinks => ({ website: "", facebook: "", instagram: "", twitter: "", linkedin: "", tiktok: "", youtube: "" });
 
 type Ctx = {
   brands: Brand[];
@@ -66,6 +71,9 @@ const rowToBrand = (r: any): Brand => {
     marketingPlans: d.marketingPlans || [],
     companyProfiles: d.companyProfiles || [],
     socialLinks: d.socialLinks || emptySocial(),
+    socialAccounts: d.socialAccounts || [],
+    responsiblePersonContacts: d.responsiblePersonContacts || [],
+    extraAttachments: d.extraAttachments || [],
     createdAt: r.created_at,
   };
 };

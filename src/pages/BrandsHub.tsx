@@ -29,7 +29,7 @@ import { useEntities } from "@/hooks/useEntities";
 import { useExtTable } from "@/hooks/useExtTable";
 import ExportButton from "@/components/shared/ExportButton";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import type { Brand, Owner, TeamMember, ProductItem, DocFile, MarketingPlan, SocialLinks, ResponsiblePersonContact } from "@/context/BrandsContext";
+import type { Brand, Owner, TeamMember, ProductItem, DocFile, MarketingPlan, SocialLinks, ResponsiblePersonContact, ContactEntry, AttachmentFile } from "@/context/BrandsContext";
 import StaffMetrics from "@/components/shared/StaffMetrics";
 import { ActivityTimeline } from "@/components/shared/ActivityTimeline";
 import { Comments } from "@/components/shared/Comments";
@@ -220,7 +220,6 @@ interface FieldDef { key: string; label: string; type?: "text"|"number"|"date"|"
 type AFile = { id: string; name: string };
 const emptyDocs = () => ({ _legal_docs: [] as AFile[], _contracts: [] as AFile[], _marketing_plans: [] as AFile[], _other_files: [] as AFile[] });
 
-type ContactEntry = { id: string; type: string; value: string };
 type PersonEntry  = { id: string; name: string; role: string; contacts: ContactEntry[] };
 const emptyPerson = (): PersonEntry => ({ id: crypto.randomUUID(), name: "", role: "", contacts: [] });
 const emptyPeople = (): { _owners: PersonEntry[]; _key_personnel: PersonEntry[]; _team: PersonEntry[] } =>
@@ -2433,19 +2432,25 @@ function BrandsManageTab({ openTrigger }: { openTrigger?: number }) {
   const [financialDocs, setFinancialDocs] = useState<DocFile[]>([]);
   const [marketingPlans, setMarketingPlans] = useState<MarketingPlan[]>([]);
   const [companyProfiles, setCompanyProfiles] = useState<DocFile[]>([]);
-  const [socialLinks, setSocialLinks] = useState<SocialLinks>({ website: "", facebook: "", instagram: "", twitter: "", linkedin: "", tiktok: "" });
+  const [socialLinks, setSocialLinks] = useState<SocialLinks>({ website: "", facebook: "", instagram: "", twitter: "", linkedin: "", tiktok: "", youtube: "" });
   const [responsiblePersonContact, setResponsiblePersonContact] = useState<ResponsiblePersonContact>({ phone: "", email: "", whatsapp: "", linkedin: "", twitter: "" });
+  const [responsiblePersonContacts, setResponsiblePersonContacts] = useState<ContactEntry[]>([]);
+  const [extraAttachments, setExtraAttachments] = useState<AttachmentFile[]>([]);
+  const [socialAccounts, setSocialAccounts] = useState<{id:string;platform:string;url:string}[]>([]);
 
   const emptyRpc = (): ResponsiblePersonContact => ({ phone: "", email: "", whatsapp: "", linkedin: "", twitter: "" });
 
   const resetForm = () => {
     setName(""); setAddress(""); setIndustry(""); setLogoUrl("");
     setResponsiblePerson(""); setHumanCount(0); setAiCount(0);
-    setOwners([{ id: crypto.randomUUID(), name: "", phone: "", email: "", whatsapp: "" }]);
-    setTeam([]); setProducts([{ id: crypto.randomUUID(), name: "", description: "" }]);
+    setOwners([{ id: crypto.randomUUID(), name: "", phone: "", email: "", whatsapp: "", contacts: [] }]);
+    setTeam([]); setProducts([{ id: crypto.randomUUID(), name: "", description: "", attachments: [] }]);
     setLegalDocs([]); setFinancialDocs([]); setMarketingPlans([]); setCompanyProfiles([]);
-    setSocialLinks({ website: "", facebook: "", instagram: "", twitter: "", linkedin: "", tiktok: "" });
+    setSocialLinks({ website: "", facebook: "", instagram: "", twitter: "", linkedin: "", tiktok: "", youtube: "" });
     setResponsiblePersonContact(emptyRpc());
+    setResponsiblePersonContacts([]);
+    setExtraAttachments([]);
+    setSocialAccounts([]);
     setEditId(null);
   };
   const openNew = () => { resetForm(); setSheetOpen(true); };
@@ -2453,23 +2458,52 @@ function BrandsManageTab({ openTrigger }: { openTrigger?: number }) {
   const openEdit = useCallback((b: Brand) => {
     setEditId(b.id); setName(b.name); setAddress(b.address); setIndustry(b.industry); setLogoUrl(b.logoUrl||"");
     setResponsiblePerson(b.responsiblePerson||""); setHumanCount(b.humanCount||0); setAiCount(b.aiCount||0);
-    setOwners(b.owners.length ? b.owners : [{ id: crypto.randomUUID(), name: "", phone: "", email: "", whatsapp: "" }]);
-    setTeam(b.team);
-    setProducts(b.products.length ? b.products : [{ id: crypto.randomUUID(), name: "", description: "" }]);
+    const migrateOwnerC = (o: Owner): ContactEntry[] => o.contacts?.length ? o.contacts : [
+      ...(o.phone?[{id:crypto.randomUUID(),type:"phone",value:o.phone}]:[]),
+      ...(o.email?[{id:crypto.randomUUID(),type:"email",value:o.email}]:[]),
+      ...(o.whatsapp?[{id:crypto.randomUUID(),type:"whatsapp",value:o.whatsapp}]:[]),
+    ];
+    setOwners(b.owners.length ? b.owners.map(o=>({...o,contacts:migrateOwnerC(o)})) : [{ id: crypto.randomUUID(), name: "", phone: "", email: "", whatsapp: "", contacts: [] }]);
+    const migrateTeamC = (t: TeamMember): ContactEntry[] => (t as any).contacts?.length ? (t as any).contacts : [
+      ...(t.phone?[{id:crypto.randomUUID(),type:"phone",value:t.phone}]:[]),
+      ...(t.email?[{id:crypto.randomUUID(),type:"email",value:t.email}]:[]),
+      ...(t.whatsapp?[{id:crypto.randomUUID(),type:"whatsapp",value:t.whatsapp}]:[]),
+    ];
+    setTeam(b.team.map(t=>({...t,contacts:migrateTeamC(t)})));
+    setProducts(b.products.length ? b.products : [{ id: crypto.randomUUID(), name: "", description: "", attachments: [] }]);
     setLegalDocs(b.legalDocs); setFinancialDocs(b.financialDocs);
     setMarketingPlans(b.marketingPlans); setCompanyProfiles(b.companyProfiles||[]);
-    setSocialLinks(b.socialLinks||{ website:"",facebook:"",instagram:"",twitter:"",linkedin:"",tiktok:"" });
+    setSocialLinks({website:"",facebook:"",instagram:"",twitter:"",linkedin:"",tiktok:"",youtube:"",...(b.socialLinks||{})});
     setResponsiblePersonContact(b.responsiblePersonContact||emptyRpc());
+    const rpc = b.responsiblePersonContact;
+    const existingRpc = b.responsiblePersonContacts || [];
+    if (existingRpc.length > 0) {
+      setResponsiblePersonContacts(existingRpc);
+    } else if (rpc) {
+      setResponsiblePersonContacts([
+        ...(rpc.phone?[{id:crypto.randomUUID(),type:"phone",value:rpc.phone}]:[]),
+        ...(rpc.email?[{id:crypto.randomUUID(),type:"email",value:rpc.email}]:[]),
+        ...(rpc.whatsapp?[{id:crypto.randomUUID(),type:"whatsapp",value:rpc.whatsapp}]:[]),
+        ...(rpc.linkedin?[{id:crypto.randomUUID(),type:"linkedin",value:rpc.linkedin}]:[]),
+        ...(rpc.twitter?[{id:crypto.randomUUID(),type:"twitter",value:rpc.twitter}]:[]),
+      ]);
+    } else {
+      setResponsiblePersonContacts([]);
+    }
+    setExtraAttachments(b.extraAttachments||[]);
+    setSocialAccounts(b.socialAccounts||[]);
     setSheetOpen(true);
   }, []);
 
   const handleSubmit = async () => {
     if (!name.trim()) { toast.error("Brand name is required"); return; }
-    const data = { name, address, industry, logoUrl, socialLinks, responsiblePerson, responsiblePersonContact, humanCount, aiCount,
+    const data = { name, address, industry, logoUrl, socialLinks, socialAccounts: socialAccounts.filter(a=>a.url),
+      responsiblePerson, responsiblePersonContact, responsiblePersonContacts, humanCount, aiCount,
       companyProfiles: companyProfiles.filter(d => d.name), owners: owners.filter(o => o.name.trim()),
       team: team.filter(t => t.name.trim()), products: products.filter(p => p.name.trim()),
       legalDocs: legalDocs.filter(d => d.name), financialDocs: financialDocs.filter(d => d.name),
       marketingPlans: marketingPlans.filter(m => m.title.trim()),
+      extraAttachments: extraAttachments.filter(a => a.name || a.label),
     };
     setSaving(true);
     try {
@@ -2627,13 +2661,22 @@ function BrandsManageTab({ openTrigger }: { openTrigger?: number }) {
               </div>
               <div className="mt-3 p-3 bg-secondary/30 rounded-md border border-border space-y-2">
                 <p className="text-[11px] text-muted-foreground font-medium">Key Person Contact</p>
-                <div className="grid grid-cols-2 gap-2">
-                  <div><Label className="text-xs">Phone</Label><Input value={responsiblePersonContact.phone} onChange={e=>setResponsiblePersonContact(p=>({...p,phone:e.target.value}))} placeholder="+20…" className="mt-1 bg-secondary border-border text-xs"/></div>
-                  <div><Label className="text-xs">Email</Label><Input value={responsiblePersonContact.email} onChange={e=>setResponsiblePersonContact(p=>({...p,email:e.target.value}))} placeholder="email@…" className="mt-1 bg-secondary border-border text-xs"/></div>
-                  <div><Label className="text-xs">WhatsApp</Label><Input value={responsiblePersonContact.whatsapp} onChange={e=>setResponsiblePersonContact(p=>({...p,whatsapp:e.target.value}))} placeholder="+20…" className="mt-1 bg-secondary border-border text-xs"/></div>
-                  <div><Label className="text-xs">Twitter</Label><Input value={responsiblePersonContact.twitter} onChange={e=>setResponsiblePersonContact(p=>({...p,twitter:e.target.value}))} placeholder="@handle or URL" className="mt-1 bg-secondary border-border text-xs"/></div>
-                  <div className="col-span-2"><Label className="text-xs">LinkedIn</Label><Input value={responsiblePersonContact.linkedin} onChange={e=>setResponsiblePersonContact(p=>({...p,linkedin:e.target.value}))} placeholder="linkedin.com/in/…" className="mt-1 bg-secondary border-border text-xs"/></div>
-                </div>
+                {responsiblePersonContacts.map((c,ci)=>(
+                  <div key={c.id} className="flex items-center gap-1.5">
+                    <select value={c.type} onChange={e=>setResponsiblePersonContacts(p=>p.map((cx,cxi)=>cxi===ci?{...cx,type:e.target.value}:cx))}
+                      className="bg-secondary border border-border rounded px-2 py-1 text-xs text-foreground shrink-0 w-28">
+                      <option value="phone">📞 Phone</option>
+                      <option value="email">📧 Email</option>
+                      <option value="whatsapp">💬 WhatsApp</option>
+                      <option value="linkedin">🔗 LinkedIn</option>
+                      <option value="twitter">𝕏 Twitter</option>
+                      <option value="other">• Other</option>
+                    </select>
+                    <Input value={c.value} onChange={e=>setResponsiblePersonContacts(p=>p.map((cx,cxi)=>cxi===ci?{...cx,value:e.target.value}:cx))} placeholder="Value…" className="flex-1 h-7 text-xs bg-secondary border-border"/>
+                    <button type="button" onClick={()=>setResponsiblePersonContacts(p=>p.filter((_,cxi)=>cxi!==ci))} className="text-destructive p-0.5 shrink-0 hover:bg-destructive/10 rounded"><X className="w-3 h-3"/></button>
+                  </div>
+                ))}
+                <Button type="button" variant="ghost" size="sm" onClick={()=>setResponsiblePersonContacts(p=>[...p,{id:crypto.randomUUID(),type:"phone",value:""}])} className="h-6 text-[11px] gap-1 text-muted-foreground hover:text-foreground"><Plus className="w-3 h-3"/>Add Contact</Button>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div><Label className="text-xs">Human Staff</Label><Input type="number" min={0} value={humanCount} onChange={e=>setHumanCount(+e.target.value)} className="mt-1 bg-secondary border-border"/></div>
@@ -2642,29 +2685,87 @@ function BrandsManageTab({ openTrigger }: { openTrigger?: number }) {
             </div>
             <SH icon={Globe} title="Social Media & Contact"/>
             <div className="grid grid-cols-2 gap-3">
-              {(["website","facebook","instagram","twitter","linkedin","tiktok"] as const).map(k=>(
-                <div key={k}><Label className="text-xs capitalize">{k}</Label><Input value={socialLinks[k]} onChange={e=>setSocialLinks(p=>({...p,[k]:e.target.value}))} placeholder={k==="website"?"https://...":"@handle"} className="mt-1 bg-secondary border-border text-xs"/></div>
+              {(["website","facebook","instagram","twitter","linkedin","tiktok","youtube"] as const).map(k=>(
+                <div key={k}><Label className="text-xs capitalize">{k}</Label><Input value={(socialLinks as any)[k]||""} onChange={e=>setSocialLinks(p=>({...p,[k]:e.target.value}))} placeholder={k==="website"?"https://...":k==="youtube"?"https://youtube.com/...":"@handle"} className="mt-1 bg-secondary border-border text-xs"/></div>
               ))}
+            </div>
+            <div className="mt-3">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2">Additional Accounts</p>
+              {socialAccounts.map((sa,i)=>(
+                <div key={sa.id} className="flex items-center gap-1.5 mb-1.5">
+                  <Input value={sa.platform} onChange={e=>setSocialAccounts(p=>p.map((s,si)=>si===i?{...s,platform:e.target.value}:s))} placeholder="Platform…" className="w-28 h-7 text-xs bg-secondary border-border shrink-0"/>
+                  <Input value={sa.url} onChange={e=>setSocialAccounts(p=>p.map((s,si)=>si===i?{...s,url:e.target.value}:s))} placeholder="URL or @handle" className="flex-1 h-7 text-xs bg-secondary border-border"/>
+                  <button type="button" onClick={()=>setSocialAccounts(p=>p.filter((_,si)=>si!==i))} className="text-destructive p-0.5 shrink-0 hover:bg-destructive/10 rounded"><X className="w-3 h-3"/></button>
+                </div>
+              ))}
+              <Button type="button" variant="ghost" size="sm" onClick={()=>setSocialAccounts(p=>[...p,{id:crypto.randomUUID(),platform:"",url:""}])} className="h-6 text-[11px] gap-1 text-muted-foreground hover:text-foreground"><Plus className="w-3 h-3"/>Add Account</Button>
             </div>
             <SH icon={User} title="Owners"/>
             <div className="space-y-3">
               {owners.map((o,i)=>(
                 <div key={o.id} className="p-3 bg-secondary/30 rounded-md border border-border space-y-2">
                   <div className="flex items-center justify-between"><span className="text-[11px] text-muted-foreground">Owner #{i+1}</span>{owners.length>1&&<button type="button" onClick={()=>setOwners(p=>p.filter((_,idx)=>idx!==i))} className="text-destructive hover:bg-destructive/10 rounded p-1"><X className="w-3.5 h-3.5"/></button>}</div>
-                  <div className="grid grid-cols-2 gap-2">{(["name","phone","email","whatsapp"] as const).map(f=><div key={f}><Label className="text-xs capitalize">{f}</Label><Input value={o[f]} onChange={e=>updOwner(i,f,e.target.value)} className="mt-1 bg-secondary border-border text-xs"/></div>)}</div>
+                  <div><Label className="text-xs">Name</Label><Input value={o.name} onChange={e=>updOwner(i,"name",e.target.value)} className="mt-1 bg-secondary border-border text-xs"/></div>
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Contact Info</p>
+                  {(o.contacts||[]).map((c,ci)=>(
+                    <div key={c.id} className="flex items-center gap-1.5">
+                      <select value={c.type} onChange={e=>setOwners(p=>p.map((ow,oi)=>oi===i?{...ow,contacts:(ow.contacts||[]).map((cx,cxi)=>cxi===ci?{...cx,type:e.target.value}:cx)}:ow))}
+                        className="bg-secondary border border-border rounded px-2 py-1 text-xs text-foreground shrink-0 w-28">
+                        <option value="phone">📞 Phone</option>
+                        <option value="email">📧 Email</option>
+                        <option value="whatsapp">💬 WhatsApp</option>
+                        <option value="linkedin">🔗 LinkedIn</option>
+                        <option value="twitter">𝕏 Twitter</option>
+                        <option value="other">• Other</option>
+                      </select>
+                      <Input value={c.value} onChange={e=>setOwners(p=>p.map((ow,oi)=>oi===i?{...ow,contacts:(ow.contacts||[]).map((cx,cxi)=>cxi===ci?{...cx,value:e.target.value}:cx)}:ow))} placeholder="Value…" className="flex-1 h-7 text-xs bg-secondary border-border"/>
+                      <button type="button" onClick={()=>setOwners(p=>p.map((ow,oi)=>oi===i?{...ow,contacts:(ow.contacts||[]).filter((_,cxi)=>cxi!==ci)}:ow))} className="text-destructive p-0.5 shrink-0 hover:bg-destructive/10 rounded"><X className="w-3 h-3"/></button>
+                    </div>
+                  ))}
+                  <Button type="button" variant="ghost" size="sm" onClick={()=>setOwners(p=>p.map((ow,oi)=>oi===i?{...ow,contacts:[...(ow.contacts||[]),{id:crypto.randomUUID(),type:"phone",value:""}]}:ow))} className="h-6 text-[11px] gap-1 text-muted-foreground hover:text-foreground"><Plus className="w-3 h-3"/>Add Contact</Button>
                 </div>
               ))}
-              <Button type="button" variant="outline" size="sm" onClick={()=>setOwners(p=>[...p,{id:crypto.randomUUID(),name:"",phone:"",email:"",whatsapp:""}])} className="gap-1 text-xs"><Plus className="w-3.5 h-3.5"/>Add Owner</Button>
+              <Button type="button" variant="outline" size="sm" onClick={()=>setOwners(p=>[...p,{id:crypto.randomUUID(),name:"",phone:"",email:"",whatsapp:"",contacts:[]}])} className="gap-1 text-xs"><Plus className="w-3.5 h-3.5"/>Add Owner</Button>
             </div>
             <SH icon={Users} title="Key Personnel / Team"/>
             <div className="space-y-3">
               {team.map((t,i)=>(
                 <div key={t.id} className="p-3 bg-secondary/30 rounded-md border border-border space-y-2">
-                  <div className="flex items-center justify-between"><span className="text-[11px] text-muted-foreground">Member #{i+1}</span><button type="button" onClick={()=>setTeam(p=>p.filter((_,idx)=>idx!==i))} className="text-destructive hover:bg-destructive/10 rounded p-1"><X className="w-3.5 h-3.5"/></button></div>
-                  <div className="grid grid-cols-2 gap-2">{(["name","position","phone","email","whatsapp"] as const).map(f=><div key={f}><Label className="text-xs capitalize">{f}</Label><Input value={t[f]} onChange={e=>updTeam(i,f,e.target.value)} className="mt-1 bg-secondary border-border text-xs"/></div>)}</div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] text-muted-foreground">Member #{i+1}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] text-muted-foreground">{(t as any).isAI?"🤖 AI":"👤 Human"}</span>
+                      <button type="button" onClick={()=>setTeam(p=>p.map((tm,ti)=>ti===i?{...tm,isAI:!(tm as any).isAI}:tm))}
+                        className={`w-8 h-4 rounded-full transition-colors relative ${(t as any).isAI?"bg-primary":"bg-muted border border-border"}`}>
+                        <span className={`absolute top-0.5 w-3 h-3 rounded-full bg-white transition-transform ${(t as any).isAI?"translate-x-4":"translate-x-0.5"}`}/>
+                      </button>
+                      <button type="button" onClick={()=>setTeam(p=>p.filter((_,idx)=>idx!==i))} className="text-destructive hover:bg-destructive/10 rounded p-1"><X className="w-3.5 h-3.5"/></button>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div><Label className="text-xs">Name</Label><Input value={t.name} onChange={e=>updTeam(i,"name",e.target.value)} className="mt-1 bg-secondary border-border text-xs"/></div>
+                    <div><Label className="text-xs">Position</Label><Input value={t.position} onChange={e=>updTeam(i,"position",e.target.value)} className="mt-1 bg-secondary border-border text-xs"/></div>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Contact Info</p>
+                  {((t as any).contacts||[]).map((c:any,ci:number)=>(
+                    <div key={c.id} className="flex items-center gap-1.5">
+                      <select value={c.type} onChange={e=>setTeam(p=>p.map((tm,ti)=>ti===i?{...tm,contacts:((tm as any).contacts||[]).map((cx:any,cxi:number)=>cxi===ci?{...cx,type:e.target.value}:cx)}:tm))}
+                        className="bg-secondary border border-border rounded px-2 py-1 text-xs text-foreground shrink-0 w-28">
+                        <option value="phone">📞 Phone</option>
+                        <option value="email">📧 Email</option>
+                        <option value="whatsapp">💬 WhatsApp</option>
+                        <option value="linkedin">🔗 LinkedIn</option>
+                        <option value="twitter">𝕏 Twitter</option>
+                        <option value="other">• Other</option>
+                      </select>
+                      <Input value={c.value} onChange={e=>setTeam(p=>p.map((tm,ti)=>ti===i?{...tm,contacts:((tm as any).contacts||[]).map((cx:any,cxi:number)=>cxi===ci?{...cx,value:e.target.value}:cx)}:tm))} placeholder="Value…" className="flex-1 h-7 text-xs bg-secondary border-border"/>
+                      <button type="button" onClick={()=>setTeam(p=>p.map((tm,ti)=>ti===i?{...tm,contacts:((tm as any).contacts||[]).filter((_:any,cxi:number)=>cxi!==ci)}:tm))} className="text-destructive p-0.5 shrink-0 hover:bg-destructive/10 rounded"><X className="w-3 h-3"/></button>
+                    </div>
+                  ))}
+                  <Button type="button" variant="ghost" size="sm" onClick={()=>setTeam(p=>p.map((tm,ti)=>ti===i?{...tm,contacts:[...((tm as any).contacts||[]),{id:crypto.randomUUID(),type:"phone",value:""}]}:tm))} className="h-6 text-[11px] gap-1 text-muted-foreground hover:text-foreground"><Plus className="w-3 h-3"/>Add Contact</Button>
                 </div>
               ))}
-              <Button type="button" variant="outline" size="sm" onClick={()=>setTeam(p=>[...p,{id:crypto.randomUUID(),name:"",position:"",phone:"",email:"",whatsapp:""}])} className="gap-1 text-xs"><Plus className="w-3.5 h-3.5"/>Add Member</Button>
+              <Button type="button" variant="outline" size="sm" onClick={()=>setTeam(p=>[...p,{id:crypto.randomUUID(),name:"",position:"",phone:"",email:"",whatsapp:"",isAI:false,contacts:[]}])} className="gap-1 text-xs"><Plus className="w-3.5 h-3.5"/>Add Member</Button>
             </div>
             <SH icon={Package} title="Products & Services"/>
             <div className="space-y-3">
@@ -2673,9 +2774,23 @@ function BrandsManageTab({ openTrigger }: { openTrigger?: number }) {
                   <div className="flex items-center justify-between"><span className="text-[11px] text-muted-foreground">Product #{i+1}</span>{products.length>1&&<button type="button" onClick={()=>setProducts(prev=>prev.filter((_,idx)=>idx!==i))} className="text-destructive hover:bg-destructive/10 rounded p-1"><X className="w-3.5 h-3.5"/></button>}</div>
                   <div><Label className="text-xs">Name</Label><Input value={p.name} onChange={e=>updProd(i,"name",e.target.value)} className="mt-1 bg-secondary border-border text-xs"/></div>
                   <div><Label className="text-xs">Description</Label><Textarea value={p.description} onChange={e=>updProd(i,"description",e.target.value)} className="mt-1 bg-secondary border-border text-xs min-h-[56px]"/></div>
+                  <div>
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1.5">Attachments</p>
+                    {((p as any).attachments||[]).map((att:any,ai:number)=>(
+                      <div key={att.id} className="flex items-center gap-1.5 mb-1.5">
+                        <Input value={att.label} onChange={e=>setProducts(prev=>prev.map((pr,pi)=>pi===i?{...pr,attachments:((pr as any).attachments||[]).map((a:any,aidx:number)=>aidx===ai?{...a,label:e.target.value}:a)}:pr))} placeholder="File description…" className="flex-1 h-7 text-xs bg-secondary border-border"/>
+                        <label className="cursor-pointer px-2 py-0.5 text-[11px] text-primary hover:underline shrink-0 max-w-[90px] truncate">
+                          {att.name||"Browse"}
+                          <input type="file" className="hidden" onChange={e=>{const f=e.target.files?.[0];if(f)setProducts(prev=>prev.map((pr,pi)=>pi===i?{...pr,attachments:((pr as any).attachments||[]).map((a:any,aidx:number)=>aidx===ai?{...a,name:f.name}:a)}:pr));}}/>
+                        </label>
+                        <button type="button" onClick={()=>setProducts(prev=>prev.map((pr,pi)=>pi===i?{...pr,attachments:((pr as any).attachments||[]).filter((_:any,aidx:number)=>aidx!==ai)}:pr))} className="text-destructive p-0.5 shrink-0 hover:bg-destructive/10 rounded"><X className="w-3 h-3"/></button>
+                      </div>
+                    ))}
+                    <Button type="button" variant="ghost" size="sm" onClick={()=>setProducts(prev=>prev.map((pr,pi)=>pi===i?{...pr,attachments:[...((pr as any).attachments||[]),{id:crypto.randomUUID(),name:"",label:""}]}:pr))} className="h-6 text-[11px] gap-1 text-muted-foreground hover:text-foreground"><Paperclip className="w-3 h-3"/>Add Attachment</Button>
+                  </div>
                 </div>
               ))}
-              <Button type="button" variant="outline" size="sm" onClick={()=>setProducts(p=>[...p,{id:crypto.randomUUID(),name:"",description:""}])} className="gap-1 text-xs"><Plus className="w-3.5 h-3.5"/>Add Product</Button>
+              <Button type="button" variant="outline" size="sm" onClick={()=>setProducts(p=>[...p,{id:crypto.randomUUID(),name:"",description:"",attachments:[]}])} className="gap-1 text-xs"><Plus className="w-3.5 h-3.5"/>Add Product</Button>
             </div>
             <SH icon={FileText} title="Legal Documents"/>
             <div className="space-y-2">
@@ -2708,9 +2823,36 @@ function BrandsManageTab({ openTrigger }: { openTrigger?: number }) {
                   <div className="flex items-center justify-between"><span className="text-[11px] text-muted-foreground">Plan #{i+1}</span><button type="button" onClick={()=>setMarketingPlans(p=>p.filter((_,idx)=>idx!==i))} className="text-destructive hover:bg-destructive/10 rounded p-1"><X className="w-3.5 h-3.5"/></button></div>
                   <div><Label className="text-xs">Title</Label><Input value={m.title} onChange={e=>updPlan(i,"title",e.target.value)} className="mt-1 bg-secondary border-border text-xs"/></div>
                   <div><Label className="text-xs">Description</Label><Textarea value={m.description} onChange={e=>updPlan(i,"description",e.target.value)} className="mt-1 bg-secondary border-border text-xs min-h-[56px]"/></div>
+                  <div>
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1.5">Attachments</p>
+                    {((m as any).attachments||[]).map((att:any,ai:number)=>(
+                      <div key={att.id} className="flex items-center gap-1.5 mb-1.5">
+                        <Input value={att.label} onChange={e=>setMarketingPlans(prev=>prev.map((pl,pi)=>pi===i?{...pl,attachments:((pl as any).attachments||[]).map((a:any,aidx:number)=>aidx===ai?{...a,label:e.target.value}:a)}:pl))} placeholder="File description…" className="flex-1 h-7 text-xs bg-secondary border-border"/>
+                        <label className="cursor-pointer px-2 py-0.5 text-[11px] text-primary hover:underline shrink-0 max-w-[90px] truncate">
+                          {att.name||"Browse"}
+                          <input type="file" className="hidden" onChange={e=>{const f=e.target.files?.[0];if(f)setMarketingPlans(prev=>prev.map((pl,pi)=>pi===i?{...pl,attachments:((pl as any).attachments||[]).map((a:any,aidx:number)=>aidx===ai?{...a,name:f.name}:a)}:pl));}}/>
+                        </label>
+                        <button type="button" onClick={()=>setMarketingPlans(prev=>prev.map((pl,pi)=>pi===i?{...pl,attachments:((pl as any).attachments||[]).filter((_:any,aidx:number)=>aidx!==ai)}:pl))} className="text-destructive p-0.5 shrink-0 hover:bg-destructive/10 rounded"><X className="w-3 h-3"/></button>
+                      </div>
+                    ))}
+                    <Button type="button" variant="ghost" size="sm" onClick={()=>setMarketingPlans(prev=>prev.map((pl,pi)=>pi===i?{...pl,attachments:[...((pl as any).attachments||[]),{id:crypto.randomUUID(),name:"",label:""}]}:pl))} className="h-6 text-[11px] gap-1 text-muted-foreground hover:text-foreground"><Paperclip className="w-3 h-3"/>Add Attachment</Button>
+                  </div>
                 </div>
               ))}
-              <Button type="button" variant="outline" size="sm" onClick={()=>setMarketingPlans(p=>[...p,{id:crypto.randomUUID(),title:"",description:""}])} className="gap-1 text-xs"><Plus className="w-3.5 h-3.5"/>Add Plan</Button>
+              <Button type="button" variant="outline" size="sm" onClick={()=>setMarketingPlans(p=>[...p,{id:crypto.randomUUID(),title:"",description:"",attachments:[]}])} className="gap-1 text-xs"><Plus className="w-3.5 h-3.5"/>Add Plan</Button>
+            </div>
+            <SH icon={Paperclip} title="Extra Attachments"/>
+            <div className="space-y-2">
+              {extraAttachments.map((a,i)=>(
+                <div key={a.id} className="flex items-center gap-2 p-2 bg-secondary/50 rounded-md border border-border">
+                  <Paperclip className="w-3.5 h-3.5 text-muted-foreground shrink-0"/>
+                  <Input value={a.label} onChange={e=>setExtraAttachments(p=>p.map((att,ai2)=>ai2===i?{...att,label:e.target.value}:att))} placeholder="File description…" className="flex-1 h-7 text-xs bg-secondary border-border"/>
+                  <span className="text-xs text-muted-foreground truncate max-w-[90px]">{a.name||"No file"}</span>
+                  <label className="cursor-pointer px-2 py-0.5 text-xs text-primary hover:underline shrink-0">Browse<input type="file" className="hidden" onChange={e=>{const f=e.target.files?.[0];if(f)setExtraAttachments(p=>p.map((att,ai2)=>ai2===i?{...att,name:f.name}:att));}}/></label>
+                  <button type="button" onClick={()=>setExtraAttachments(p=>p.filter((_,ai2)=>ai2!==i))} className="text-destructive p-0.5 rounded hover:bg-destructive/10 shrink-0"><X className="w-3 h-3"/></button>
+                </div>
+              ))}
+              <Button type="button" variant="outline" size="sm" onClick={()=>setExtraAttachments(p=>[...p,{id:crypto.randomUUID(),name:"",label:""}])} className="gap-1 text-xs"><Plus className="w-3.5 h-3.5"/>Add Attachment</Button>
             </div>
           </div>
           <div className="sticky bottom-0 bg-card border-t border-border px-6 py-4 flex justify-end gap-2 shrink-0">
