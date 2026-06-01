@@ -1052,6 +1052,7 @@ function LegacyProtocolPanel() {
 /* ─── Main Component ──────────────────────────────────────────────────────── */
 export default function OperationsHub() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   // Counts for Overview KPIs
   const mCount  = useCount("materials");
@@ -1081,65 +1082,65 @@ export default function OperationsHub() {
 
         {/* Header */}
         <button onClick={()=>navigate("/")} className="flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors">
-          <ArrowLeft className="w-4 h-4"/><span className="font-body text-sm">Back</span>
+          <ArrowLeft className="w-4 h-4"/><span className="font-body text-sm">{t('back_btn')}</span>
         </button>
         <div className="flex items-center gap-3">
           <div className="p-2 rounded-lg bg-primary/10"><Factory className="w-6 h-6 text-primary"/></div>
           <div>
-            <h1 className="font-display text-xl text-primary">OPERATIONS HUB</h1>
-            <p className="text-xs text-muted-foreground">Inventory · Logistics · Finance · CRM · Marketing · Legal Vault · Digital Inheritance · Emergency Protocol</p>
+            <h1 className="font-display text-xl text-primary">{t('operations_hub').toUpperCase()}</h1>
+            <p className="text-xs text-muted-foreground">{t('operations_hub_subtitle')}</p>
           </div>
         </div>
 
         <Tabs defaultValue="overview" className="w-full">
           <TabsList className="flex flex-wrap gap-1 h-auto p-1 mb-2">
-            <TabsTrigger value="overview"   className="text-xs"><BarChart2 className="w-3.5 h-3.5 mr-1"/>Overview</TabsTrigger>
-            <TabsTrigger value="inventory"  className="text-xs"><Package className="w-3.5 h-3.5 mr-1"/>Inventory</TabsTrigger>
-            <TabsTrigger value="logistics"  className="text-xs"><Truck className="w-3.5 h-3.5 mr-1"/>Logistics</TabsTrigger>
-            <TabsTrigger value="finance"    className="text-xs"><DollarSign className="w-3.5 h-3.5 mr-1"/>Finance</TabsTrigger>
-            <TabsTrigger value="crm"        className="text-xs"><MessageCircle className="w-3.5 h-3.5 mr-1"/>CRM</TabsTrigger>
-            <TabsTrigger value="marketing"  className="text-xs"><Megaphone className="w-3.5 h-3.5 mr-1"/>Marketing</TabsTrigger>
-            <TabsTrigger value="legal"      className="text-xs"><ScrollText className="w-3.5 h-3.5 mr-1"/>Legal Vault{expiringSoon>0&&<Badge variant="destructive" className="ml-1 text-[9px] px-1">{expiringSoon}</Badge>}</TabsTrigger>
-            <TabsTrigger value="legacy"     className="text-xs"><Heart className="w-3.5 h-3.5 mr-1"/>Legacy Protocol</TabsTrigger>
-            <TabsTrigger value="hr"          className="text-xs"><Briefcase className="w-3.5 h-3.5 mr-1"/>HR &amp; Workforce</TabsTrigger>
-            <TabsTrigger value="procurement" className="text-xs"><ShoppingCart className="w-3.5 h-3.5 mr-1"/>Procurement</TabsTrigger>
+            <TabsTrigger value="overview"   className="text-xs"><BarChart2 className="w-3.5 h-3.5 mr-1"/>{t('overview')}</TabsTrigger>
+            <TabsTrigger value="inventory"  className="text-xs"><Package className="w-3.5 h-3.5 mr-1"/>{t('tab_inventory')}</TabsTrigger>
+            <TabsTrigger value="logistics"  className="text-xs"><Truck className="w-3.5 h-3.5 mr-1"/>{t('tab_logistics')}</TabsTrigger>
+            <TabsTrigger value="finance"    className="text-xs"><DollarSign className="w-3.5 h-3.5 mr-1"/>{t('tab_finance')}</TabsTrigger>
+            <TabsTrigger value="crm"        className="text-xs"><MessageCircle className="w-3.5 h-3.5 mr-1"/>{t('tab_crm')}</TabsTrigger>
+            <TabsTrigger value="marketing"  className="text-xs"><Megaphone className="w-3.5 h-3.5 mr-1"/>{t('tab_marketing')}</TabsTrigger>
+            <TabsTrigger value="legal"      className="text-xs"><ScrollText className="w-3.5 h-3.5 mr-1"/>{t('tab_legal')}{expiringSoon>0&&<Badge variant="destructive" className="ml-1 text-[9px] px-1">{expiringSoon}</Badge>}</TabsTrigger>
+            <TabsTrigger value="legacy"     className="text-xs"><Heart className="w-3.5 h-3.5 mr-1"/>{t('tab_legacy')}</TabsTrigger>
+            <TabsTrigger value="hr"          className="text-xs"><Briefcase className="w-3.5 h-3.5 mr-1"/>{t('tab_hr')}</TabsTrigger>
+            <TabsTrigger value="procurement" className="text-xs"><ShoppingCart className="w-3.5 h-3.5 mr-1"/>{t('tab_procurement')}</TabsTrigger>
           </TabsList>
 
           {/* ═══════════════════════════════════ OVERVIEW ══ */}
           <TabsContent value="overview">
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-3">
-              <KpiCard icon={Package}     label="Materials"      value={mCount}      color="primary"/>
-              <KpiCard icon={Box}         label="Suppliers"      value={sCount}      color="blue"/>
-              <KpiCard icon={Truck}       label="Shipments"      value={lsCount}     color="emerald"/>
-              <KpiCard icon={MessageCircle} label="CRM Records"  value={crmCount}    color="violet"/>
-              <KpiCard icon={Megaphone}   label="Campaigns"      value={mktCount}    sub={`${activeCampaigns} active`} color="amber"/>
-              <KpiCard icon={ScrollText}  label="Legal Docs"     value={legalCount}  sub={expiringSoon>0?`${expiringSoon} expiring`:"All valid"} color={expiringSoon>0?"red":"emerald"}/>
+              <KpiCard icon={Package}     label={t('materials')}      value={mCount}      color="primary"/>
+              <KpiCard icon={Box}         label={t('suppliers_label')}      value={sCount}      color="blue"/>
+              <KpiCard icon={Truck}       label={t('shipments_label')}      value={lsCount}     color="emerald"/>
+              <KpiCard icon={MessageCircle} label={t('crm_records_label')}  value={crmCount}    color="violet"/>
+              <KpiCard icon={Megaphone}   label={t('campaigns_kpi')}      value={mktCount}    sub={`${activeCampaigns} active`} color="amber"/>
+              <KpiCard icon={ScrollText}  label={t('legal_docs_kpi')}     value={legalCount}  sub={expiringSoon>0?`${expiringSoon} expiring`:"All valid"} color={expiringSoon>0?"red":"emerald"}/>
             </div>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-6">
-              <KpiCard icon={Users}   label="Digital Heirs"   value={heirCount}  color="primary"/>
-              <KpiCard icon={Landmark} label="Assets Managed" value={assetCount} color="emerald"/>
-              <KpiCard icon={Heart}   label="Legacy Protocol" value={heirCount > 0 ? "ARMED" : "SETUP"} color={heirCount > 0 ? "emerald" : "amber"}/>
+              <KpiCard icon={Users}   label={t('digital_heirs_kpi')}   value={heirCount}  color="primary"/>
+              <KpiCard icon={Landmark} label={t('assets_managed_kpi')} value={assetCount} color="emerald"/>
+              <KpiCard icon={Heart}   label={t('legacy_protocol_kpi')} value={heirCount > 0 ? "ARMED" : "SETUP"} color={heirCount > 0 ? "emerald" : "amber"}/>
             </div>
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">              <Card>
-                <CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-2"><Megaphone className="w-4 h-4 text-amber-400"/>Marketing Summary</CardTitle></CardHeader>
+                <CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-2"><Megaphone className="w-4 h-4 text-amber-400"/>{t('marketing_summary_title')}</CardTitle></CardHeader>
                 <CardContent className="space-y-2">
-                  <div className="flex justify-between text-xs border-b pb-1.5"><span className="text-muted-foreground">Total Campaigns</span><span className="font-bold">{mktCount}</span></div>
-                  <div className="flex justify-between text-xs border-b pb-1.5"><span className="text-muted-foreground">Active</span><span className="font-bold text-emerald-400">{activeCampaigns}</span></div>
-                  <div className="flex justify-between text-xs border-b pb-1.5"><span className="text-muted-foreground">Total Budget</span><span className="font-bold text-amber-400">${totalBudget.toLocaleString()}</span></div>
-                  <div className="flex justify-between text-xs"><span className="text-muted-foreground">Leads Generated</span><span className="font-bold text-primary">{totalLeads.toLocaleString()}</span></div>
+                  <div className="flex justify-between text-xs border-b pb-1.5"><span className="text-muted-foreground">{t('total_campaigns_label')}</span><span className="font-bold">{mktCount}</span></div>
+                  <div className="flex justify-between text-xs border-b pb-1.5"><span className="text-muted-foreground">{t('status_active')}</span><span className="font-bold text-emerald-400">{activeCampaigns}</span></div>
+                  <div className="flex justify-between text-xs border-b pb-1.5"><span className="text-muted-foreground">{t('total_budget_kpi')}</span><span className="font-bold text-amber-400">${totalBudget.toLocaleString()}</span></div>
+                  <div className="flex justify-between text-xs"><span className="text-muted-foreground">{t('leads_generated_kpi')}</span><span className="font-bold text-primary">{totalLeads.toLocaleString()}</span></div>
                 </CardContent>
               </Card>
               <Card>
-                <CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-2"><ScrollText className="w-4 h-4 text-blue-400"/>Legal Status</CardTitle></CardHeader>
+                <CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-2"><ScrollText className="w-4 h-4 text-blue-400"/>{t('legal_status_title')}</CardTitle></CardHeader>
                 <CardContent className="space-y-2">
-                  <div className="flex justify-between text-xs border-b pb-1.5"><span className="text-muted-foreground">Total Documents</span><span className="font-bold">{legalCount}</span></div>
-                  <div className="flex justify-between text-xs border-b pb-1.5"><span className="text-muted-foreground">Expiring (&lt;30 days)</span><span className={`font-bold ${expiringSoon>0?"text-amber-400":""}`}>{expiringSoon}</span></div>
-                  <div className="flex justify-between text-xs border-b pb-1.5"><span className="text-muted-foreground">Encrypted</span><span className="font-bold text-emerald-400">{legalItems.filter(d=>d.is_encrypted).length}</span></div>
-                  <div className="flex justify-between text-xs"><span className="text-muted-foreground">Expired</span><span className={`font-bold ${legalItems.filter(d=>d.expiry_date&&new Date(d.expiry_date)<new Date()).length>0?"text-red-400":""}`}>{legalItems.filter(d=>d.expiry_date&&new Date(d.expiry_date)<new Date()).length}</span></div>
+                  <div className="flex justify-between text-xs border-b pb-1.5"><span className="text-muted-foreground">{t('total_documents_label')}</span><span className="font-bold">{legalCount}</span></div>
+                  <div className="flex justify-between text-xs border-b pb-1.5"><span className="text-muted-foreground">{t('expiring_30_label')}</span><span className={`font-bold ${expiringSoon>0?"text-amber-400":""}`}>{expiringSoon}</span></div>
+                  <div className="flex justify-between text-xs border-b pb-1.5"><span className="text-muted-foreground">{t('encrypted_label')}</span><span className="font-bold text-emerald-400">{legalItems.filter(d=>d.is_encrypted).length}</span></div>
+                  <div className="flex justify-between text-xs"><span className="text-muted-foreground">{t('expired_label')}</span><span className={`font-bold ${legalItems.filter(d=>d.expiry_date&&new Date(d.expiry_date)<new Date()).length>0?"text-red-400":""}`}>{legalItems.filter(d=>d.expiry_date&&new Date(d.expiry_date)<new Date()).length}</span></div>
                 </CardContent>
               </Card>
               <Card>
-                <CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-2"><AlertTriangle className="w-4 h-4 text-rose-400"/>Expiring Documents</CardTitle></CardHeader>
+                <CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-2"><AlertTriangle className="w-4 h-4 text-rose-400"/>{t('expiring_docs_title')}</CardTitle></CardHeader>
                 <CardContent>
                   {legalItems.filter(d=>d.expiry_date).sort((a,b)=>new Date(a.expiry_date).getTime()-new Date(b.expiry_date).getTime()).slice(0,5).map(d=>(
                     <div key={d.id} className="flex justify-between items-center text-xs py-1.5 border-b last:border-0">
@@ -1147,7 +1148,7 @@ export default function OperationsHub() {
                       <ExpiryBadge date={d.expiry_date}/>
                     </div>
                   ))}
-                  {legalItems.filter(d=>d.expiry_date).length===0&&<p className="text-xs text-muted-foreground text-center py-4">No dated documents</p>}
+                  {legalItems.filter(d=>d.expiry_date).length===0&&<p className="text-xs text-muted-foreground text-center py-4">{t('no_dated_docs')}</p>}
                 </CardContent>
               </Card>
             </div>

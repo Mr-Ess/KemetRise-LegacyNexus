@@ -1,5 +1,6 @@
 ﻿import React, { useState, useMemo, useCallback, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import {
   ArrowLeft, Crown, FolderOpen, Briefcase, Building2, Users, UserCheck, Handshake,
   Plus, Edit, Trash2, Search, ExternalLink, BarChart2,
@@ -70,15 +71,16 @@ function EmptyState({ title, hint }: { title: string; hint?: string }) {
 function BrandFilterBar({ brands, activeBrandId, setActiveBrandId }: {
   brands: any[]; activeBrandId: string | null; setActiveBrandId: (id: string | null) => void;
 }) {
+  const { t } = useTranslation();
   return (
     <div className="flex items-center gap-2 flex-wrap p-3 bg-secondary/30 rounded-lg border border-border">
       <Crown className="w-4 h-4 text-primary shrink-0"/>
-      <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider mr-1">Filter by Brand:</span>
+      <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider mr-1">{t('filter_by_brand')}</span>
       <button
         onClick={() => setActiveBrandId(null)}
         className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${!activeBrandId ? "bg-primary text-primary-foreground" : "bg-secondary hover:bg-secondary/80"}`}
       >
-        All Brands
+        {t('all_brands')}
       </button>
       {brands.map(b => (
         <button
@@ -1842,6 +1844,7 @@ function AffiliatesHubTab({ activeBrandId, brands }: { activeBrandId: string|nul
 /* ═══════════════════════════════════ MAIN COMPONENT ══════════ */
 export default function BrandsHub() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const { brands, loading: brandsLoading } = useBrands();
   const [activeBrandId, setActiveBrandId] = useState<string | null>(null);
   const [tab, setTab] = useState("overview");
@@ -1976,18 +1979,18 @@ export default function BrandsHub() {
 
         {/* Header */}
         <button onClick={() => navigate("/")} className="flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors">
-          <ArrowLeft className="w-4 h-4"/><span className="font-body text-sm">Back</span>
+          <ArrowLeft className="w-4 h-4"/><span className="font-body text-sm">{t('back_btn')}</span>
         </button>
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-lg bg-primary/10"><Crown className="w-6 h-6 text-primary"/></div>
             <div>
-              <h1 className="font-display text-xl text-primary">BRANDS HUB</h1>
+              <h1 className="font-display text-xl text-primary">{t('brands_hub').toUpperCase()}</h1>
               <p className="text-xs text-muted-foreground">Brands · Projects · Services · Branches · Customers · Agents</p>
             </div>
           </div>
-          <Button onClick={() => { setTab("brands"); setBrandAddTrigger(t => t + 1); }} className="gap-1.5 font-display text-xs">
-            <Plus className="w-4 h-4"/>New Brand
+          <Button onClick={() => { setTab("brands"); setBrandAddTrigger(n => n + 1); }} className="gap-1.5 font-display text-xs">
+            <Plus className="w-4 h-4"/>{t('new_brand_btn')}
           </Button>
         </div>
 
@@ -1998,22 +2001,22 @@ export default function BrandsHub() {
 
         <Tabs value={tab} onValueChange={setTab}>
           <TabsList className="flex flex-wrap gap-1 h-auto p-1 mb-2">
-            <TabsTrigger value="overview"   className="text-xs"><BarChart2 className="w-3.5 h-3.5 mr-1"/>Overview</TabsTrigger>
-            <TabsTrigger value="brands"    className="text-xs"><Crown className="w-3.5 h-3.5 mr-1"/>Brands ({brands.length})</TabsTrigger>
-            <TabsTrigger value="projects"   className="text-xs"><FolderOpen className="w-3.5 h-3.5 mr-1"/>Projects ({projCount})</TabsTrigger>
-            <TabsTrigger value="services"   className="text-xs"><Briefcase className="w-3.5 h-3.5 mr-1"/>Services ({svcCount})</TabsTrigger>
-            <TabsTrigger value="branches"   className="text-xs"><Building2 className="w-3.5 h-3.5 mr-1"/>Branches ({branchCount})</TabsTrigger>
-            <TabsTrigger value="customers"  className="text-xs"><Users className="w-3.5 h-3.5 mr-1"/>Customers ({custCount})</TabsTrigger>
-            <TabsTrigger value="agents"     className="text-xs"><UserCheck className="w-3.5 h-3.5 mr-1"/>Agents ({agentCount})</TabsTrigger>
-            <TabsTrigger value="partners"   className="text-xs"><Handshake className="w-3.5 h-3.5 mr-1"/>Partners ({partnerCount})</TabsTrigger>
-            <TabsTrigger value="employees"  className="text-xs"><Users className="w-3.5 h-3.5 mr-1"/>Employees ({empCount})</TabsTrigger>
-            <TabsTrigger value="affiliates-hub" className="text-xs"><UserCheck className="w-3.5 h-3.5 mr-1"/>Affiliates Hub</TabsTrigger>
-            <TabsTrigger value="developer-hub"  className="text-xs"><CodeIcon className="w-3.5 h-3.5 mr-1"/>Developer Hub</TabsTrigger>
-            <TabsTrigger value="referrals"  className="text-xs"><Share2 className="w-3.5 h-3.5 mr-1"/>Referrals</TabsTrigger>
-            <TabsTrigger value="reports"    className="text-xs"><BarChart3 className="w-3.5 h-3.5 mr-1"/>Reports</TabsTrigger>
-            <TabsTrigger value="finance"    className="text-xs"><TrendingUp className="w-3.5 h-3.5 mr-1"/>Finance</TabsTrigger>
-            <TabsTrigger value="users"      className="text-xs"><Shield className="w-3.5 h-3.5 mr-1"/>Users</TabsTrigger>
-            <TabsTrigger value="workflow"   className="text-xs"><GitBranch className="w-3.5 h-3.5 mr-1"/>Workflows</TabsTrigger>
+            <TabsTrigger value="overview"   className="text-xs"><BarChart2 className="w-3.5 h-3.5 mr-1"/>{t('overview')}</TabsTrigger>
+            <TabsTrigger value="brands"    className="text-xs"><Crown className="w-3.5 h-3.5 mr-1"/>{t('tab_brands')} ({brands.length})</TabsTrigger>
+            <TabsTrigger value="projects"   className="text-xs"><FolderOpen className="w-3.5 h-3.5 mr-1"/>{t('tab_projects_tab')} ({projCount})</TabsTrigger>
+            <TabsTrigger value="services"   className="text-xs"><Briefcase className="w-3.5 h-3.5 mr-1"/>{t('tab_services_tab')} ({svcCount})</TabsTrigger>
+            <TabsTrigger value="branches"   className="text-xs"><Building2 className="w-3.5 h-3.5 mr-1"/>{t('tab_branches')} ({branchCount})</TabsTrigger>
+            <TabsTrigger value="customers"  className="text-xs"><Users className="w-3.5 h-3.5 mr-1"/>{t('tab_customers')} ({custCount})</TabsTrigger>
+            <TabsTrigger value="agents"     className="text-xs"><UserCheck className="w-3.5 h-3.5 mr-1"/>{t('tab_agents')} ({agentCount})</TabsTrigger>
+            <TabsTrigger value="partners"   className="text-xs"><Handshake className="w-3.5 h-3.5 mr-1"/>{t('tab_partners')} ({partnerCount})</TabsTrigger>
+            <TabsTrigger value="employees"  className="text-xs"><Users className="w-3.5 h-3.5 mr-1"/>{t('tab_employees_tab')} ({empCount})</TabsTrigger>
+            <TabsTrigger value="affiliates-hub" className="text-xs"><UserCheck className="w-3.5 h-3.5 mr-1"/>{t('tab_affiliates_hub')}</TabsTrigger>
+            <TabsTrigger value="developer-hub"  className="text-xs"><CodeIcon className="w-3.5 h-3.5 mr-1"/>{t('tab_developer_hub')}</TabsTrigger>
+            <TabsTrigger value="referrals"  className="text-xs"><Share2 className="w-3.5 h-3.5 mr-1"/>{t('tab_referrals')}</TabsTrigger>
+            <TabsTrigger value="reports"    className="text-xs"><BarChart3 className="w-3.5 h-3.5 mr-1"/>{t('tab_reports')}</TabsTrigger>
+            <TabsTrigger value="finance"    className="text-xs"><TrendingUp className="w-3.5 h-3.5 mr-1"/>{t('tab_finance_hub')}</TabsTrigger>
+            <TabsTrigger value="users"      className="text-xs"><Shield className="w-3.5 h-3.5 mr-1"/>{t('tab_users')}</TabsTrigger>
+            <TabsTrigger value="workflow"   className="text-xs"><GitBranch className="w-3.5 h-3.5 mr-1"/>{t('tab_workflows')}</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="mt-2">

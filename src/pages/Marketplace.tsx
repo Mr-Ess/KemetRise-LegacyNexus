@@ -1,5 +1,6 @@
 import { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import {
   ArrowLeft, Store, Star, Download, Check, Search, X,
   Shield, Zap, Globe, Package, Code, BarChart2, MessageCircle,
@@ -213,8 +214,7 @@ function RequestAppDialog({ open, onClose }: { open: boolean; onClose: ()=>void 
 
 /* ─── Main Marketplace ───────────────────────────────────────────────────── */
 export default function Marketplace() {
-  const nav = useNavigate();
-  const [apps, setApps] = useState<any[]>([]);
+  const nav = useNavigate();  const { t } = useTranslation();  const [apps, setApps] = useState<any[]>([]);
   const [installed, setInstalled] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -283,8 +283,8 @@ export default function Marketplace() {
         <div className="max-w-7xl mx-auto px-6 py-3">
           <div className="flex items-center justify-between gap-4 flex-wrap">
             <div className="flex items-center gap-3">
-              <Button variant="ghost" size="sm" onClick={() => nav("/")} className="gap-1"><ArrowLeft className="w-4 h-4"/>Back</Button>
-              <Store className="w-5 h-5 text-primary"/><span className="font-display text-lg text-primary">Marketplace</span>
+              <Button variant="ghost" size="sm" onClick={() => nav("/")} className="gap-1"><ArrowLeft className="w-4 h-4"/>{t('back_btn')}</Button>
+              <Store className="w-5 h-5 text-primary"/><span className="font-display text-lg text-primary">{t('marketplace')}</span>
             </div>
             <div className="flex items-center gap-2 flex-1 max-w-sm">
               <div className="relative flex-1">
@@ -298,7 +298,7 @@ export default function Marketplace() {
               </Button>
             </div>
             <Button size="sm" variant="outline" className="gap-1 text-xs" onClick={()=>setRequestOpen(true)}>
-              <Sparkles className="w-3.5 h-3.5"/>Request App
+              <Sparkles className="w-3.5 h-3.5"/>{t('request_app_btn')}
             </Button>
           </div>
         </div>
@@ -308,10 +308,10 @@ export default function Marketplace() {
         {/* ── KPI Strip ── */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {[
-            {label:"Total Apps",  value:apps.length,     icon:Package,  color:"text-primary"},
-            {label:"Free Apps",   value:apps.filter(a=>!a.price_cents).length, icon:Heart, color:"text-emerald-400"},
-            {label:"Installed",   value:installed.size,  icon:Check,    color:"text-blue-400"},
-            {label:"Categories",  value:cats.length-1,   icon:Tag,      color:"text-amber-400"},
+            {label:t('total_apps_label'),  value:apps.length,     icon:Package,  color:"text-primary"},
+            {label:t('free_apps_label'),   value:apps.filter(a=>!a.price_cents).length, icon:Heart, color:"text-emerald-400"},
+            {label:t('installed'),   value:installed.size,  icon:Check,    color:"text-blue-400"},
+            {label:t('categories_count_label'),  value:cats.length-1,   icon:Tag,      color:"text-amber-400"},
           ].map(k=>(
             <Card key={k.label} className="p-3 flex items-center gap-3">
               <k.icon className={`w-6 h-6 ${k.color} opacity-80`}/>
@@ -324,7 +324,7 @@ export default function Marketplace() {
         {featuredApps.length > 0 && (
           <div>
             <h2 className="font-display text-xs text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-2">
-              <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400"/>Featured Apps
+              <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400"/>{t('featured')}
             </h2>
             <div className="grid sm:grid-cols-3 gap-4">
               {featuredApps.map(app=>(
@@ -356,10 +356,10 @@ export default function Marketplace() {
             ); })}
           </div>
           <div className="ml-auto flex items-center gap-2 flex-wrap">
-            <span className="text-xs text-muted-foreground">Price:</span>
+            <span className="text-xs text-muted-foreground">{t('price')}:</span>
             {(["all","free","paid"] as const).map(p=>(
               <Button key={p} size="sm" variant={priceFilter===p?"default":"outline"} className="h-7 text-xs" onClick={()=>setPriceFilter(p)}>
-                {p.charAt(0).toUpperCase()+p.slice(1)}
+                {p==="all"?t('all_notifications'):p==="free"?t('free_app'):t('paid_app')}
               </Button>
             ))}
             <select value={sort} onChange={e=>setSort(e.target.value as any)} className="h-7 text-xs bg-secondary border border-border rounded-md px-2 focus:outline-none focus:ring-1 focus:ring-primary/50">
@@ -374,9 +374,9 @@ export default function Marketplace() {
         {/* ── Main Tabs ── */}
         <Tabs value={tab} onValueChange={setTab}>
           <TabsList className="mb-4">
-            <TabsTrigger value="all" className="text-xs">All Apps ({apps.length})</TabsTrigger>
-            <TabsTrigger value="featured" className="text-xs">Featured ({apps.filter(a=>a.featured).length})</TabsTrigger>
-            <TabsTrigger value="installed" className="text-xs">Installed ({installed.size})</TabsTrigger>
+            <TabsTrigger value="all" className="text-xs">{t('all_apps')} ({apps.length})</TabsTrigger>
+            <TabsTrigger value="featured" className="text-xs">{t('featured')} ({apps.filter(a=>a.featured).length})</TabsTrigger>
+            <TabsTrigger value="installed" className="text-xs">{t('installed')} ({installed.size})</TabsTrigger>
           </TabsList>
           {["all","featured","installed"].map(t=>(
             <TabsContent key={t} value={t}>
@@ -391,8 +391,8 @@ export default function Marketplace() {
               ) : filtered.length === 0 ? (
                 <div className="text-center py-20">
                   <Store className="w-12 h-12 mx-auto mb-4 text-muted-foreground opacity-30"/>
-                  <p className="text-muted-foreground">{tab==="installed"?"No apps installed yet":"No apps match your filters"}</p>
-                  {tab!=="installed"&&<Button variant="link" className="mt-2" onClick={()=>setRequestOpen(true)}>Request a new app <ChevronRight className="w-3.5 h-3.5"/></Button>}
+                  <p className="text-muted-foreground">{tab==="installed"?t('no_apps_installed'):t('no_apps_match')}</p>
+                  {tab!=="installed"&&<Button variant="link" className="mt-2" onClick={()=>setRequestOpen(true)}>{t('request_new_app_btn')} <ChevronRight className="w-3.5 h-3.5"/></Button>}
                 </div>
               ) : (
                 <div className={grid?"grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4":"space-y-3"}>

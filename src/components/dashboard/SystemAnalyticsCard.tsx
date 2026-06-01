@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { countsApi } from "@/services/system";
 import { supabase } from "@/integrations/supabase/client";
 import { tenantDb } from "@/lib/tenantDb";
+import { useTranslation } from "react-i18next";
 import {
   BarChart3, Users, CheckSquare, MessageSquare, Activity, TrendingUp, Bot, UserCheck,
   AlertTriangle, Server, ShoppingCart, Building2, Filter, Cpu, HardDrive, Wifi, WifiOff,
@@ -73,6 +74,7 @@ const GaugeBar = ({ label, value, icon, color }: { label: string; value: number;
 // ── Main Component ────────────────────────────────────────────────────
 
 const SystemAnalyticsCard = ({ globalEntityFilter }: { globalEntityFilter?: string } = {}) => {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<Tab>("tasks");
   const [agentFilter, setAgentFilter] = useState<"all" | "ai" | "human">("all");
 
@@ -267,15 +269,15 @@ const SystemAnalyticsCard = ({ globalEntityFilter }: { globalEntityFilter?: stri
   const alertCount = systemAlerts.filter(a => a.level === "error").length;
 
   const tabs: { key: Tab; label: string; icon: React.ReactNode }[] = [
-    { key: "tasks", label: "TASKS", icon: <CheckSquare className="w-3 h-3" /> },
-    { key: "agents", label: "AGENTS", icon: <Bot className="w-3 h-3" /> },
-    { key: "branches", label: "BRANCHES", icon: <Building2 className="w-3 h-3" /> },
-    { key: "server", label: "SERVER", icon: <Server className="w-3 h-3" /> },
-    { key: "customers", label: "CUSTOMERS", icon: <Users className="w-3 h-3" /> },
-    { key: "brands", label: "BRANDS", icon: <Star className="w-3 h-3" /> },
-    { key: "activity", label: "ACTIVITY", icon: <Activity className="w-3 h-3" /> },
-    { key: "messages", label: "MESSAGES", icon: <MessageSquare className="w-3 h-3" /> },
-    { key: "alerts", label: "ALERTS", icon: <AlertTriangle className="w-3 h-3" /> },
+    { key: "tasks", label: t('tab_tasks'), icon: <CheckSquare className="w-3 h-3" /> },
+    { key: "agents", label: t('tab_agents'), icon: <Bot className="w-3 h-3" /> },
+    { key: "branches", label: t('tab_branches'), icon: <Building2 className="w-3 h-3" /> },
+    { key: "server", label: t('tab_server'), icon: <Server className="w-3 h-3" /> },
+    { key: "customers", label: t('tab_customers'), icon: <Users className="w-3 h-3" /> },
+    { key: "brands", label: t('tab_brands'), icon: <Star className="w-3 h-3" /> },
+    { key: "activity", label: t('tab_activity'), icon: <Activity className="w-3 h-3" /> },
+    { key: "messages", label: t('tab_messages'), icon: <MessageSquare className="w-3 h-3" /> },
+    { key: "alerts", label: t('tab_alerts'), icon: <AlertTriangle className="w-3 h-3" /> },
   ];
 
   const filteredAgents = agentFilter === "ai" ? aiAgents : agentFilter === "human" ? humanAgents : [...aiAgents, ...humanAgents];
@@ -286,32 +288,32 @@ const SystemAnalyticsCard = ({ globalEntityFilter }: { globalEntityFilter?: stri
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <span className="text-lg">📊</span>
-          <h3 className="font-display text-xs font-bold text-foreground tracking-wider">SYSTEM ANALYTICS</h3>
+          <h3 className="font-display text-xs font-bold text-foreground tracking-wider">{t('system_analytics_title')}</h3>
         </div>
         <div className="flex items-center gap-2">
           {alertCount > 0 && (
             <button onClick={() => setActiveTab("alerts")} className="flex items-center gap-1 px-2 py-0.5 rounded bg-blood-red/20 border border-blood-red/40 animate-pulse">
               <AlertTriangle className="w-3 h-3 text-blood-red" />
-              <span className="text-[10px] font-display text-blood-red">{alertCount} CRITICAL</span>
+              <span className="text-[10px] font-display text-blood-red">{alertCount} {t('critical_label')}</span>
             </button>
           )}
           <div className="flex items-center gap-1 px-2 py-0.5 rounded bg-scarab/20 border border-scarab/30">
             <TrendingUp className="w-3 h-3 text-scarab" />
-            <span className="text-[10px] font-display text-scarab">LIVE</span>
+            <span className="text-[10px] font-display text-scarab">{t('live_label')}</span>
           </div>
         </div>
       </div>
 
       {/* Stats Summary */}
       <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2 mb-3">
-        <StatBox icon={<CheckSquare className="w-3 h-3 text-primary" />} value={String(counts.tasks ?? 0)} label="Total Tasks" change="live" changeType="up" />
-        <StatBox icon={<Bot className="w-3 h-3 text-nile" />} value={String(aiAgents.length || 0)} label="AI Agents" change="live" changeType="up" />
-        <StatBox icon={<UserCheck className="w-3 h-3 text-scarab" />} value={String(counts.employees ?? 0)} label="Employees" change="live" changeType="neutral" />
-        <StatBox icon={<Building2 className="w-3 h-3 text-primary" />} value={String(counts.branches ?? 0)} label="Branches" change="live" changeType="up" />
-        <StatBox icon={<Server className="w-3 h-3 text-nile" />} value={serverMetrics.uptime} label="Uptime" change="stable" changeType="neutral" />
-        <StatBox icon={<Users className="w-3 h-3 text-scarab" />} value={String(counts.customers ?? 0)} label="Customers" change="live" changeType="up" />
-        <StatBox icon={<Package className="w-3 h-3 text-primary" />} value={String(counts.projects ?? 0)} label="Projects" change="live" changeType="up" />
-        <StatBox icon={<Shield className="w-3 h-3 text-blood-red" />} value={String(alertCount)} label="Alerts" change={alertCount > 0 ? "action needed" : "clear"} changeType={alertCount > 0 ? "down" : "up"} />
+        <StatBox icon={<CheckSquare className="w-3 h-3 text-primary" />} value={String(counts.tasks ?? 0)} label={t('total_tasks')} change={t('live_label')} changeType="up" />
+        <StatBox icon={<Bot className="w-3 h-3 text-nile" />} value={String(aiAgents.length || 0)} label={t('ai_agents_count')} change={t('live_label')} changeType="up" />
+        <StatBox icon={<UserCheck className="w-3 h-3 text-scarab" />} value={String(counts.employees ?? 0)} label={t('employees')} change={t('live_label')} changeType="neutral" />
+        <StatBox icon={<Building2 className="w-3 h-3 text-primary" />} value={String(counts.branches ?? 0)} label={t('branches')} change={t('live_label')} changeType="up" />
+        <StatBox icon={<Server className="w-3 h-3 text-nile" />} value={serverMetrics.uptime} label={t('uptime_label')} change="stable" changeType="neutral" />
+        <StatBox icon={<Users className="w-3 h-3 text-scarab" />} value={String(counts.customers ?? 0)} label={t('customers')} change={t('live_label')} changeType="up" />
+        <StatBox icon={<Package className="w-3 h-3 text-primary" />} value={String(counts.projects ?? 0)} label={t('projects_label')} change={t('live_label')} changeType="up" />
+        <StatBox icon={<Shield className="w-3 h-3 text-blood-red" />} value={String(alertCount)} label={t('alerts_label')} change={alertCount > 0 ? t('critical_label') : "OK"} changeType={alertCount > 0 ? "down" : "up"} />
       </div>
 
       {/* Tabs */}

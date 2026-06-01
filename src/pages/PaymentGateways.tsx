@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { ArrowLeft, Plus, Trash2, Edit, CreditCard, Banknote, Wallet, RefreshCw, Key, Eye, EyeOff, Copy, CheckCircle, XCircle, Loader2, Webhook, Globe, Settings2, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -70,6 +71,7 @@ function getFields(provider?: string) {
 
 export default function PaymentGateways() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [tab, setTab] = useState<"gateways" | "transactions" | "splits" | "api">("gateways");
   const [gateways, setGateways] = useState<Gateway[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -186,42 +188,42 @@ export default function PaymentGateways() {
     <div className="min-h-screen bg-background p-4 md:p-8">
       <div className="max-w-6xl mx-auto">
         <button onClick={() => navigate("/")} className="flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors mb-6">
-          <ArrowLeft className="w-4 h-4" /><span className="font-body text-sm">Back</span>
+          <ArrowLeft className="w-4 h-4" /><span className="font-body text-sm">{t('back_btn')}</span>
         </button>
 
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-2">
             <CreditCard className="w-5 h-5 text-primary" />
-            <h1 className="font-display text-lg text-primary">PAYMENT GATEWAYS</h1>
+            <h1 className="font-display text-lg text-primary">{t('payment_gateways').toUpperCase()}</h1>
           </div>
           <div className="flex gap-2">
             <Button variant="ghost" size="sm" onClick={load}><RefreshCw className="w-4 h-4" /></Button>
             <ExportButton data={gateways} filename="payment-gateways" title="Payment Gateways" />
-            {tab === "gateways" && <Button onClick={() => { setGwForm(emptyGateway); setEditGwId(null); setShowGwForm(true); }} className="gap-1 font-display text-xs"><Plus className="w-4 h-4" /> Add Gateway</Button>}
+            {tab === "gateways" && <Button onClick={() => { setGwForm(emptyGateway); setEditGwId(null); setShowGwForm(true); }} className="gap-1 font-display text-xs"><Plus className="w-4 h-4" /> {t('add_gateway')}</Button>}
           </div>
         </div>
 
         {/* Summary */}
         <div className="grid grid-cols-3 gap-3 mb-6">
           <Card className="p-3 bg-card border-border text-center">
-            <p className="font-display text-xs text-muted-foreground">TOTAL GATEWAYS</p>
+            <p className="font-display text-xs text-muted-foreground">{t('total_gateways_label').toUpperCase()}</p>
             <p className="font-display text-2xl text-primary">{gateways.length}</p>
           </Card>
           <Card className="p-3 bg-card border-border text-center">
-            <p className="font-display text-xs text-muted-foreground">ACTIVE</p>
+            <p className="font-display text-xs text-muted-foreground">{t('status_active').toUpperCase()}</p>
             <p className="font-display text-2xl text-green-400">{gateways.filter(g => g.is_active).length}</p>
           </Card>
           <Card className="p-3 bg-card border-border text-center">
-            <p className="font-display text-xs text-muted-foreground">SPLIT ENABLED</p>
+            <p className="font-display text-xs text-muted-foreground">{t('split_enabled_label').toUpperCase()}</p>
             <p className="font-display text-2xl text-nile">{gateways.filter(g => g.split_enabled).length}</p>
           </Card>
         </div>
 
         <div className="flex gap-2 mb-4 flex-wrap">
-          {(["gateways", "transactions", "splits", "api"] as const).map(t => (
-            <button key={t} onClick={() => setTab(t)}
-              className={`px-3 py-1 rounded-md text-xs font-display transition-colors ${tab === t ? "bg-primary/20 text-primary border border-primary/30" : "text-muted-foreground border border-transparent"}`}>
-              {t === "gateways" ? `Gateways (${gateways.length})` : t === "transactions" ? "Transactions" : t === "splits" ? `Splits (${splits.length})` : "⚡ API Connection"}
+          {(["gateways", "transactions", "splits", "api"] as const).map(tabKey => (
+            <button key={tabKey} onClick={() => setTab(tabKey)}
+              className={`px-3 py-1 rounded-md text-xs font-display transition-colors ${tab === tabKey ? "bg-primary/20 text-primary border border-primary/30" : "text-muted-foreground border border-transparent"}`}>
+              {tabKey === "gateways" ? `${t('gateways_tab')} (${gateways.length})` : tabKey === "transactions" ? t('transactions') : tabKey === "splits" ? `${t('splits_tab')} (${splits.length})` : `⚡ ${t('api_connection_tab')}`}
             </button>
           ))}
         </div>
@@ -230,7 +232,7 @@ export default function PaymentGateways() {
           <p className="text-center text-muted-foreground text-sm py-8">Loading...</p>
         ) : tab === "gateways" ? (
           <div className="space-y-3">
-            {gateways.length === 0 && <p className="text-center text-muted-foreground text-sm py-8">No payment gateways configured. Add one to start accepting payments.</p>}
+            {gateways.length === 0 && <p className="text-center text-muted-foreground text-sm py-8">{t('no_payment_gateway_hint')}</p>}
             {gateways.map(g => (
               <Card key={g.id} className="p-4 bg-card border-border">
                 <div className="flex items-start justify-between">

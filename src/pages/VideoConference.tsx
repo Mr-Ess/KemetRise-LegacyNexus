@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { ArrowLeft, Video, VideoOff, Mic, MicOff, PhoneOff, Copy, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -9,6 +10,7 @@ import { toast } from "sonner";
 
 export default function VideoConference() {
   const nav = useNavigate();
+  const { t } = useTranslation();
   const [room, setRoom] = useState("");
   const [joined, setJoined] = useState(false);
   const [camOn, setCamOn] = useState(true);
@@ -64,34 +66,34 @@ export default function VideoConference() {
   return (
     <div className="min-h-screen bg-background p-6">
       <div className="max-w-4xl mx-auto">
-        <Button variant="ghost" onClick={() => nav("/")} className="mb-4"><ArrowLeft className="w-4 h-4 mr-2" />Back</Button>
+        <Button variant="ghost" onClick={() => nav("/")} className="mb-4"><ArrowLeft className="w-4 h-4 mr-2" />{t('back_btn')}</Button>
         <h1 className="text-2xl font-bold text-primary flex items-center gap-2 mb-6" style={{ fontFamily: "Orbitron" }}>
-          <Video className="w-6 h-6" /> Video Conference
+          <Video className="w-6 h-6" /> {t('tab_video_call')}
         </h1>
 
         {!joined ? (
           <Card className="p-6 max-w-md mx-auto space-y-4">
             <div>
-              <Label>Room ID</Label>
+              <Label>{t('room_id')}</Label>
               <div className="flex gap-2">
                 <Input value={room} onChange={e => setRoom(e.target.value)} placeholder="e.g. team-meeting" />
-                <Button variant="outline" onClick={generateRoom}>Generate</Button>
+                <Button variant="outline" onClick={generateRoom}>{t('generate_btn')}</Button>
               </div>
             </div>
-            <Button onClick={join} className="w-full"><Video className="w-4 h-4 mr-2" />Join Room</Button>
-            <p className="text-xs text-muted-foreground text-center">Share the room ID with others to start a call</p>
+            <Button onClick={join} className="w-full"><Video className="w-4 h-4 mr-2" />{t('join_room')}</Button>
+            <p className="text-xs text-muted-foreground text-center">{t('share_room_hint')}</p>
           </Card>
         ) : (
           <Card className="p-4 space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 text-sm">
-                <Users className="w-4 h-4 text-primary" /> Room: <span className="font-mono text-primary">{room}</span>
+                <Users className="w-4 h-4 text-primary" /> {t('room_label')} <span className="font-mono text-primary">{room}</span>
               </div>
-              <Button size="sm" variant="outline" onClick={copyLink}><Copy className="w-3 h-3 mr-1" />Share Link</Button>
+              <Button size="sm" variant="outline" onClick={copyLink}><Copy className="w-3 h-3 mr-1" />{t('share_link')}</Button>
             </div>
             <div className="aspect-video bg-black rounded-lg overflow-hidden relative">
               <video ref={videoRef} autoPlay muted playsInline className="w-full h-full object-cover" />
-              <div className="absolute bottom-2 left-2 px-2 py-1 bg-black/60 rounded text-xs text-white">You</div>
+              <div className="absolute bottom-2 left-2 px-2 py-1 bg-black/60 rounded text-xs text-white">{t('you_label')}</div>
             </div>
             <div className="flex items-center justify-center gap-3">
               <Button size="lg" variant={micOn ? "default" : "destructive"} onClick={toggleMic}>

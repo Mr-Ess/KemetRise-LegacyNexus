@@ -7,8 +7,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { useTranslation } from "react-i18next";
 
 const SacredVaultCard = () => {
+  const { t } = useTranslation();
   const [emergencyMode, setEmergencyMode] = useState(false);
   const [autoEmergency, setAutoEmergency] = useState(true);
   const [threatLevel, setThreatLevel] = useState(12);
@@ -45,14 +47,14 @@ const SacredVaultCard = () => {
   }, []);
 
   const addEntry = async () => {
-    if (!form.label.trim()) { toast.error("Label required"); return; }
+    if (!form.label.trim()) { toast.error(t('label_required_msg')); return; }
     try {
       let payload: any = {};
       if (form.payload) { try { payload = JSON.parse(form.payload); } catch { payload = { value: form.payload }; } }
       await vaultApi.create({ label: form.label, category: form.category, payload, threat_level: Number(form.threat_level) || 0 });
       setForm({ label: "", category: "", payload: "", threat_level: 0 });
       setShowAdd(false);
-      toast.success("Vault entry added");
+      toast.success(t('vault_entry_added'));
     } catch (e: any) { toast.error(e.message); }
   };
 
@@ -62,7 +64,7 @@ const SacredVaultCard = () => {
   };
 
   const removeEntry = async (id: string) => {
-    try { await vaultApi.remove(id); toast.success("Removed"); }
+    try { await vaultApi.remove(id); toast.success(t('deleted')); }
     catch (e: any) { toast.error(e.message); }
   };
 
@@ -110,7 +112,7 @@ const SacredVaultCard = () => {
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <span className="text-lg">🛡️</span>
-          <h3 className="font-display text-xs font-bold text-primary tracking-wider">EMERGENCY PROTOCOLS (KEY OF DEATH)</h3>
+          <h3 className="font-display text-xs font-bold text-primary tracking-wider">{t('emergency_protocols_title')}</h3>
         </div>
       </div>
 
@@ -118,7 +120,7 @@ const SacredVaultCard = () => {
       <div className="flex-1 grid grid-cols-2 gap-3">
         {/* AUTO PANEL */}
         <div className="flex flex-col items-center justify-center p-3 rounded-lg border border-border bg-secondary/30">
-          <span className="font-display text-[10px] text-muted-foreground tracking-wider mb-2">AUTO-TRIGGER</span>
+          <span className="font-display text-[10px] text-muted-foreground tracking-wider mb-2">{t('auto_trigger_label')}</span>
           <button
             onClick={toggleAuto}
             className={`flex items-center gap-2 px-4 py-2.5 rounded-full border transition-all ${
@@ -128,27 +130,27 @@ const SacredVaultCard = () => {
             }`}
           >
             {autoEmergency ? <ToggleRight className="w-5 h-5" /> : <ToggleLeft className="w-5 h-5" />}
-            <span className="font-display text-xs font-bold">{autoEmergency ? "ON" : "OFF"}</span>
+            <span className="font-display text-xs font-bold">{autoEmergency ? t('status_active') : "OFF"}</span>
           </button>
           {autoEmergency && (
             <p className="text-[9px] text-muted-foreground mt-2 text-center">
-              Triggers at threat &gt;80%<br />Current: <span className={threatLevel > 60 ? "text-primary" : "text-scarab"}>{threatLevel}%</span>
+              {t('triggers_at')}<br />{t('current_threat')} <span className={threatLevel > 60 ? "text-primary" : "text-scarab"}>{threatLevel}%</span>
             </p>
           )}
         </div>
 
         {/* MANUAL ACTIVATE PANEL */}
         <div className="flex flex-col items-center justify-center p-3 rounded-lg border border-blood-red/30 bg-blood-red/5">
-          <span className="font-display text-[10px] text-blood-red tracking-wider mb-2">MANUAL CONTROL</span>
+          <span className="font-display text-[10px] text-blood-red tracking-wider mb-2">{t('manual_control_label')}</span>
           {confirmStep && !emergencyMode ? (
             <div className="flex flex-col items-center gap-2">
-              <p className="text-[10px] text-blood-red font-display text-center">CONFIRM ACTIVATION?</p>
+              <p className="text-[10px] text-blood-red font-display text-center">{t('confirm_activation_label')}</p>
               <div className="flex gap-2">
                 <button onClick={handleActivate} className="px-3 py-1.5 rounded-md bg-blood-red text-foreground text-xs font-display font-bold hover:bg-blood-red/80 transition-colors">
-                  YES
+                  {t('yes_btn')}
                 </button>
                 <button onClick={() => setConfirmStep(false)} className="px-3 py-1.5 rounded-md bg-secondary border border-border text-foreground text-xs font-display hover:bg-secondary/80 transition-colors">
-                  NO
+                  {t('no_btn')}
                 </button>
               </div>
             </div>
@@ -162,7 +164,7 @@ const SacredVaultCard = () => {
             </button>
           )}
           <span className={`text-[10px] font-display font-bold mt-2 ${emergencyMode ? "text-blood-red animate-pulse" : "text-scarab"}`}>
-            {emergencyMode ? "⚠️ ACTIVE" : "SECURE"}
+            {emergencyMode ? t('active_state') : t('secure_state')}
           </span>
         </div>
       </div>
@@ -170,22 +172,22 @@ const SacredVaultCard = () => {
       {/* Action buttons */}
       <div className="flex flex-wrap gap-2 justify-center mt-3">
         <button onClick={() => setShowList(s => !s)} className="flex items-center gap-1.5 px-3 py-2 rounded-md bg-secondary border border-border text-foreground text-xs font-display tracking-wider hover:bg-secondary/80">
-          <KeyRound className="w-3.5 h-3.5" /> VAULT ({entries.length})
+          <KeyRound className="w-3.5 h-3.5" /> {t('vault_btn')} ({entries.length})
         </button>
         <button onClick={() => setShowAdd(true)} className="flex items-center gap-1.5 px-3 py-2 rounded-md bg-primary/20 border border-primary/40 text-primary text-xs font-display tracking-wider hover:bg-primary/30">
-          <Plus className="w-3.5 h-3.5" /> ADD ENTRY
+          <Plus className="w-3.5 h-3.5" /> {t('add_entry_btn')}
         </button>
         <button className="flex items-center gap-1.5 px-3 py-2 rounded-md bg-secondary border border-border text-foreground text-xs font-display tracking-wider hover:bg-secondary/80">
-          <RefreshCw className="w-3.5 h-3.5" /> SHADOW BACKUP
+          <RefreshCw className="w-3.5 h-3.5" /> {t('shadow_backup_btn')}
         </button>
         <button className="flex items-center gap-1.5 px-3 py-2 rounded-md bg-secondary border border-border text-foreground text-xs font-display tracking-wider hover:bg-secondary/80">
-          <Bell className="w-3.5 h-3.5" /> HEIR NOTIFY
+          <Bell className="w-3.5 h-3.5" /> {t('heir_notify_btn')}
         </button>
       </div>
 
       {showList && (
         <div className="mt-3 max-h-44 overflow-auto space-y-1.5 border border-border rounded-md p-2 bg-background/40">
-          {entries.length === 0 && <p className="text-[10px] text-muted-foreground text-center py-2">No entries yet</p>}
+          {entries.length === 0 && <p className="text-[10px] text-muted-foreground text-center py-2">{t('no_entries')}</p>}
           {entries.map((e: any) => (
             <div key={e.id} className="flex items-center gap-2 p-1.5 rounded bg-secondary/40">
               <button onClick={() => toggleLock(e)} className={e.locked ? "text-blood-red" : "text-scarab"}>
@@ -193,7 +195,7 @@ const SacredVaultCard = () => {
               </button>
               <div className="flex-1 min-w-0">
                 <p className="text-[11px] font-display text-foreground truncate">{e.label}</p>
-                <p className="text-[9px] text-muted-foreground truncate">{e.category || "uncategorized"} · threat {e.threat_level}%</p>
+                <p className="text-[9px] text-muted-foreground truncate">{e.category || t('uncategorized_text')} · {t('threat_level_field')} {e.threat_level}%</p>
               </div>
               <button onClick={() => removeEntry(e.id)} className="text-muted-foreground hover:text-blood-red"><Trash2 className="w-3 h-3" /></button>
             </div>
@@ -203,16 +205,16 @@ const SacredVaultCard = () => {
 
       <Dialog open={showAdd} onOpenChange={setShowAdd}>
         <DialogContent className="bg-card border-border">
-          <DialogHeader><DialogTitle className="font-display text-sm text-primary">NEW VAULT ENTRY</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle className="font-display text-sm text-primary">{t('add_entry_btn')}</DialogTitle></DialogHeader>
           <div className="space-y-3">
-            <div className="space-y-1"><Label className="text-xs">Label</Label><Input value={form.label} onChange={e => setForm({ ...form, label: e.target.value })} className="bg-secondary border-border" /></div>
-            <div className="space-y-1"><Label className="text-xs">Category</Label><Input value={form.category} onChange={e => setForm({ ...form, category: e.target.value })} placeholder="password / api-key / note" className="bg-secondary border-border" /></div>
-            <div className="space-y-1"><Label className="text-xs">Threat Level (0-100)</Label><Input type="number" min={0} max={100} value={form.threat_level} onChange={e => setForm({ ...form, threat_level: Number(e.target.value) })} className="bg-secondary border-border" /></div>
-            <div className="space-y-1"><Label className="text-xs">Secret payload (text or JSON)</Label><Input value={form.payload} onChange={e => setForm({ ...form, payload: e.target.value })} className="bg-secondary border-border" /></div>
+            <div className="space-y-1"><Label className="text-xs">{t('label_field')}</Label><Input value={form.label} onChange={e => setForm({ ...form, label: e.target.value })} className="bg-secondary border-border" /></div>
+            <div className="space-y-1"><Label className="text-xs">{t('category')}</Label><Input value={form.category} onChange={e => setForm({ ...form, category: e.target.value })} placeholder="password / api-key / note" className="bg-secondary border-border" /></div>
+            <div className="space-y-1"><Label className="text-xs">{t('threat_level_field')} (0-100)</Label><Input type="number" min={0} max={100} value={form.threat_level} onChange={e => setForm({ ...form, threat_level: Number(e.target.value) })} className="bg-secondary border-border" /></div>
+            <div className="space-y-1"><Label className="text-xs">{t('description')}</Label><Input value={form.payload} onChange={e => setForm({ ...form, payload: e.target.value })} className="bg-secondary border-border" /></div>
           </div>
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setShowAdd(false)}>Cancel</Button>
-            <Button onClick={addEntry}>Save</Button>
+            <Button variant="ghost" onClick={() => setShowAdd(false)}>{t('cancel')}</Button>
+            <Button onClick={addEntry}>{t('save')}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

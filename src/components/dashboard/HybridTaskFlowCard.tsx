@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import CalendarView from "@/components/shared/CalendarView";
 import ExportButton from "@/components/shared/ExportButton";
 import { SavedViews } from "@/components/shared/SavedViews";
+import { useTranslation } from "react-i18next";
 
 type Task = {
   id: string;
@@ -17,15 +18,16 @@ type Task = {
 };
 
 type StatusCol = { key: string; title: string; color: string };
-const statusColumns: StatusCol[] = [
-  { key: "todo", title: "To Do", color: "text-muted-foreground" },
-  { key: "in-progress", title: "In Progress", color: "text-nile" },
-  { key: "review", title: "Under Review", color: "text-primary" },
-  { key: "done", title: "Done", color: "text-scarab" },
-];
-const categories = ["all", "legal", "marketing", "data", "strategy", "operations"] as const;
 
 const HybridTaskFlowCard = () => {
+  const { t } = useTranslation();
+  const statusColumns: StatusCol[] = [
+    { key: "todo", title: t('todo_status'), color: "text-muted-foreground" },
+    { key: "in-progress", title: t('in_progress_status'), color: "text-nile" },
+    { key: "review", title: t('under_review_status'), color: "text-primary" },
+    { key: "done", title: t('done_status'), color: "text-scarab" },
+  ];
+  const categories = ["all", "legal", "marketing", "data", "strategy", "operations"] as const;
   const [typeFilter, setTypeFilter] = useState<"all" | "AI" | "Human">("all");
   const [categoryFilter, setCategoryFilter] = useState<typeof categories[number]>("all");
   const [showFilters, setShowFilters] = useState(false);
@@ -37,6 +39,7 @@ const HybridTaskFlowCard = () => {
   const [newDesc, setNewDesc] = useState("");
   const [newAssignee, setNewAssignee] = useState("");
   const [newDueDate, setNewDueDate] = useState("");
+
   const [view, setView] = useState<"kanban" | "calendar">("kanban");
 
   useEffect(() => {
@@ -103,7 +106,7 @@ const HybridTaskFlowCard = () => {
         <div className="flex items-center gap-2">
           <span className="text-lg">📋</span>
           <h3 className="font-display text-xs font-bold text-foreground tracking-wider">
-            HYBRID TASK FLOW <span className="text-muted-foreground font-body text-xs">(لوحة المهام الهجينة)</span>
+            {t('hybrid_task_title')}
           </h3>
         </div>
         <div className="flex items-center gap-1">
@@ -122,19 +125,19 @@ const HybridTaskFlowCard = () => {
       {showFilters && (
         <div className="flex flex-wrap gap-3 mb-3 p-2.5 bg-secondary/30 rounded-md border border-border/50">
           <div className="flex items-center gap-1.5">
-            <span className="text-[10px] font-display text-muted-foreground">Type:</span>
-            {(["all", "AI", "Human"] as const).map((t) => (
-              <button key={t} onClick={() => setTypeFilter(t)} className={`px-2 py-0.5 rounded text-[10px] font-display ${typeFilter === t ? "bg-primary/20 text-primary border border-primary/30" : "text-muted-foreground hover:text-foreground border border-transparent"}`}>
-                {t === "all" ? "All" : t === "AI" ? "🤖 AI" : "👤 Human"}
+            <span className="text-[10px] font-display text-muted-foreground">{t('type_filter_label')}</span>
+            {(["all", "AI", "Human"] as const).map((t_) => (
+              <button key={t_} onClick={() => setTypeFilter(t_)} className={`px-2 py-0.5 rounded text-[10px] font-display ${typeFilter === t_ ? "bg-primary/20 text-primary border border-primary/30" : "text-muted-foreground hover:text-foreground border border-transparent"}`}>
+                {t_ === "all" ? t('all_filter') : t_ === "AI" ? `🤖 ${t('type_ai')}` : `👤 ${t('type_human')}`}
               </button>
             ))}
           </div>
           <div className="w-px bg-border self-stretch" />
           <div className="flex items-center gap-1.5 flex-wrap">
-            <span className="text-[10px] font-display text-muted-foreground">Category:</span>
-            {categories.map((c) => (
+            <span className="text-[10px] font-display text-muted-foreground">{t('category_filter_label')}</span>
+              {categories.map((c) => (
               <button key={c} onClick={() => setCategoryFilter(c)} className={`px-2 py-0.5 rounded text-[10px] font-display capitalize ${categoryFilter === c ? "bg-primary/20 text-primary border border-primary/30" : "text-muted-foreground hover:text-foreground border border-transparent"}`}>
-                {c === "all" ? "All" : c}
+                {c === "all" ? t('all_filter') : c}
               </button>
             ))}
           </div>
@@ -155,21 +158,21 @@ const HybridTaskFlowCard = () => {
               </div>
               {adding === col.key && (
                 <div className="mb-2 bg-secondary/70 rounded-md p-2 border border-primary/30 space-y-1.5">
-                  <input autoFocus value={newTitle} onChange={(e) => setNewTitle(e.target.value)} onKeyDown={(e) => e.key === "Enter" && addTask(col.key)} placeholder="Task title…" className="w-full bg-background text-xs px-2 py-1 rounded border border-border text-foreground" />
-                  <textarea value={newDesc} onChange={(e) => setNewDesc(e.target.value)} placeholder="Description (optional)…" rows={2} className="w-full bg-background text-xs px-2 py-1 rounded border border-border text-foreground resize-none" />
+                  <input autoFocus value={newTitle} onChange={(e) => setNewTitle(e.target.value)} onKeyDown={(e) => e.key === "Enter" && addTask(col.key)} placeholder={t('add_task_placeholder')} className="w-full bg-background text-xs px-2 py-1 rounded border border-border text-foreground" />
+                  <textarea value={newDesc} onChange={(e) => setNewDesc(e.target.value)} placeholder={t('description') + "..."} rows={2} className="w-full bg-background text-xs px-2 py-1 rounded border border-border text-foreground resize-none" />
                   <div className="grid grid-cols-2 gap-1">
-                    <input value={newAssignee} onChange={(e) => setNewAssignee(e.target.value)} placeholder="Assignee…" className="bg-background text-xs px-2 py-1 rounded border border-border text-foreground" />
+                    <input value={newAssignee} onChange={(e) => setNewAssignee(e.target.value)} placeholder={t('assignee') + "..."} className="bg-background text-xs px-2 py-1 rounded border border-border text-foreground" />
                     <input type="date" value={newDueDate} onChange={(e) => setNewDueDate(e.target.value)} className="bg-background text-xs px-2 py-1 rounded border border-border text-foreground" />
                   </div>
                   <div className="flex gap-1">
-                    <select value={newAgent} onChange={(e) => setNewAgent(e.target.value as any)} className="text-[10px] bg-background border border-border rounded px-1 flex-1 text-foreground"><option>Human</option><option>AI</option></select>
+                    <select value={newAgent} onChange={(e) => setNewAgent(e.target.value as any)} className="text-[10px] bg-background border border-border rounded px-1 flex-1 text-foreground"><option value="Human">{t('type_human')}</option><option value="AI">{t('type_ai')}</option></select>
                     <select value={newPriority} onChange={(e) => setNewPriority(e.target.value as any)} className="text-[10px] bg-background border border-border rounded px-1 flex-1 text-foreground">
-                      <option value="low">Low</option>
-                      <option value="medium">Medium</option>
-                      <option value="high">High</option>
-                      <option value="critical">Critical</option>
+                      <option value="low">{t('priority')} ▼</option>
+                      <option value="medium">{t('priority')} ◆</option>
+                      <option value="high">{t('priority')} ▲</option>
+                      <option value="critical">{t('priority')} ❗</option>
                     </select>
-                    <button onClick={() => addTask(col.key)} className="text-[10px] px-2 bg-primary text-primary-foreground rounded">Add</button>
+                    <button onClick={() => addTask(col.key)} className="text-[10px] px-2 bg-primary text-primary-foreground rounded">{t('add')}</button>
                     <button onClick={() => { setAdding(null); setNewTitle(""); setNewDesc(""); setNewAssignee(""); setNewDueDate(""); }} className="text-muted-foreground"><X className="w-3 h-3" /></button>
                   </div>
                 </div>

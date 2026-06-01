@@ -17,8 +17,7 @@ import { tenantDb } from "@/lib/tenantDb";
 import { toast } from "sonner";
 
 /* ─────────────────────────────────────────────── VOICE TAB ──── */
-function VoiceTab() {
-  const [listening, setListening] = useState(false);
+function VoiceTab() {  const { t } = useTranslation();  const [listening, setListening] = useState(false);
   const [transcript, setTranscript] = useState("");
   const [response, setResponse] = useState("");
   const [loading, setLoading] = useState(false);
@@ -73,8 +72,8 @@ function VoiceTab() {
     <div className="max-w-2xl mx-auto space-y-4">
       <Card className="p-8 text-center space-y-6">
         <div>
-          <h3 className="font-display text-primary mb-1">AI Voice Assistant</h3>
-          <p className="text-xs text-muted-foreground">Speak in Arabic or English — the AI will respond and read the answer aloud.</p>
+          <h3 className="font-display text-primary mb-1">{t('voice_ai_title')}</h3>
+          <p className="text-xs text-muted-foreground">{t('voice_speak_hint')}</p>
         </div>
 
         <button
@@ -86,18 +85,18 @@ function VoiceTab() {
           {listening ? <MicOff className="w-14 h-14 text-white"/> : <Mic className="w-14 h-14 text-primary-foreground"/>}
         </button>
         <p className="text-muted-foreground text-sm font-medium">
-          {listening ? "🎙️ Listening… tap to stop" : loading ? "🤖 Thinking…" : "Tap to speak"}
+          {listening ? t('voice_listening') : loading ? t('voice_thinking') : t('tap_to_speak')}
         </p>
 
         {transcript && (
           <div className="text-left p-4 bg-secondary/40 rounded-lg border border-border">
-            <div className="text-xs text-muted-foreground mb-1 flex items-center gap-1"><Mic className="w-3 h-3"/>You said</div>
+            <div className="text-xs text-muted-foreground mb-1 flex items-center gap-1"><Mic className="w-3 h-3"/>{t('you_said_label')}</div>
             <div className="font-body text-sm">{transcript}</div>
           </div>
         )}
         {response && (
           <div className="text-left p-4 bg-primary/10 rounded-lg border border-primary/30">
-            <div className="text-xs text-primary mb-1 flex items-center gap-1"><Bot className="w-3 h-3"/>Assistant</div>
+            <div className="text-xs text-primary mb-1 flex items-center gap-1"><Bot className="w-3 h-3"/>{t('assistant_label')}</div>
             <div className="font-body text-sm">{response}</div>
           </div>
         )}
@@ -107,14 +106,13 @@ function VoiceTab() {
           </Button>
         )}
       </Card>
-      <p className="text-xs text-muted-foreground text-center">Uses Web Speech API + KemetRise AI Gateway</p>
+      <p className="text-xs text-muted-foreground text-center">{t('voice_api_note')}</p>
     </div>
   );
 }
 
 /* ─────────────────────────────────────────────── VIDEO TAB ──── */
-function VideoTab() {
-  const [room, setRoom] = useState("");
+function VideoTab() {  const { t } = useTranslation();  const [room, setRoom] = useState("");
   const [joined, setJoined] = useState(false);
   const [camOn, setCamOn] = useState(true);
   const [micOn, setMicOn] = useState(true);
@@ -154,14 +152,14 @@ function VideoTab() {
         <Card className="p-6 max-w-md mx-auto space-y-4">
           <div className="text-center mb-2">
             <Video className="w-10 h-10 text-primary mx-auto mb-2"/>
-            <h3 className="font-display text-primary">Video Conference</h3>
+            <h3 className="font-display text-primary">{t('tab_video_call')}</h3>
             <p className="text-xs text-muted-foreground">Start or join a video room. Share the Room ID with participants.</p>
           </div>
           <div>
-            <Label>Room ID</Label>
+            <Label>{t('room_id')}</Label>
             <div className="flex gap-2 mt-1">
               <Input value={room} onChange={e=>setRoom(e.target.value)} placeholder="e.g. team-meeting"/>
-              <Button variant="outline" onClick={generateRoom}>Generate</Button>
+              <Button variant="outline" onClick={generateRoom}>{t('generate_btn')}</Button>
             </div>
           </div>
           {room && (
@@ -170,22 +168,22 @@ function VideoTab() {
               <Button size="icon" variant="ghost" className="h-6 w-6" onClick={copyLink}><Copy className="w-3 h-3"/></Button>
             </div>
           )}
-          <Button onClick={join} className="w-full font-display"><Video className="w-4 h-4 mr-2"/>Join Room</Button>
+          <Button onClick={join} className="w-full font-display"><Video className="w-4 h-4 mr-2"/>{t('join_room')}</Button>
         </Card>
       ) : (
         <Card className="p-4 space-y-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 text-sm">
               <Users className="w-4 h-4 text-primary"/>
-              Room: <span className="font-mono text-primary font-bold">{room}</span>
+              {t('room_label')} <span className="font-mono text-primary font-bold">{room}</span>
               <Badge variant="outline" className="text-[10px] border-emerald-500 text-emerald-400">Live</Badge>
             </div>
-            <Button size="sm" variant="outline" onClick={copyLink}><Copy className="w-3 h-3 mr-1"/>Share Link</Button>
+              <Button size="sm" variant="outline" onClick={copyLink}><Copy className="w-3 h-3 mr-1"/>{t('share_link')}</Button>
           </div>
           <div className="aspect-video bg-black rounded-xl overflow-hidden relative shadow-lg">
             <video ref={videoRef} autoPlay muted playsInline className="w-full h-full object-cover"/>
             <div className="absolute bottom-3 left-3 px-2 py-1 bg-black/60 rounded text-xs text-white flex items-center gap-1">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"/>You (local preview)
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"/>{t('you_label')} (local preview)
             </div>
           </div>
           <div className="flex items-center justify-center gap-4">
@@ -306,32 +304,33 @@ function HistoryTab() {
 /* ─────────────────────────────────────────── MAIN COMPONENT ─── */
 export default function VoiceAssistant() {
   const nav = useNavigate();
+  const { t } = useTranslation();
 
   return (
     <div className="min-h-screen bg-background p-4 md:p-8">
       <div className="max-w-5xl mx-auto space-y-6">
         <button onClick={()=>nav("/")} className="flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors">
-          <ArrowLeft className="w-4 h-4"/><span className="font-body text-sm">Back</span>
+          <ArrowLeft className="w-4 h-4"/><span className="font-body text-sm">{t('back_btn')}</span>
         </button>
 
         <div className="flex items-center gap-3">
           <div className="p-2 rounded-lg bg-primary/10"><Bot className="w-6 h-6 text-primary"/></div>
           <div>
-            <h1 className="font-display text-xl text-primary">VIRTUAL ASSISTANT</h1>
-            <p className="text-xs text-muted-foreground">AI Voice · Video Conference · Conversation History</p>
+            <h1 className="font-display text-xl text-primary">{t('virtual_assistant_title').toUpperCase()}</h1>
+            <p className="text-xs text-muted-foreground">{t('virtual_assistant_subtitle')}</p>
           </div>
         </div>
 
         <Tabs defaultValue="voice" className="w-full">
           <TabsList className="grid w-full grid-cols-3 max-w-sm">
             <TabsTrigger value="voice" className="flex items-center gap-1.5">
-              <Mic className="w-3.5 h-3.5"/>Voice AI
+              <Mic className="w-3.5 h-3.5"/>{t('tab_voice_ai')}
             </TabsTrigger>
             <TabsTrigger value="video" className="flex items-center gap-1.5">
-              <Video className="w-3.5 h-3.5"/>Video Call
+              <Video className="w-3.5 h-3.5"/>{t('tab_video_call')}
             </TabsTrigger>
             <TabsTrigger value="history" className="flex items-center gap-1.5">
-              <MessageSquare className="w-3.5 h-3.5"/>History
+              <MessageSquare className="w-3.5 h-3.5"/>{t('tab_history_conv')}
             </TabsTrigger>
           </TabsList>
 

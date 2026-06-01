@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { ArrowLeft, Plus, Scroll, Star, Calendar, Edit, Trash2 } from "lucide-react";
 import { useEntities } from "@/hooks/useEntities";
 import { Button } from "@/components/ui/button";
@@ -21,6 +22,7 @@ const emptyForm: Omit<Milestone, "id"> = { title: "", date: "", description: "",
 
 const LegendaryJourney = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const { items: rows, create, update, remove } = useEntities("legendary_journey");
   const items: Milestone[] = useMemo(() => rows.map(r => ({
     id: r.id,
@@ -42,7 +44,7 @@ const LegendaryJourney = () => {
   const openEdit = (m: Milestone) => { const { id, ...rest } = m; setForm(rest); setEditId(m.id); setShowForm(true); };
 
   const handleSubmit = async () => {
-    if (!form.title.trim()) { toast.error("Title required"); return; }
+    if (!form.title.trim()) { toast.error(t('required')); return; }
     const payload = {
       name:               form.title,
       status:             "active",
@@ -52,8 +54,8 @@ const LegendaryJourney = () => {
       responsible_person: form.responsiblePerson  || null,
       data:               form,
     };
-    if (editId) { await update(editId, payload); toast.success("Updated"); }
-    else { await create(payload); toast.success("Milestone added"); }
+    if (editId) { await update(editId, payload); toast.success(t('updated_success')); }
+    else { await create(payload); toast.success(t('created_success')); }
     setShowForm(false); resetForm();
   };
 
@@ -62,10 +64,10 @@ const LegendaryJourney = () => {
   return (
     <div className="min-h-screen bg-background p-4 md:p-8">
       <div className="max-w-4xl mx-auto">
-        <button onClick={() => navigate("/")} className="flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors mb-6"><ArrowLeft className="w-4 h-4" /><span className="font-body text-sm">Back</span></button>
+        <button onClick={() => navigate("/")} className="flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors mb-6"><ArrowLeft className="w-4 h-4" /><span className="font-body text-sm">{t('back_btn')}</span></button>
         <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center gap-2"><Scroll className="w-5 h-5 text-primary" /><h1 className="font-display text-lg text-primary">THE LEGENDARY JOURNEY</h1></div>
-          <Button onClick={() => { resetForm(); setShowForm(true); }} className="gap-1 font-display text-xs"><Plus className="w-4 h-4" /> Add Milestone</Button>
+          <div className="flex items-center gap-2"><Scroll className="w-5 h-5 text-primary" /><h1 className="font-display text-lg text-primary">{t('legendary_journey').toUpperCase()}</h1></div>
+          <Button onClick={() => { resetForm(); setShowForm(true); }} className="gap-1 font-display text-xs"><Plus className="w-4 h-4" /> {t('add_milestone_btn')}</Button>
         </div>
 
         <div className="relative">
@@ -88,7 +90,7 @@ const LegendaryJourney = () => {
                   </div>
                   <h3 className="font-display text-sm text-foreground">{m.title}</h3>
                   <p className="text-xs text-muted-foreground mt-1">{m.description}</p>
-                  {m.responsiblePerson && <p className="text-[10px] text-primary mt-1">Key Person: {summarizeKeyPersons(m.responsiblePerson)}</p>}
+                  {m.responsiblePerson && <p className="text-[10px] text-primary mt-1">{t('key_person_label')} {summarizeKeyPersons(m.responsiblePerson)}</p>}
                 </div>
               </div>
             ))}
@@ -100,7 +102,7 @@ const LegendaryJourney = () => {
 
       <Dialog open={showForm} onOpenChange={setShowForm}>
         <DialogContent className="bg-card border-border max-w-lg max-h-[85vh] overflow-auto">
-          <DialogHeader><DialogTitle className="font-display text-primary">{editId ? "Edit" : "New"} Milestone</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle className="font-display text-primary">{editId ? t('edit') : t('new_btn')} {t('add_milestone_btn').replace('Add ','')}</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2"><Label>Title *</Label><Input value={form.title} onChange={e => setForm(p => ({ ...p, title: e.target.value }))} className="bg-secondary border-border text-foreground" /></div>
             <div className="grid grid-cols-2 gap-3">
@@ -115,7 +117,7 @@ const LegendaryJourney = () => {
             <EntityFileUpload files={form.files} onChange={files => setForm(p => ({ ...p, files }))} ownerKind="legendary_journey" ownerId={editId || undefined} />
             <EntityApiHub entityName={form.title || "New Milestone"} ownerKind="legendary_journey" ownerId={editId || undefined} />
           </div>
-          <DialogFooter><Button onClick={handleSubmit} className="font-display text-xs">{editId ? "Save" : "Add Milestone"}</Button></DialogFooter>
+          <DialogFooter><Button onClick={handleSubmit} className="font-display text-xs">{editId ? t('save') : t('add_milestone_btn')}</Button></DialogFooter>
         </DialogContent>
       </Dialog>
 
@@ -127,7 +129,7 @@ const LegendaryJourney = () => {
               <div className="space-y-3">
                 <p className="text-xs text-muted-foreground">{detail.date} • {detail.category}</p>
                 <p className="text-xs text-muted-foreground">{detail.description}</p>
-                {detail.responsiblePerson && <p className="text-xs text-primary">Key Person: {summarizeKeyPersons(detail.responsiblePerson)}</p>}
+                {detail.responsiblePerson && <p className="text-xs text-primary">{t('key_person_label')} {summarizeKeyPersons(detail.responsiblePerson)}</p>}
                 <EntityApiHub entityName={detail.title} ownerKind="legendary_journey" ownerId={detail.id} />
               </div>
             </>

@@ -47,16 +47,16 @@ const helpSections = [
 ];
 
 const settingsSections = [
-  { id: "profile", icon: User, label: "Profile & Security", desc: "Account settings, password, 2FA" },
-  { id: "permissions", icon: Shield, label: "Permissions Management", desc: "Role-based access control" },
-  { id: "logs", icon: ScrollText, label: "System Logs", desc: "Audit trail & activity monitoring" },
-  { id: "preferences", icon: Globe, label: "System Preferences", desc: "Language, timezone, display" },
-  { id: "api", icon: Plug, label: "API Hub", desc: "API keys & integrations" },
-  { id: "backup", icon: Database, label: "Backup Management", desc: "Automated & manual backups" },
-  { id: "emergency", icon: Lock, label: "Emergency & Digital Inheritance", desc: "Key of Death, heir settings" },
-  { id: "legal", icon: FileText, label: "Legal & Privacy Policy", desc: "Terms, compliance, GDPR" },
-  { id: "billing", icon: CreditCard, label: "Billing & Plans", desc: "Subscriptions, payment methods" },
-  { id: "notifications", icon: Bell, label: "Notifications & Support", desc: "Alert preferences, help center" },
+  { id: "profile", icon: User, labelKey: "settings_profile", descKey: "settings_profile_desc" },
+  { id: "permissions", icon: Shield, labelKey: "settings_permissions", descKey: "settings_permissions_desc" },
+  { id: "logs", icon: ScrollText, labelKey: "settings_logs", descKey: "settings_logs_desc" },
+  { id: "preferences", icon: Globe, labelKey: "settings_preferences", descKey: "settings_preferences_desc" },
+  { id: "api", icon: Plug, labelKey: "settings_api", descKey: "settings_api_desc" },
+  { id: "backup", icon: Database, labelKey: "settings_backup", descKey: "settings_backup_desc" },
+  { id: "emergency", icon: Lock, labelKey: "settings_emergency", descKey: "settings_emergency_desc" },
+  { id: "legal", icon: FileText, labelKey: "settings_legal", descKey: "settings_legal_desc" },
+  { id: "billing", icon: CreditCard, labelKey: "settings_billing", descKey: "settings_billing_desc" },
+  { id: "notifications", icon: Bell, labelKey: "settings_notifications", descKey: "settings_notifications_desc" },
 ];
 
 type LogEntry = { id: string; action: string; user: string; timestamp: string; level: "info" | "warning" | "error"; module: string; };
@@ -691,16 +691,16 @@ const Settings = () => {
   return (
     <div className="min-h-screen bg-background p-4 md:p-8">
       <div className="max-w-6xl mx-auto">
-        <button onClick={() => navigate("/")} className="flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors mb-6"><ArrowLeft className="w-4 h-4" /><span className="font-body text-sm">Back</span></button>
-        <h1 className="font-display text-lg text-primary mb-6">⚙️ SETTINGS</h1>
+        <button onClick={() => navigate("/")} className="flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors mb-6"><ArrowLeft className="w-4 h-4" /><span className="font-body text-sm">{t('back_btn')}</span></button>
+        <h1 className="font-display text-lg text-primary mb-6">⚙️ {t('settings')}</h1>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           <div className="space-y-1">
             {settingsSections.map(s => (
               <button key={s.id} onClick={() => setActiveSection(s.id)} className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-left transition-colors ${activeSection === s.id ? "bg-primary/10 text-primary border border-primary/20" : "text-muted-foreground hover:text-foreground hover:bg-secondary"}`}>
                 <s.icon className="w-4 h-4 shrink-0" />
                 <div className="flex-1 min-w-0">
-                  <p className="font-display text-[11px] truncate">{s.label}</p>
-                  <p className="text-[9px] text-muted-foreground truncate">{s.desc}</p>
+                  <p className="font-display text-[11px] truncate">{t(s.labelKey)}</p>
+                  <p className="text-[9px] text-muted-foreground truncate">{t(s.descKey)}</p>
                 </div>
                 <ChevronRight className="w-3.5 h-3.5 shrink-0" />
               </button>

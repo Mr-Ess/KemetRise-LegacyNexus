@@ -2,6 +2,7 @@ import { Globe, MoreHorizontal, Users, Filter } from "lucide-react";
 import { useState, useMemo, useEffect } from "react";
 import { branchesApi } from "@/services/system";
 import { supabase } from "@/integrations/supabase/client";
+import { useTranslation } from "react-i18next";
 
 type Branch = {
   id: string;
@@ -19,6 +20,7 @@ const mapDbStatus = (s: string): Branch["status"] =>
   s === "active" ? "Active" : s === "maintenance" ? "Maintenance" : "Inactive";
 
 const BranchActivityCard = ({ globalStatusFilter }: { globalStatusFilter?: string } = {}) => {
+  const { t } = useTranslation();
   const [statusFilter, setStatusFilter] = useState<"all" | Branch["status"]>("all");
 
   // Sync from parent global filter
@@ -70,7 +72,7 @@ const BranchActivityCard = ({ globalStatusFilter }: { globalStatusFilter?: strin
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <span className="text-lg">🌍</span>
-          <h3 className="font-display text-xs font-bold text-foreground tracking-wider">BRANCH ACTIVITY & GLOBAL LOGISTICS</h3>
+          <h3 className="font-display text-xs font-bold text-foreground tracking-wider">{t('branch_activity_title')}</h3>
         </div>
         <div className="flex items-center gap-1">
           <button
@@ -88,7 +90,7 @@ const BranchActivityCard = ({ globalStatusFilter }: { globalStatusFilter?: strin
       {/* Filters */}
       {showFilters && (
         <div className="flex items-center gap-1.5 mb-3 p-2 bg-secondary/30 rounded-md border border-border/50">
-          <span className="text-[10px] font-display text-muted-foreground">Status:</span>
+          <span className="text-[10px] font-display text-muted-foreground">{t('status_filter_label')}</span>
           {(["all", "Active", "Inactive", "Maintenance"] as const).map((s) => (
             <button
               key={s}
@@ -97,7 +99,7 @@ const BranchActivityCard = ({ globalStatusFilter }: { globalStatusFilter?: strin
                 statusFilter === s ? "bg-primary/20 text-primary border border-primary/30" : "text-muted-foreground hover:text-foreground border border-transparent"
               }`}
             >
-              {s === "all" ? "All" : s}
+              {s === "all" ? t('all_filter') : s}
             </button>
           ))}
         </div>
@@ -156,7 +158,7 @@ const BranchActivityCard = ({ globalStatusFilter }: { globalStatusFilter?: strin
             </div>
           ))}
           {filteredBranches.length === 0 && (
-            <p className="text-xs text-muted-foreground text-center py-4">No branches match filter</p>
+            <p className="text-xs text-muted-foreground text-center py-4">{t('no_branches_match')}</p>
           )}
           <button className="w-full py-2 rounded-md bg-primary text-primary-foreground font-display text-[10px] font-bold tracking-widest hover:bg-primary/90 transition-colors">
             MANAGE WORKFORCE (ALLOCATE AI/HUMAN)

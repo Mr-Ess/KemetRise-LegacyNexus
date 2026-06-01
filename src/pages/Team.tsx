@@ -9,6 +9,7 @@ import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import ExportButton from "@/components/shared/ExportButton";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 
 const STATUS_COLOR: Record<string, string> = {
   active:   "bg-emerald-500/20 text-emerald-400 border-emerald-500/30",
@@ -20,6 +21,7 @@ const STATUS_COLOR: Record<string, string> = {
 
 export default function Team() {
   const nav = useNavigate();
+  const { t } = useTranslation();
   const { items: rows, remove } = useEntities("employees");
 
   const [search,      setSearch]      = useState("");
@@ -46,8 +48,8 @@ export default function Team() {
   }), [items, typeFilter, statusFilter, search]);
 
   const handleDelete = async (id: string, name: string) => {
-    if (!confirm(`Remove "${name}" from the team?`)) return;
-    try { await remove(id); toast.success("Removed"); }
+    if (!confirm(`${t('remove_from_team_confirm')} "${name}"?`)) return;
+    try { await remove(id); toast.success(t('deleted_success')); }
     catch (e: any) { toast.error(e.message); }
   };
 
@@ -59,17 +61,17 @@ export default function Team() {
     <div className="min-h-screen bg-background p-4 md:p-8">
       <div className="max-w-5xl mx-auto space-y-4">
         <button onClick={() => nav(-1)} className="flex items-center gap-2 text-muted-foreground hover:text-primary text-sm">
-          <ArrowLeft className="w-4 h-4"/>Back
+          <ArrowLeft className="w-4 h-4"/>{t('back_btn')}
         </button>
 
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <h1 className="font-display text-xl text-primary flex items-center gap-2">
-            <Users className="w-5 h-5"/>Team
+            <Users className="w-5 h-5"/>{t('team')}
           </h1>
           <div className="flex items-center gap-2">
             <ExportButton data={filtered} filename="team" title="Team"/>
             <Button size="sm" onClick={() => nav("/employees")}>
-              <Plus className="w-4 h-4 mr-1"/>Add Member
+              <Plus className="w-4 h-4 mr-1"/>{t('add_member_btn')}
             </Button>
           </div>
         </div>
@@ -77,10 +79,10 @@ export default function Team() {
         {/* Stats */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {[
-            { label: "Total",    value: items.length,  icon: Users },
-            { label: "Human",    value: humanCount,    icon: User  },
-            { label: "AI Agents",value: aiCount,       icon: Bot   },
-            { label: "Active",   value: onlineCount,   icon: RefreshCw },
+            { label: t('total_label'),    value: items.length,  icon: Users },
+            { label: t('type_human'),    value: humanCount,    icon: User  },
+            { label: t('ai_agents_count'),value: aiCount,       icon: Bot   },
+            { label: t('online_count'),   value: onlineCount,   icon: RefreshCw },
           ].map(s => (
             <Card key={s.label} className="p-3 flex items-center gap-3">
               <s.icon className="w-5 h-5 text-primary shrink-0"/>

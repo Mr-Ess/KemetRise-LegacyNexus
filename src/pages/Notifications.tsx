@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -19,6 +20,7 @@ const EMPTY_RULE = { name:"", table_name:"", field:"", operator:"lt", threshold:
 
 export default function Notifications() {
   const nav = useNavigate();
+  const { t } = useTranslation();
 
   // ── Inbox state ─────────────────────────────────────────────────
   const [logs, setLogs] = useState<any[]>([]);
@@ -80,7 +82,7 @@ export default function Notifications() {
     const next = [...new Set([...readIds, ...logs.map(l => l.id)])];
     setReadIds(next);
     await settingsApi.set("read_notifications", next);
-    toast.success("All marked as read");
+    toast.success(t('all_marked_read'));
   };
 
   const NotifIcon = ({ level }: { level: string }) =>
@@ -95,25 +97,25 @@ export default function Notifications() {
         {/* Header */}
         <div className="flex items-center gap-3">
           <button onClick={()=>nav("/")} className="flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors">
-            <ArrowLeft className="w-4 h-4"/><span className="text-sm">Back</span>
+            <ArrowLeft className="w-4 h-4"/><span className="text-sm">{t('back_btn')}</span>
           </button>
         </div>
         <div className="flex items-center gap-3">
           <div className="p-2 rounded-lg bg-primary/10"><Bell className="w-6 h-6 text-primary"/></div>
           <div>
-            <h1 className="font-display text-xl text-primary">NOTIFICATIONS</h1>
-            <p className="text-xs text-muted-foreground">Notification Inbox · Automation Rules</p>
+            <h1 className="font-display text-xl text-primary">{t('notifications').toUpperCase()}</h1>
+            <p className="text-xs text-muted-foreground">{t('notifications_subtitle')}</p>
           </div>
         </div>
 
         <Tabs defaultValue="inbox">
           <TabsList className="grid w-full grid-cols-2 max-w-xs">
             <TabsTrigger value="inbox" className="flex items-center gap-1.5">
-              <Bell className="w-3.5 h-3.5"/>Inbox
+              <Bell className="w-3.5 h-3.5"/>{t('inbox_tab')}
               {unreadCount > 0 && <Badge variant="destructive" className="ml-1 text-[9px] px-1.5 py-0">{unreadCount}</Badge>}
             </TabsTrigger>
             <TabsTrigger value="rules" className="flex items-center gap-1.5">
-              <BellRing className="w-3.5 h-3.5"/>Rules ({rules.length})
+              <BellRing className="w-3.5 h-3.5"/>{t('rules_tab')} ({rules.length})
             </TabsTrigger>
           </TabsList>
 
@@ -123,12 +125,12 @@ export default function Notifications() {
               <div className="flex gap-2 flex-wrap">
                 {(["all","unread","warning","error"] as const).map(f=>(
                   <Button key={f} size="sm" variant={filter===f?"default":"outline"} onClick={()=>setFilter(f)} className="text-xs">
-                    {f==="all"?"All" : f==="unread"?`Unread (${unreadCount})` : f.charAt(0).toUpperCase()+f.slice(1)}
+                    {f==="all"?t('all_notifications') : f==="unread"?`${t('unread_only')} (${unreadCount})` : f==="warning"?t('level_warning'):t('level_error')}
                   </Button>
                 ))}
               </div>
               <Button size="sm" variant="ghost" onClick={markAll} className="gap-1.5 text-xs">
-                <Check className="w-3.5 h-3.5"/>Mark All Read
+                <Check className="w-3.5 h-3.5"/>{t('mark_all_read')}
               </Button>
             </div>
 
@@ -136,7 +138,7 @@ export default function Notifications() {
               {filtered.length === 0 ? (
                 <div className="p-12 text-center text-muted-foreground">
                   <Bell className="w-10 h-10 mx-auto mb-3 opacity-20"/>
-                  <p>No notifications match this filter</p>
+                  <p>{t('no_notif_match')}</p>
                 </div>
               ) : filtered.map(n=>(
                 <div key={n.id} className={`flex items-start gap-3 p-4 hover:bg-secondary/30 transition-colors ${!readIds.includes(n.id)?"bg-primary/5":""}`}>

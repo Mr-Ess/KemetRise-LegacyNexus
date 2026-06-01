@@ -3,10 +3,12 @@ import * as XLSX from "xlsx";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Download } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 interface Props { data: any[]; filename: string; title?: string }
 
 export default function ExportButton({ data, filename, title }: Props) {
+  const { t } = useTranslation();
   const exportCsv = () => {
     if (!data.length) return;
     const headers = Object.keys(data[0]);
@@ -35,11 +37,11 @@ export default function ExportButton({ data, filename, title }: Props) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="sm"><Download className="w-4 h-4 mr-1"/>Export</Button>
+        <Button variant="outline" size="sm"><Download className="w-4 h-4 mr-1"/>{t('export')}</Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent>
         <DropdownMenuItem onClick={exportCsv}>CSV</DropdownMenuItem>
-        <DropdownMenuItem onClick={exportXlsx}>Excel</DropdownMenuItem>
+        <DropdownMenuItem onClick={exportXlsx}>{t('excel_label')}</DropdownMenuItem>
         <DropdownMenuItem onClick={exportPdf}>PDF</DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

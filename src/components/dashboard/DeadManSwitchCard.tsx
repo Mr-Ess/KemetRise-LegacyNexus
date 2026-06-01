@@ -7,11 +7,13 @@ import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { dmsApi, heirsApi, type Heir } from "@/services/system";
 import { supabase } from "@/integrations/supabase/client";
+import { useTranslation } from "react-i18next";
 
 const DEFAULT_WARNING_DAYS = 1;
 
 const DeadManSwitchCard = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [deadlineDays, setDeadlineDays] = useState(3);
   const [warningDays, setWarningDays] = useState(DEFAULT_WARNING_DAYS);
   const [lastHeartbeat, setLastHeartbeat] = useState<Date>(new Date());
@@ -77,8 +79,8 @@ const DeadManSwitchCard = () => {
     if (sessionStorage.getItem(key)) { setDeadlineWarningShown(true); return; }
     sessionStorage.setItem(key, "1");
     setDeadlineWarningShown(true);
-    toast.warning(`⚠️ Heartbeat deadline in less than ${effectiveWarningDays} day(s)!`, {
-      description: "An email notification would be sent to heirs. Confirm your heartbeat now.",
+    toast.warning(`⚠️ ${t('dms_heartbeat_header')} ${effectiveWarningDays}`, {
+      description: t('confirm_heartbeat_btn'),
       duration: 10000,
     });
   }, [inWarning, deadlineWarningShown, lastHeartbeat, effectiveWarningDays]);
@@ -88,7 +90,7 @@ const DeadManSwitchCard = () => {
       const r = await dmsApi.heartbeat();
       setLastHeartbeat(new Date(r.last_heartbeat));
       setDeadlineWarningShown(false);
-      toast.success("✅ Heartbeat confirmed! Timer has been reset.");
+      toast.success(t('timing_updated'));
     } catch (e: any) { toast.error(e.message); }
   }, []);
 
@@ -100,7 +102,7 @@ const DeadManSwitchCard = () => {
       setDeadlineDays(newDeadline);
       setWarningDays(newWarning);
       setDeadlineWarningShown(false);
-      toast.success("Timing updated");
+      toast.success(t('timing_updated'));
     } catch (e: any) { toast.error(e.message); }
   }, [deadlineDays, warningDays, active]);
 
@@ -117,16 +119,16 @@ const DeadManSwitchCard = () => {
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <span className="text-lg">🔱</span>
-          <h3 className="font-display text-xs font-bold text-primary tracking-wider">DEAD MAN'S SWITCH & DIGITAL HEIR PLAN</h3>
+          <h3 className="font-display text-xs font-bold text-primary tracking-wider">{t('dms_title')}</h3>
         </div>
         <div className="flex items-center gap-1">
           {!active && (
-            <span className="px-2 py-0.5 rounded bg-muted/40 border border-border text-[9px] font-display text-muted-foreground">DISABLED</span>
+            <span className="px-2 py-0.5 rounded bg-muted/40 border border-border text-[9px] font-display text-muted-foreground">{t('disabled_label')}</span>
           )}
           {active && seconds <= warningSeconds && seconds > 0 && (
             <span className="flex items-center gap-1 px-2 py-0.5 rounded bg-blood-red/20 border border-blood-red/40 animate-pulse">
               <Mail className="w-3 h-3 text-blood-red" />
-              <span className="text-[9px] font-display text-blood-red">EMAIL ALERT</span>
+              <span className="text-[9px] font-display text-blood-red">{t('email_alert_label')}</span>
             </span>
           )}
           <Popover>
@@ -137,21 +139,21 @@ const DeadManSwitchCard = () => {
             </PopoverTrigger>
             <PopoverContent align="end" className="w-64 bg-card border-border z-50">
               <div className="space-y-3">
-                <p className="font-display text-xs text-primary">HEARTBEAT TIMING</p>
+                <p className="font-display text-xs text-primary">{t('heartbeat_timing')}</p>
                 <div className="space-y-1.5">
-                  <Label className="text-[10px] text-muted-foreground">Deadline (days)</Label>
+                  <Label className="text-[10px] text-muted-foreground">{t('deadline_days_label')}</Label>
                   <Input type="number" min={1} max={365} value={deadlineDays}
                     onChange={(e) => setDeadlineDays(Math.max(1, +e.target.value || 1))}
                     onBlur={(e) => saveTiming({ deadline_days: Math.max(1, +e.target.value || 1) })}
                     className="h-8 bg-secondary border-border text-foreground text-xs" />
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-[10px] text-muted-foreground">Warning Before (days)</Label>
+                  <Label className="text-[10px] text-muted-foreground">{t('warning_before_label')}</Label>
                   <Input type="number" min={1} max={Math.max(1, deadlineDays - 1)} value={warningDays}
                     onChange={(e) => setWarningDays(Math.max(1, +e.target.value || 1))}
                     onBlur={(e) => saveTiming({ warning_days: Math.max(1, +e.target.value || 1) })}
                     className="h-8 bg-secondary border-border text-foreground text-xs" />
-                  <p className="text-[9px] text-muted-foreground">Must be less than deadline. Auto-clamped.</p>
+                  <p className="text-[9px] text-muted-foreground">{t('warning_clamp_hint')}</p>
                 </div>
               </div>
             </PopoverContent>
@@ -162,8 +164,8 @@ const DeadManSwitchCard = () => {
       {!active && (
         <div className="absolute inset-0 bg-background/70 backdrop-blur-sm z-10 flex items-center justify-center">
           <div className="text-center px-4">
-            <p className="font-display text-sm text-muted-foreground mb-1">⏸️ SWITCH DISABLED</p>
-            <p className="text-xs text-muted-foreground">Enable from Settings → Emergency</p>
+            <p className="font-display text-sm text-muted-foreground mb-1">⏸️ {t('switch_disabled_msg')}</p>
+            <p className="text-xs text-muted-foreground">{t('enable_from_emergency')}</p>
           </div>
         </div>
       )}
@@ -172,9 +174,9 @@ const DeadManSwitchCard = () => {
         {/* Left - Heartbeat */}
         <div>
           <div className="mb-2">
-            <span className="text-xs font-display text-foreground">DEAD MAN'S SWITCH HEARTBEAT: </span>
+            <span className="text-xs font-display text-foreground">{t('dms_heartbeat_header')} </span>
             <span className={`text-xs font-display font-bold ${seconds <= warningSeconds ? "text-blood-red animate-pulse" : "text-scarab"}`}>
-              {seconds <= 0 ? "EXPIRED" : seconds <= warningSeconds ? "WARNING" : "ACTIVE"}
+              {seconds <= 0 ? t('status_expired') : seconds <= warningSeconds ? t('status_warning') : t('status_active').toUpperCase()}
             </span>
           </div>
 
@@ -215,14 +217,14 @@ const DeadManSwitchCard = () => {
           </div>
 
           <p className="text-xs font-body text-muted-foreground mb-3">
-            Countdown: <span className={`font-display font-bold ${seconds <= warningSeconds ? "text-blood-red" : "text-nile"}`}>{time}</span> | Next confirmation: <span className="text-primary">{nextConfirmation}</span>
+            {t('heartbeat_short')} <span className={`font-display font-bold ${seconds <= warningSeconds ? "text-blood-red" : "text-nile"}`}>{time}</span> | {t('next_confirmation')}: <span className="text-primary">{nextConfirmation}</span>
           </p>
 
           <button
             onClick={confirmHeartbeat}
             className="w-full py-3 rounded-lg bg-primary text-primary-foreground font-display text-sm font-bold tracking-widest hover:bg-primary/90 transition-all active:scale-[0.98] gold-glow"
           >
-            CONFIRM HEARTBEAT
+            {t('confirm_heartbeat_btn')}
           </button>
         </div>
 
@@ -238,7 +240,7 @@ const DeadManSwitchCard = () => {
           <div className="flex items-center justify-center gap-3 mb-3 flex-wrap">
             {heirs.length === 0 && (
               <button onClick={() => navigate("/digital-inheritance")} className="flex items-center gap-1 px-3 py-2 rounded-lg border border-dashed border-primary/40 text-xs font-display text-primary hover:bg-primary/10">
-                <UserPlus className="w-3.5 h-3.5" /> Add heirs
+                <UserPlus className="w-3.5 h-3.5" /> {t('add_heir_btn_alt')}
               </button>
             )}
             {heirs.map((h, i) => (

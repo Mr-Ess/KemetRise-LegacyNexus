@@ -5,6 +5,7 @@ import { chatApi, tasksApi } from "@/services/system";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { tenantDb } from "@/lib/tenantDb";
+import { useTranslation } from "react-i18next";
 
 type AgentStatus = "online" | "offline" | "busy";
 type AgentType = "AI" | "Human";
@@ -28,7 +29,7 @@ const STATIC_AI_AGENTS: Agent[] = [
   { id: "hathor", name: "Hathor", icon: Bot, color: "text-primary", type: "AI", status: "offline", role: "AI Creative", system: "You are Hathor, a creative AI director." },
 ];
 
-type DbMessage = { id: string; role: string; content: string; metadata?: any };
+const ChatHubCardInner = () => {};
 
 // Render an attachment from message metadata
 const Attachment = ({ meta }: { meta: any }) => {
@@ -95,6 +96,7 @@ const Attachment = ({ meta }: { meta: any }) => {
 };
 
 const ChatHubCard = () => {
+  const { t } = useTranslation();
   const [agents, setAgents] = useState<Agent[]>([]);
   const [activeAgent, setActiveAgent] = useState("");
   const [conversations, setConversations] = useState<Record<string, string>>({});
@@ -381,7 +383,7 @@ const ChatHubCard = () => {
         <div className="flex items-center gap-2">
           <span className="text-lg">💬</span>
           <h3 className="font-display text-xs font-bold text-foreground tracking-wider">
-            ACTIVE AGENT CHAT HUB <span className="text-muted-foreground font-body text-xs">(مركز الدردشة)</span>
+            {t('chat_hub_title')}
           </h3>
         </div>
         <div className="flex items-center gap-1">
@@ -395,10 +397,10 @@ const ChatHubCard = () => {
       {showFilters && (
         <div className="flex flex-wrap gap-3 mb-2 p-2.5 bg-secondary/30 rounded-md border border-border/50">
           <div className="flex items-center gap-1.5">
-            <span className="text-[10px] font-display text-muted-foreground">النوع:</span>
-            {(["all", "AI", "Human"] as const).map((t) => (
-              <button key={t} onClick={() => setTypeFilter(t)} className={`px-2.5 py-1 rounded text-[10px] font-display transition-colors ${typeFilter === t ? "bg-primary/20 text-primary border border-primary/30" : "text-muted-foreground hover:text-foreground border border-transparent"}`}>
-                {t === "all" ? "الكل" : t === "AI" ? "🤖 AI" : "👤 Human"}
+            <span className="text-[10px] font-display text-muted-foreground">{t('type_filter_label')}:</span>
+            {(["all", "AI", "Human"] as const).map((tf) => (
+              <button key={tf} onClick={() => setTypeFilter(tf)} className={`px-2.5 py-1 rounded text-[10px] font-display transition-colors ${typeFilter === tf ? "bg-primary/20 text-primary border border-primary/30" : "text-muted-foreground hover:text-foreground border border-transparent"}`}>
+                {tf === "all" ? t('all_filter') : tf === "AI" ? `🤖 ${t('type_ai')}` : `👤 ${t('type_human')}`}
               </button>
             ))}
           </div>
@@ -440,7 +442,7 @@ const ChatHubCard = () => {
             <div ref={scrollRef} className="space-y-2 max-h-[140px] overflow-y-auto flex-1">
               {(messages[activeAgent] || []).map((m) => (
                 <div key={m.id} className={`px-3 py-2 rounded-lg text-xs ${m.role === "user" ? "bg-nile/10 ml-4" : "bg-secondary"}`}>
-                  <div className={`font-display font-bold ${m.role === "user" ? "text-nile" : "text-primary"}`}>{m.role === "user" ? "You" : currentAgent.name}</div>
+                  <div className={`font-display font-bold ${m.role === "user" ? "text-nile" : "text-primary"}`}>{m.role === "user" ? t('you_label') : currentAgent.name}</div>
                   {m.content && <span className="font-body text-sm text-card-foreground whitespace-pre-wrap">{m.content}</span>}
                   <Attachment meta={m.metadata} />
                 </div>
@@ -452,7 +454,7 @@ const ChatHubCard = () => {
                 </div>
               )}
               {!messages[activeAgent]?.length && !streaming && (
-                <p className="text-xs text-muted-foreground italic">ابدأ المحادثة مع {currentAgent.name}...</p>
+                <p className="text-xs text-muted-foreground italic">{t('start_conversation', { name: currentAgent.name })}</p>
               )}
             </div>
           </div>
@@ -508,7 +510,7 @@ const ChatHubCard = () => {
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && sendMessage()}
             disabled={loading}
-            placeholder={loading ? "Sending..." : `Message ${currentAgent?.name}...`}
+            placeholder={loading ? t('sending_label') : t('message_agent_placeholder', { name: currentAgent?.name ?? '' })}
             className="flex-1 bg-secondary/50 border border-border rounded-md px-3 py-1.5 text-sm font-body text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50 min-w-0"
           />
         )}

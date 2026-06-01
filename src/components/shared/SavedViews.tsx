@@ -5,6 +5,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Bookmark, Plus, X } from "lucide-react";
 import { viewsApi } from "@/services/system";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 
 interface Props {
   page: string;
@@ -13,6 +14,7 @@ interface Props {
 }
 
 export const SavedViews = ({ page, currentFilters, onApply }: Props) => {
+  const { t } = useTranslation();
   const [views, setViews] = useState<any[]>([]);
   const [name, setName] = useState("");
 
@@ -26,7 +28,7 @@ export const SavedViews = ({ page, currentFilters, onApply }: Props) => {
     try {
       await viewsApi.create({ page, name: name.trim(), filters: currentFilters });
       setName(""); await load();
-      toast.success("View saved");
+      toast.success(t('view_saved'));
     } catch (e: any) { toast.error(e.message); }
   };
 
@@ -38,13 +40,13 @@ export const SavedViews = ({ page, currentFilters, onApply }: Props) => {
     <Popover>
       <PopoverTrigger asChild>
         <Button variant="outline" size="sm" className="gap-2">
-          <Bookmark className="h-4 w-4" /> Views ({views.length})
+          <Bookmark className="h-4 w-4" /> {t('views_label')} ({views.length})
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-80">
         <div className="space-y-2">
           <div className="flex gap-2">
-            <Input placeholder="View name…" value={name} onChange={(e) => setName(e.target.value)} />
+            <Input placeholder={t('view_name_placeholder')} value={name} onChange={(e) => setName(e.target.value)} />
             <Button size="sm" onClick={save}><Plus className="h-4 w-4" /></Button>
           </div>
           <div className="max-h-60 overflow-auto space-y-1">
@@ -54,7 +56,7 @@ export const SavedViews = ({ page, currentFilters, onApply }: Props) => {
                 <Button size="icon" variant="ghost" onClick={() => remove(v.id)}><X className="h-3 w-3" /></Button>
               </div>
             ))}
-            {views.length === 0 && <div className="text-xs text-muted-foreground p-2">No saved views</div>}
+            {views.length === 0 && <div className="text-xs text-muted-foreground p-2">{t('no_saved_views')}</div>}
           </div>
         </div>
       </PopoverContent>

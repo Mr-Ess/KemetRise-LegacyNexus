@@ -9,11 +9,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { useTranslation } from "react-i18next";
 
 type Period = "weekly" | "monthly" | "yearly";
 
 const FinancialOverviewCard = () => {
   const { user } = useAuth();
+  const { t } = useTranslation();
   const [period, setPeriod] = useState<Period>("monthly");
   const [rows, setRows] = useState<any[]>([]);
   const [showAdd, setShowAdd] = useState(false);
@@ -64,12 +66,12 @@ const FinancialOverviewCard = () => {
 
   const submit = async () => {
     const amt = parseFloat(form.amount);
-    if (!amt) { toast.error("Amount required"); return; }
+    if (!amt) { toast.error(t('amount_required_msg')); return; }
     try {
       await transactionsApi.create({ amount: amt, kind: form.kind, category: form.category, description: form.description });
       setForm({ amount: "", kind: "income", category: "", description: "" });
       setShowAdd(false);
-      toast.success("Transaction added");
+      toast.success(t('transaction_added'));
     } catch (e: any) { toast.error(e.message); }
   };
 
@@ -78,7 +80,7 @@ const FinancialOverviewCard = () => {
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <span className="text-lg">💰</span>
-          <h3 className="font-display text-xs font-bold text-foreground tracking-wider">FINANCIAL OVERVIEW & GROWTH</h3>
+          <h3 className="font-display text-xs font-bold text-foreground tracking-wider">{t('financial_overview_title')}</h3>
         </div>
         <div className="flex items-center gap-1">
           {(["weekly", "monthly", "yearly"] as const).map((p) => (
@@ -97,7 +99,7 @@ const FinancialOverviewCard = () => {
       <div className="grid grid-cols-3 gap-3 flex-1">
         <div className="bg-secondary/50 rounded-md p-3">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-[10px] font-display text-primary tracking-wider">REVENUE</span>
+            <span className="text-[10px] font-display text-primary tracking-wider">{t('revenue_kpi')}</span>
             <TrendingUp className="w-3.5 h-3.5 text-scarab" />
           </div>
           <p className="text-xs font-body text-scarab mb-1">${income.toLocaleString()}</p>
@@ -115,7 +117,7 @@ const FinancialOverviewCard = () => {
 
         <div className="bg-secondary/50 rounded-md p-3">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-[10px] font-display text-primary tracking-wider">ACTIVITY</span>
+            <span className="text-[10px] font-display text-primary tracking-wider">{t('activity_kpi')}</span>
             <BarChart3 className="w-3.5 h-3.5 text-nile" />
           </div>
           <div className="flex items-end gap-1.5 h-12 mt-2">
@@ -127,46 +129,46 @@ const FinancialOverviewCard = () => {
 
         <div className="bg-secondary/50 rounded-md p-3">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-[10px] font-display text-primary tracking-wider">EXPENSES</span>
+            <span className="text-[10px] font-display text-primary tracking-wider">{t('expenses_kpi')}</span>
             <Cpu className="w-3.5 h-3.5 text-primary" />
           </div>
           <p className="text-xs font-body text-blood-red mb-1">${expense.toLocaleString()}</p>
-          <p className="text-[10px] text-muted-foreground">Net: <span className={income - expense >= 0 ? "text-scarab" : "text-blood-red"}>${(income - expense).toLocaleString()}</span></p>
-          <p className="text-[10px] text-muted-foreground mt-1">{filtered.length} txns</p>
+          <p className="text-[10px] text-muted-foreground">{t('net_label')}: <span className={income - expense >= 0 ? "text-scarab" : "text-blood-red"}>${(income - expense).toLocaleString()}</span></p>
+          <p className="text-[10px] text-muted-foreground mt-1">{filtered.length} {t('txns_count')}</p>
         </div>
       </div>
 
       <Dialog open={showAdd} onOpenChange={setShowAdd}>
         <DialogContent className="bg-card border-border">
-          <DialogHeader><DialogTitle className="font-display text-sm text-primary">ADD TRANSACTION</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle className="font-display text-sm text-primary">{t('add_transaction_title')}</DialogTitle></DialogHeader>
           <div className="space-y-3">
             <div className="grid grid-cols-2 gap-2">
-              <div className="space-y-1"><Label className="text-xs">Amount</Label><Input type="number" value={form.amount} onChange={e => setForm({ ...form, amount: e.target.value })} className="bg-secondary border-border" /></div>
-              <div className="space-y-1"><Label className="text-xs">Kind</Label>
+              <div className="space-y-1"><Label className="text-xs">{t('amount')}</Label><Input type="number" value={form.amount} onChange={e => setForm({ ...form, amount: e.target.value })} className="bg-secondary border-border" /></div>
+              <div className="space-y-1"><Label className="text-xs">{t('kind_label')}</Label>
                 <select value={form.kind} onChange={e => setForm({ ...form, kind: e.target.value as any })} className="w-full rounded-md bg-secondary border border-border px-2 py-2 text-xs">
-                  <option value="income">Income</option><option value="expense">Expense</option>
+                  <option value="income">{t('income_type')}</option><option value="expense">{t('expense_type')}</option>
                 </select>
               </div>
             </div>
             <div className="space-y-1">
               <div className="flex items-center justify-between">
-                <Label className="text-xs">Category</Label>
+                <Label className="text-xs">{t('category')}</Label>
                 <button type="button" onClick={async () => {
-                  if (!form.description.trim()) { toast.error("اكتب الوصف الأول"); return; }
+                  if (!form.description.trim()) { toast.error(t('description') + " " + t('required')); return; }
                   try {
                     const cat = await aiApi.categorize("transaction", form.description);
                     setForm(f => ({ ...f, category: cat }));
-                    toast.success(`اقتراح AI: ${cat}`);
+                    toast.success(`${t('ai_insights')}: ${cat}`);
                   } catch (e: any) { toast.error(e.message); }
-                }} className="text-[10px] text-primary hover:underline">✨ AI Auto-Categorize</button>
+                }} className="text-[10px] text-primary hover:underline">✨ {t('ai_insights')}</button>
               </div>
               <Input value={form.category} onChange={e => setForm({ ...form, category: e.target.value })} className="bg-secondary border-border" />
             </div>
-            <div className="space-y-1"><Label className="text-xs">Description</Label><Input value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} className="bg-secondary border-border" /></div>
+            <div className="space-y-1"><Label className="text-xs">{t('description')}</Label><Input value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} className="bg-secondary border-border" /></div>
           </div>
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setShowAdd(false)}>Cancel</Button>
-            <Button onClick={submit}>Save</Button>
+            <Button variant="ghost" onClick={() => setShowAdd(false)}>{t('cancel')}</Button>
+            <Button onClick={submit}>{t('save')}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

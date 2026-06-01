@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { ArrowLeft, Plus, Edit, Trash2, Shield, Heart, Upload } from "lucide-react";
 import { useEntities } from "@/hooks/useEntities";
 import { Button } from "@/components/ui/button";
@@ -23,6 +24,7 @@ const emptyForm: Omit<Heir, "id"> = { name: "", relationship: "", email: "", pho
 
 const DigitalInheritance = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const { items: rows, create, update, remove } = useEntities("digital_inheritance");
   const items: Heir[] = useMemo(() => rows.map(r => ({
     id: r.id,
@@ -51,7 +53,7 @@ const DigitalInheritance = () => {
   const openEdit = (h: Heir) => { const { id, ...rest } = h; setForm(rest); setEditId(h.id); setShowForm(true); };
 
   const handleSubmit = async () => {
-    if (!form.name.trim()) { toast.error("Name required"); return; }
+    if (!form.name.trim()) { toast.error(t('required')); return; }
     const payload = {
       name:               form.name,
       status:             "active",
@@ -68,8 +70,8 @@ const DigitalInheritance = () => {
       responsible_person: form.responsiblePerson  || null,
       data:               form,
     };
-    if (editId) { await update(editId, payload); toast.success("Updated"); }
-    else { await create(payload); toast.success("Added"); }
+    if (editId) { await update(editId, payload); toast.success(t('updated_success')); }
+    else { await create(payload); toast.success(t('created_success')); }
     setShowForm(false); resetForm();
   };
 
@@ -78,14 +80,14 @@ const DigitalInheritance = () => {
   return (
     <div className="min-h-screen bg-background p-4 md:p-8">
       <div className="max-w-5xl mx-auto">
-        <button onClick={() => navigate("/")} className="flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors mb-6"><ArrowLeft className="w-4 h-4" /><span className="font-body text-sm">Back</span></button>
+        <button onClick={() => navigate("/")} className="flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors mb-6"><ArrowLeft className="w-4 h-4" /><span className="font-body text-sm">{t('back_btn')}</span></button>
         <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-2"><Shield className="w-5 h-5 text-primary" /><h1 className="font-display text-lg text-primary">DIGITAL INHERITORS</h1></div>
-          <Button onClick={() => { resetForm(); setShowForm(true); }} className="gap-1 font-display text-xs"><Plus className="w-4 h-4" /> Add Heir</Button>
+          <div className="flex items-center gap-2"><Shield className="w-5 h-5 text-primary" /><h1 className="font-display text-lg text-primary">{t('digital_inheritors_title').toUpperCase()}</h1></div>
+          <Button onClick={() => { resetForm(); setShowForm(true); }} className="gap-1 font-display text-xs"><Plus className="w-4 h-4" /> {t('add_heir')}</Button>
         </div>
         <div className="flex gap-3 text-xs font-display mb-4">
-          <span className="text-foreground">👤 {items.reduce((a, h) => a + h.humanCount, 0)} Human</span>
-          <span className="text-nile">🤖 {items.reduce((a, h) => a + h.aiCount, 0)} AI</span>
+          <span className="text-foreground">👤 {items.reduce((a, h) => a + h.humanCount, 0)} {t('type_human')}</span>
+          <span className="text-nile">🤖 {items.reduce((a, h) => a + h.aiCount, 0)} {t('type_ai')}</span>
         </div>
         <div className="space-y-3">
           {items.map(h => (
@@ -103,8 +105,8 @@ const DigitalInheritance = () => {
                     <div className="flex items-center gap-2 mt-1">
                       <span className={`text-[10px] px-2 py-0.5 rounded-full font-display ${accessColors[h.accessLevel]}`}>{h.accessLevel} Access</span>
                     </div>
-                    {h.responsiblePerson && <p className="text-[10px] text-primary mt-0.5">Key Person: {summarizeKeyPersons(h.responsiblePerson)}</p>}
-                    <p className="text-[10px] text-muted-foreground mt-1"><span className="text-primary">Assets:</span> {h.assets}</p>
+                    {h.responsiblePerson && <p className="text-[10px] text-primary mt-0.5">{t('key_person_label')} {summarizeKeyPersons(h.responsiblePerson)}</p>}
+                    <p className="text-[10px] text-muted-foreground mt-1"><span className="text-primary">{t('assets')}:</span> {h.assets}</p>
                     {h.phone && <p className="text-[10px] text-muted-foreground mt-0.5">{h.phone}{h.whatsapp && ` • WA: ${h.whatsapp}`}</p>}
                     {h.notes && <p className="text-[10px] text-muted-foreground mt-0.5">{h.notes}</p>}
                   </div>
@@ -123,9 +125,9 @@ const DigitalInheritance = () => {
 
       <Dialog open={showForm} onOpenChange={setShowForm}>
         <DialogContent className="bg-card border-border max-w-lg max-h-[85vh] overflow-auto">
-          <DialogHeader><DialogTitle className="font-display text-primary">{editId ? "Edit" : "New"} Heir</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle className="font-display text-primary">{editId ? t('edit') : t('new_btn')} {t('add_heir')}</DialogTitle></DialogHeader>
           <div className="space-y-4">
-            <div className="space-y-2"><Label>Name *</Label><Input value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} className="bg-secondary border-border text-foreground" /></div>
+            <div className="space-y-2"><Label>{t('name')} *</Label><Input value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} className="bg-secondary border-border text-foreground" /></div>
             {/* Photo Upload */}
             <div className="space-y-2">
               <Label>Photo / Image</Label>
@@ -138,28 +140,28 @@ const DigitalInheritance = () => {
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-2"><Label>Relationship</Label><Input value={form.relationship} onChange={e => setForm(p => ({ ...p, relationship: e.target.value }))} className="bg-secondary border-border text-foreground" /></div>
+              <div className="space-y-2"><Label>{t('relationship')}</Label><Input value={form.relationship} onChange={e => setForm(p => ({ ...p, relationship: e.target.value }))} className="bg-secondary border-border text-foreground" /></div>
               <div className="space-y-2">
-                <Label>Access Level</Label>
+                <Label>{t('access_level')}</Label>
                 <select value={form.accessLevel} onChange={e => setForm(p => ({ ...p, accessLevel: e.target.value as Heir["accessLevel"] }))} className="w-full rounded-md bg-secondary border border-border px-3 py-2 text-sm font-body text-foreground"><option>Full</option><option>Partial</option><option>View Only</option></select>
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-2"><Label>Email</Label><Input value={form.email} onChange={e => setForm(p => ({ ...p, email: e.target.value }))} className="bg-secondary border-border text-foreground" /></div>
-              <div className="space-y-2"><Label>Phone</Label><Input value={form.phone} onChange={e => setForm(p => ({ ...p, phone: e.target.value }))} className="bg-secondary border-border text-foreground" /></div>
+              <div className="space-y-2"><Label>{t('email')}</Label><Input value={form.email} onChange={e => setForm(p => ({ ...p, email: e.target.value }))} className="bg-secondary border-border text-foreground" /></div>
+              <div className="space-y-2"><Label>{t('phone')}</Label><Input value={form.phone} onChange={e => setForm(p => ({ ...p, phone: e.target.value }))} className="bg-secondary border-border text-foreground" /></div>
             </div>
-            <div className="space-y-2"><Label>WhatsApp</Label><Input value={form.whatsapp} onChange={e => setForm(p => ({ ...p, whatsapp: e.target.value }))} className="bg-secondary border-border text-foreground" /></div>
+            <div className="space-y-2"><Label>{t('whatsapp')}</Label><Input value={form.whatsapp} onChange={e => setForm(p => ({ ...p, whatsapp: e.target.value }))} className="bg-secondary border-border text-foreground" /></div>
             <ResponsiblePerson value={form.responsiblePerson} onChange={v => setForm(p => ({ ...p, responsiblePerson: v }))} />
             <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-2"><Label>Human Staff</Label><Input type="number" min={0} value={form.humanCount} onChange={e => setForm(p => ({ ...p, humanCount: +e.target.value }))} className="bg-secondary border-border text-foreground" /></div>
-              <div className="space-y-2"><Label>AI Agents</Label><Input type="number" min={0} value={form.aiCount} onChange={e => setForm(p => ({ ...p, aiCount: +e.target.value }))} className="bg-secondary border-border text-foreground" /></div>
+              <div className="space-y-2"><Label>{t('type_human')}</Label><Input type="number" min={0} value={form.humanCount} onChange={e => setForm(p => ({ ...p, humanCount: +e.target.value }))} className="bg-secondary border-border text-foreground" /></div>
+              <div className="space-y-2"><Label>{t('type_ai')}</Label><Input type="number" min={0} value={form.aiCount} onChange={e => setForm(p => ({ ...p, aiCount: +e.target.value }))} className="bg-secondary border-border text-foreground" /></div>
             </div>
-            <div className="space-y-2"><Label>Assigned Assets</Label><Textarea value={form.assets} onChange={e => setForm(p => ({ ...p, assets: e.target.value }))} className="bg-secondary border-border text-foreground" /></div>
-            <div className="space-y-2"><Label>Notes</Label><Textarea value={form.notes} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))} className="bg-secondary border-border text-foreground" /></div>
+            <div className="space-y-2"><Label>{t('assets')}</Label><Textarea value={form.assets} onChange={e => setForm(p => ({ ...p, assets: e.target.value }))} className="bg-secondary border-border text-foreground" /></div>
+            <div className="space-y-2"><Label>{t('notes')}</Label><Textarea value={form.notes} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))} className="bg-secondary border-border text-foreground" /></div>
             <EntityFileUpload files={form.files} onChange={files => setForm(p => ({ ...p, files }))} ownerKind="digital_inheritance" ownerId={editId || undefined} />
             <EntityApiHub entityName={form.name || "New Heir"} ownerKind="digital_inheritance" ownerId={editId || undefined} />
           </div>
-          <DialogFooter><Button onClick={handleSubmit} className="font-display text-xs">{editId ? "Save" : "Create"}</Button></DialogFooter>
+          <DialogFooter><Button onClick={handleSubmit} className="font-display text-xs">{editId ? t('save') : t('submit')}</Button></DialogFooter>
         </DialogContent>
       </Dialog>
 
@@ -171,7 +173,7 @@ const DigitalInheritance = () => {
               <div className="space-y-3">
                 {detail.photoUrl && <img src={detail.photoUrl} alt={detail.name} className="w-16 h-16 rounded-full object-cover border border-border" />}
                 <p className="text-xs text-muted-foreground">{detail.relationship} • {detail.accessLevel} Access</p>
-                <p className="text-xs text-muted-foreground">Assets: {detail.assets}</p>
+                <p className="text-xs text-muted-foreground">{t('assets')}: {detail.assets}</p>
                 <StaffMetrics humanCount={detail.humanCount} aiCount={detail.aiCount} />
                 <EntityApiHub entityName={detail.name} ownerKind="digital_inheritance" ownerId={detail.id} />
               </div>
