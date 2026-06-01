@@ -12,12 +12,15 @@ type ScopedSelectOptions = {
   ilike?: { column: string; value: string };
 };
 
-const missingColumnRegex = /column\s+"([^"]+)"\s+does not exist/i;
+// Handles both Postgres formats:
+//   column "user_name" does not exist          (quoted)
+//   column hr_employees.user_name does not exist  (table-qualified, unquoted)
+const missingColumnRegex = /column\s+(?:"([^"]+)"|(?:\w+\.)?(\w+))\s+does not exist/i;
 
 const getMissingColumn = (error: any): string | null => {
   const msg = String(error?.message || "");
   const m = msg.match(missingColumnRegex);
-  return m?.[1] || null;
+  return m?.[1] || m?.[2] || null;
 };
 
 export async function scopedSelect<T = any>(table: string, opts: ScopedSelectOptions = {}): Promise<T[]> {
