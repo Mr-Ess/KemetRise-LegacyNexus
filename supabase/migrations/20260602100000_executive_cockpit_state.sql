@@ -7,17 +7,32 @@
 CREATE TABLE IF NOT EXISTS public.executive_cockpit_state (
   id                 uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   workflow_name      text NOT NULL,
-  department_code    text NOT NULL UNIQUE,
+  department_code    text NOT NULL,
   current_status     text NOT NULL DEFAULT 'idle'
                      CHECK (current_status IN ('active','idle','warning','error','maintenance')),
   active_agent_id    uuid REFERENCES public.agent_logs(id) ON DELETE SET NULL,
   last_update        timestamptz NOT NULL DEFAULT now(),
   health_score       smallint NOT NULL DEFAULT 100
                      CHECK (health_score BETWEEN 0 AND 100),
-  last_error_message text
+  last_error_message text,
+  CONSTRAINT executive_cockpit_dept_code_uq UNIQUE (department_code)
 );
 
--- Seed the 19 departments (INSERT OR IGNORE pattern via ON CONFLICT)
+-- Ensure constraint exists even if table was created previously without it
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'executive_cockpit_dept_code_uq'
+      AND conrelid = 'public.executive_cockpit_state'::regclass
+  ) THEN
+    ALTER TABLE public.executive_cockpit_state
+      ADD CONSTRAINT executive_cockpit_dept_code_uq UNIQUE (department_code);
+  END IF;
+END;
+$$;
+
+-- Seed the 19 departments
 INSERT INTO public.executive_cockpit_state
   (workflow_name, department_code, current_status, health_score)
 VALUES
@@ -40,7 +55,7 @@ VALUES
   ('Artistic Production',   'ARTISTIC',     'idle',   100),
   ('Marketplace',           'MARKETPLACE',  'active', 100),
   ('Success Partners',      'PARTNERS',     'active', 100)
-ON CONFLICT (department_code) DO NOTHING;
+ON CONFLICT ON CONSTRAINT executive_cockpit_dept_code_uq DO NOTHING;
 
 -- Enable Row Level Security
 ALTER TABLE public.executive_cockpit_state ENABLE ROW LEVEL SECURITY;
