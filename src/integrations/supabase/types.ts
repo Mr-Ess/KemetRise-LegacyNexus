@@ -3948,6 +3948,39 @@ export type Database = {
         }
         Relationships: []
       }
+      executive_cockpit_state: {
+        Row: {
+          id: string
+          workflow_name: string
+          department_code: string
+          current_status: string
+          active_agent_id: string | null
+          last_update: string
+          health_score: number
+          last_error_message: string | null
+        }
+        Insert: {
+          id?: string
+          workflow_name: string
+          department_code: string
+          current_status?: string
+          active_agent_id?: string | null
+          last_update?: string
+          health_score?: number
+          last_error_message?: string | null
+        }
+        Update: {
+          id?: string
+          workflow_name?: string
+          department_code?: string
+          current_status?: string
+          active_agent_id?: string | null
+          last_update?: string
+          health_score?: number
+          last_error_message?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
