@@ -10,6 +10,7 @@ import FinancialOverviewCard from "@/components/dashboard/FinancialOverviewCard"
 import SystemAnalyticsCard from "@/components/dashboard/SystemAnalyticsCard";
 import ApiIntegrationStatus from "@/components/dashboard/ApiIntegrationStatus";
 import MarketingAnalyticsCard from "@/components/dashboard/MarketingAnalyticsCard";
+import ExecutiveCockpit from "@/components/ExecutiveCockpit";
 
 const dashboardFilters = ["All", "Brands", "Customers", "Projects", "Affiliates", "Branches", "Success Partners"] as const;
 const statusFilters = ["All", "Active", "Inactive", "Maintenance"] as const;
@@ -58,6 +59,11 @@ const Index = () => {
             {/* Row 6 - System Analytics */}
             <div className="grid grid-cols-1 gap-3">
               <SystemAnalyticsCard globalEntityFilter={activeFilter} />
+            </div>
+
+            {/* Row 7 - Executive Cockpit (Real-time 19-dept monitor) */}
+            <div className="grid grid-cols-1 gap-3">
+              <ExecutiveCockpit />
             </div>
           </div>
         </main>
