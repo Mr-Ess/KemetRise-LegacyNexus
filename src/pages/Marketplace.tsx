@@ -378,8 +378,8 @@ export default function Marketplace() {
             <TabsTrigger value="featured" className="text-xs">{t('featured')} ({apps.filter(a=>a.featured).length})</TabsTrigger>
             <TabsTrigger value="installed" className="text-xs">{t('installed')} ({installed.size})</TabsTrigger>
           </TabsList>
-          {["all","featured","installed"].map(t=>(
-            <TabsContent key={t} value={t}>
+          {["all","featured","installed"].map(tabKey=>(
+            <TabsContent key={tabKey} value={tabKey}>
               {loading ? (
                 <div className={grid?"grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4":"space-y-3"}>
                   {Array.from({length:8}).map((_,i)=>(
