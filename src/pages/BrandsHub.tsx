@@ -764,6 +764,7 @@ function DeveloperHubTab() {
 
   const loadWl = async () => {
     try { const rows = await tenantDb.select("white_label",{limit:1}); if(rows[0]) setWl(rows[0]); }
+    // eslint-disable-next-line no-empty
     catch {} finally { setWlLoading(false); }
   };
   const saveWl = async () => {
@@ -786,6 +787,7 @@ function DeveloperHubTab() {
       const he: string[] = (h as any[]).flatMap((x:any)=>Array.isArray(x.events)?x.events:[x.events]).filter(Boolean);
       const all = Array.from(new Set([...de,...he,"*"]));
       if (all.length > 1) setEvents(all);
+    // eslint-disable-next-line no-empty
     } catch {}
   };
   React.useEffect(()=>{ loadAll(); loadWl(); },[]);
@@ -2522,7 +2524,8 @@ function EmployeesTab({ activeBrandId, brands }: { activeBrandId: string | null;
   const openNew  = () => { setForm(emptyForm()); setEditId(null); setOpen(true); };
   const openEdit = (e: any) => {
     let metaRaw = "{}";
-    try { metaRaw = e.metadata && typeof e.metadata==="object" ? JSON.stringify(e.metadata, null, 2) : "{}"; } catch {}
+    try { metaRaw = e.metadata && typeof e.metadata==="object" ? JSON.stringify(e.metadata, null, 2) : "{}"; } // eslint-disable-next-line no-empty
+    catch {}
     setForm({ ...e, metaRaw });
     setEditId(e.id); setOpen(true);
   };
@@ -2530,6 +2533,7 @@ function EmployeesTab({ activeBrandId, brands }: { activeBrandId: string | null;
   const handleSubmit = async () => {
     if (!form.name.trim()) { toast.error("Name required"); return; }
     let metadata = {};
+    // eslint-disable-next-line no-empty
     try { metadata = JSON.parse(form.metaRaw||"{}"); } catch {}
     const payload: any = {
       name:               form.name,

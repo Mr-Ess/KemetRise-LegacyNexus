@@ -66,6 +66,7 @@ export default function DeveloperHub() {
 
   const loadWl = async () => {
     try { const rows = await tenantDb.select("white_label",{limit:1}); if(rows[0]) setWl(rows[0]); }
+    // eslint-disable-next-line no-empty
     catch {}
     finally { setWlLoading(false); }
   };

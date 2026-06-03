@@ -127,15 +127,18 @@ export const responsiblePersonnelApi = {
 };
 
 export const apiKeysApi = {
-  async list(owner_kind: OwnerKind, owner_id: string) {
+  async list(owner_kind?: OwnerKind, owner_id?: string) {
+    const eq: Record<string, any> = {};
+    if (owner_kind !== undefined) eq.owner_kind = owner_kind;
+    if (owner_id !== undefined) eq.owner_id = owner_id;
     return await tenantDb.select("api_keys", {
-      eq: { owner_kind, owner_id },
+      eq,
       orderBy: "created_at",
       ascending: false,
     });
   },
   async create(owner_kind: OwnerKind, owner_id: string, label: string) {
-    const key_value = `kr_${owner_kind}_${crypto.randomUUID().replace(/-/g, "")}`;
+    const key_value = `kr_${crypto.randomUUID().replace(/-/g, "")}`;
     return await tenantDb.insert("api_keys", { owner_kind, owner_id, label, key_value }, { includeClientId: false, includeBrandId: false });
   },
   async remove(id: string) {

@@ -6,7 +6,7 @@ import { toast } from "sonner";
 
 export const useBulkSelect = () => {
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const toggle = (id: string) => setSelected(s => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  const toggle = (id: string) => setSelected(s => { const n = new Set(s); if (n.has(id)) { n.delete(id); } else { n.add(id); } return n; });
   const clear = () => setSelected(new Set());
   const setAll = (ids: string[]) => setSelected(new Set(ids));
   return { selected, toggle, clear, setAll, count: selected.size, has: (id: string) => selected.has(id) };

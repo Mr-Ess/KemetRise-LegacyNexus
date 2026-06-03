@@ -57,7 +57,7 @@ const Customers = () => {
   const [detailId, setDetailId] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState("all");
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const toggleSel = (id: string) => setSelected(p => { const n = new Set(p); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  const toggleSel = (id: string) => setSelected(p => { const n = new Set(p); if (n.has(id)) { n.delete(id); } else { n.add(id); } return n; });
   const bulkDelete = async () => {
     if (!selected.size || !confirm(`Delete ${selected.size} customers?`)) return;
     for (const id of selected) await remove(id);
