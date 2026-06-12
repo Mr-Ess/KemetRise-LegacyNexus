@@ -779,10 +779,10 @@ export default function Marketplace() {
             </Button>
             <Button
               size="sm" variant={isManageMode ? "default" : "outline"}
-              className={`gap-1.5 text-xs h-8 ml-1 ${isManageMode ? "" : ""}`}
+              className={`gap-1.5 text-xs h-8 ml-1`}
               onClick={() => setIsManageMode(!isManageMode)}
             >
-              <Settings className="w-3.5 h-3.5" />{isManageMode ? "Exit Manager" : "Manage"}
+              <Settings className="w-3.5 h-3.5" />Manage
             </Button>
             <Button size="sm" className="gap-1.5 text-xs h-8" onClick={() => setShowRequest(true)}>
               <Sparkles className="w-3.5 h-3.5" />Request Listing
@@ -791,12 +791,13 @@ export default function Marketplace() {
         </div>
       </header>
 
-      {/* ══ MANAGEMENT PANEL ═════════════════════════════════════════════ */}
+      {/* ══ MANAGEMENT DRAWER ════════════════════════════════════════ */}
       {isManageMode && (
         <ManagementPanel
           currentUserId={currentUserId}
           onListingChange={load}
           onCategoryChange={() => { loadCategories(); loadTypes(); }}
+          onClose={() => setIsManageMode(false)}
         />
       )}
 

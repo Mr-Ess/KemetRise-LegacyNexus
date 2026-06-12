@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import {
   Plus, Trash2, Pencil, X, Check, RefreshCw, Settings,
   PackagePlus, FolderPlus, ClipboardList, CheckCircle2, XCircle,
   Layers, ChevronDown, ChevronRight, Copy, EyeOff, Eye, GripVertical,
+  LayoutDashboard, BarChart2, Store, Search,
 } from "lucide-react";
 import { seedMarketplaceDefaults } from "./marketplaceSeed";
 import { Button } from "@/components/ui/button";
@@ -984,24 +985,29 @@ function TypesAndCategoriesPanel({ onTypesChange }: { onTypesChange: () => void 
 }
 
 /* ═══════════════════════════════════════════════════════════
-   MANAGEMENT PANEL  (default export)
+   MANAGEMENT PANEL  (default export) — right-side drawer
 ═══════════════════════════════════════════════════════════ */
 export default function ManagementPanel({
-  currentUserId, onListingChange, onCategoryChange,
+  currentUserId, onListingChange, onCategoryChange, onClose,
 }: {
   currentUserId: string | null;
   onListingChange: () => void;
   onCategoryChange: () => void;
+  onClose?: () => void;
 }) {
-  const [tab, setTab] = useState<"listings" | "types" | "requests">("listings");
+  const [tab, setTab] = useState<"overview" | "listings" | "all" | "types" | "requests" | "analytics">("overview");
   const [myListings, setMyListings] = useState<Listing[]>([]);
+  const [allMarketListings, setAllMarketListings] = useState<Listing[]>([]);
   const [allTypes, setAllTypes] = useState<MpListingType[]>([]);
   const [allCategories, setAllCategories] = useState<MpCategory[]>([]);
   const [requests, setRequests] = useState<any[]>([]);
   const [loadingL, setLoadingL] = useState(false);
+  const [loadingAll, setLoadingAll] = useState(false);
   const [showAddEdit, setShowAddEdit] = useState(false);
   const [editTarget, setEditTarget] = useState<Listing | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [allSearch, setAllSearch] = useState("");
+  const [allTypeFilter, setAllTypeFilter] = useState("all");
   const db = supabase as any;
 
   const loadMyListings = async () => {
@@ -1009,6 +1015,11 @@ export default function ManagementPanel({
     setLoadingL(true);
     const { data } = await db.from("mp_listings").select("*").eq("publisher_user_id", currentUserId).order("created_at", { ascending: false });
     setMyListings(data || []); setLoadingL(false);
+  };
+  const loadAllListings = async () => {
+    setLoadingAll(true);
+    const { data } = await db.from("mp_listings").select("*").order("created_at", { ascending: false });
+    setAllMarketListings(data || []); setLoadingAll(false);
   };
   const loadRequests = async () => {
     const { data } = await db.from("mp_listing_requests").select("*").order("created_at", { ascending: false });
@@ -1020,157 +1031,528 @@ export default function ManagementPanel({
     setAllTypes(t || []); setAllCategories(c || []);
   };
 
-  useEffect(() => { loadMyListings(); loadRequests(); loadMeta(); }, [currentUserId]);
+  useEffect(() => {
+    loadMyListings(); loadRequests(); loadMeta(); loadAllListings();
+  }, [currentUserId]);
 
   const deleteListing = async (id: string) => {
     await db.from("mp_listings").delete().eq("id", id);
-    setDeleteId(null); loadMyListings(); onListingChange(); toast.success("Listing deleted");
+    setDeleteId(null); loadMyListings(); loadAllListings(); onListingChange(); toast.success("Listing deleted");
   };
   const toggleListingActive = async (l: Listing) => {
     await db.from("mp_listings").update({ is_active: !l.is_active }).eq("id", l.id);
-    loadMyListings(); onListingChange();
+    loadMyListings(); loadAllListings(); onListingChange();
     toast.success(`"${l.name}" ${!l.is_active ? "activated" : "deactivated"}`);
+  };
+  const toggleAllFeatured = async (l: Listing) => {
+    await db.from("mp_listings").update({ is_featured: !l.is_featured }).eq("id", l.id);
+    loadAllListings(); onListingChange();
+    toast.success(`"${l.name}" ${!l.is_featured ? "featured" : "unfeatured"}`);
   };
   const duplicateListing = async (l: Listing) => {
     const { id, created_at, rating, reviews_count, sales_count, ...rest } = l;
     await db.from("mp_listings").insert({ ...rest, name: l.name + " (Copy)", is_featured: false, is_new: true, rating: 0, reviews_count: 0, sales_count: 0 });
-    loadMyListings(); onListingChange(); toast.success("Listing duplicated");
+    loadMyListings(); loadAllListings(); onListingChange(); toast.success("Listing duplicated");
   };
   const updateRequest = async (id: string, status: "approved" | "rejected") => {
     await db.from("mp_listing_requests").update({ status }).eq("id", id);
     loadRequests(); toast.success(`Request ${status}`);
   };
-  const handleSaved = () => { loadMyListings(); onListingChange(); };
+  const handleSaved = () => { loadMyListings(); loadAllListings(); onListingChange(); };
   const handleTypesChange = () => { loadMeta(); onCategoryChange(); };
 
   const pendingCount = requests.filter((r) => r.status === "pending").length;
   const typeMap: Record<string, MpListingType> = Object.fromEntries(allTypes.map((t) => [t.code, t]));
 
+  /* ── Analytics computed values ── */
+  const activeCount = allMarketListings.filter((l) => l.is_active !== false).length;
+  const featuredCount = allMarketListings.filter((l) => l.is_featured).length;
+  const listingsByType = allTypes.map((t) => ({
+    ...t,
+    count: allMarketListings.filter((l) => l.listing_type === t.code).length,
+  }));
+  const pricingBreakdown = [
+    { label: "Free",     count: allMarketListings.filter((l) => l.pricing_model === "free").length,      dot: "bg-emerald-500" },
+    { label: "One-time", count: allMarketListings.filter((l) => l.pricing_model === "one_time").length,  dot: "bg-blue-500"    },
+    { label: "Monthly",  count: allMarketListings.filter((l) => l.pricing_model === "monthly").length,   dot: "bg-violet-500"  },
+    { label: "Annual",   count: allMarketListings.filter((l) => l.pricing_model === "annual").length,    dot: "bg-pink-500"    },
+    { label: "Contact",  count: allMarketListings.filter((l) => l.pricing_model === "contact").length,   dot: "bg-amber-500"   },
+  ];
+  const topCategories = useMemo(() => {
+    const cc: Record<string, number> = {};
+    allMarketListings.forEach((l) => { if (l.category) cc[l.category] = (cc[l.category] || 0) + 1; });
+    return Object.entries(cc).sort((a, b) => b[1] - a[1]).slice(0, 7);
+  }, [allMarketListings]);
+
+  /* ── All-listings filtered ── */
+  const filteredAllListings = useMemo(() => {
+    let r = [...allMarketListings];
+    if (allTypeFilter !== "all") r = r.filter((l) => l.listing_type === allTypeFilter);
+    if (allSearch.trim()) {
+      const q = allSearch.toLowerCase();
+      r = r.filter((l) => l.name?.toLowerCase().includes(q) || l.publisher_name?.toLowerCase().includes(q));
+    }
+    return r;
+  }, [allMarketListings, allTypeFilter, allSearch]);
+
+  /* ── Nav items ── */
+  const NAV = [
+    { id: "overview",  label: "Overview",          Icon: LayoutDashboard, count: 0                     },
+    { id: "listings",  label: "My Listings",        Icon: PackagePlus,     count: myListings.length      },
+    { id: "all",       label: "All Listings",       Icon: Store,           count: allMarketListings.length},
+    { id: "types",     label: "Types & Categories", Icon: Layers,          count: allTypes.length        },
+    { id: "requests",  label: "Requests",           Icon: ClipboardList,   count: pendingCount           },
+    { id: "analytics", label: "Analytics",          Icon: BarChart2,       count: 0                     },
+  ] as const;
+
+  const typeBarColor: Record<string, string> = {
+    violet:"bg-violet-500", emerald:"bg-emerald-500", amber:"bg-amber-500",
+    pink:"bg-pink-500", blue:"bg-blue-500", rose:"bg-rose-500",
+    cyan:"bg-cyan-500", orange:"bg-orange-500", purple:"bg-purple-500",
+    teal:"bg-teal-500", red:"bg-red-500", yellow:"bg-yellow-500",
+  };
+
   return (
-    <div className="px-4 max-w-7xl mx-auto mb-4">
-      <div className="rounded-xl border border-border bg-secondary/5 overflow-hidden">
-        {/* Header */}
-        <div className="flex items-center gap-3 px-4 py-3 border-b border-border/50 bg-secondary/10">
-          <Settings className="w-4 h-4 text-primary" />
-          <span className="font-semibold text-sm">Marketplace Manager</span>
-          <button
-            onClick={() => { setEditTarget(null); setShowAddEdit(true); }}
-            className="flex items-center gap-1.5 text-xs bg-primary text-primary-foreground px-3 py-1.5 rounded-lg hover:bg-primary/90 transition-colors ml-auto"
-          >
-            <PackagePlus className="w-3.5 h-3.5" />Add Listing
-          </button>
-        </div>
-        {/* Tabs */}
-        <div className="flex border-b border-border/30">
-          {([
-            { id:"listings", label:"My Listings",          Icon:PackagePlus, count:myListings.length },
-            { id:"types",    label:"Types & Categories",    Icon:Layers,      count:allTypes.length },
-            { id:"requests", label:"Requests",              Icon:ClipboardList, count:pendingCount },
-          ] as const).map(({ id, label, Icon, count }) => (
-            <button key={id} onClick={() => setTab(id)}
-              className={`flex items-center gap-2 px-4 py-2.5 text-xs font-medium border-b-2 transition-colors ${tab === id ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}>
-              <Icon className="w-3.5 h-3.5" />{label}
-              {count > 0 && <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${tab === id ? "bg-primary/20 text-primary" : "bg-secondary text-muted-foreground"}`}>{count}</span>}
+    <>
+      {/* Backdrop */}
+      <div
+        className="fixed inset-0 z-40 bg-background/70 backdrop-blur-sm"
+        onClick={onClose}
+      />
+
+      {/* Drawer */}
+      <div className="fixed top-0 right-0 bottom-0 z-50 flex w-full max-w-5xl shadow-2xl border-l border-border">
+
+        {/* ── Sidebar ── */}
+        <div className="w-52 shrink-0 flex flex-col bg-card border-r border-border/50">
+          {/* Logo/title */}
+          <div className="flex items-center gap-2.5 px-4 py-4 border-b border-border/50 bg-secondary/20">
+            <div className="w-7 h-7 rounded-lg bg-primary/20 flex items-center justify-center shrink-0">
+              <Settings className="w-3.5 h-3.5 text-primary" />
+            </div>
+            <span className="font-bold text-sm">Manager</span>
+            <button
+              onClick={onClose}
+              className="ml-auto p-1 rounded-lg hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <X className="w-4 h-4" />
             </button>
-          ))}
+          </div>
+
+          {/* Nav */}
+          <nav className="flex-1 p-2 space-y-0.5 overflow-y-auto">
+            {NAV.map(({ id, label, Icon, count }) => (
+              <button
+                key={id}
+                onClick={() => setTab(id as typeof tab)}
+                className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-left text-sm transition-all ${
+                  tab === id
+                    ? "bg-primary/15 text-primary font-medium shadow-sm shadow-primary/10"
+                    : "text-muted-foreground hover:bg-secondary/60 hover:text-foreground"
+                }`}
+              >
+                <Icon className="w-4 h-4 shrink-0" />
+                <span className="flex-1 truncate">{label}</span>
+                {count > 0 && (
+                  <span className={`text-[10px] px-1.5 py-0.5 rounded-full shrink-0 font-medium ${
+                    tab === id ? "bg-primary/20 text-primary" : "bg-secondary text-muted-foreground"
+                  }`}>{count}</span>
+                )}
+                {id === "requests" && pendingCount > 0 && tab !== "requests" && (
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0 ml-1" />
+                )}
+              </button>
+            ))}
+          </nav>
+
+          {/* Add listing CTA */}
+          <div className="p-3 border-t border-border/50 space-y-2">
+            <button
+              onClick={() => { setEditTarget(null); setShowAddEdit(true); }}
+              className="w-full flex items-center justify-center gap-1.5 text-xs bg-primary text-primary-foreground px-3 py-2.5 rounded-lg hover:bg-primary/90 transition-colors font-semibold"
+            >
+              <PackagePlus className="w-3.5 h-3.5" />New Listing
+            </button>
+          </div>
         </div>
 
-        <div className="p-4">
-          {/* LISTINGS TAB */}
-          {tab === "listings" && (
-            loadingL ? (
-              <div className="space-y-2">{[1,2,3].map((i) => <div key={i} className="h-11 animate-pulse bg-secondary/20 rounded-lg" />)}</div>
-            ) : myListings.length === 0 ? (
-              <div className="text-center py-8">
-                <PackagePlus className="w-8 h-8 mx-auto mb-2 text-muted-foreground/30" />
-                <p className="text-sm text-muted-foreground mb-1">No listings yet</p>
-                <button onClick={() => { setEditTarget(null); setShowAddEdit(true); }} className="text-xs text-primary hover:underline">Add your first listing</button>
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-xs">
-                  <thead>
-                    <tr className="border-b border-border/50">
-                      {["Name","Type","Category","Price","Status",""].map((h, i) => (
-                        <th key={i} className={`py-2 font-medium text-muted-foreground text-left ${i === 5 ? "text-right" : ""}`}>{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {myListings.map((l) => {
-                      const t = typeMap[l.listing_type];
-                      const pal = t ? (COLOR_PALETTE[t.color] || COLOR_PALETTE.violet) : COLOR_PALETTE.violet;
-                      return (
-                        <tr key={l.id} className="border-b border-border/20 hover:bg-secondary/10">
-                          <td className="py-2.5 font-medium max-w-40 truncate pr-2">{t?.icon || "📦"} {l.name}</td>
-                          <td className="py-2.5 pr-2">
-                            <Badge className={`text-[9px] px-1.5 py-0 ${pal.badgeClass}`}>{t?.label || l.listing_type}</Badge>
-                          </td>
-                          <td className="py-2.5 text-muted-foreground pr-2">{l.category || "—"}</td>
-                          <td className="py-2.5 pr-2"><PriceBadge price_cents={l.price_cents} pricing_model={l.pricing_model} /></td>
-                          <td className="py-2.5 pr-2">
-                            <button onClick={() => toggleListingActive(l)}>
-                              <Badge className={`text-[9px] px-1.5 py-0 cursor-pointer ${l.is_active !== false ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/40" : "bg-secondary text-muted-foreground"}`}>
-                                {l.is_active !== false ? <><Eye className="w-2.5 h-2.5 inline mr-0.5" />Active</> : <><EyeOff className="w-2.5 h-2.5 inline mr-0.5" />Hidden</>}
-                              </Badge>
-                            </button>
-                          </td>
-                          <td className="py-2.5">
-                            <div className="flex items-center justify-end gap-1">
-                              <button onClick={() => { setEditTarget(l); setShowAddEdit(true); }} className="p-1.5 rounded hover:bg-secondary text-muted-foreground hover:text-foreground" title="Edit">
-                                <Pencil className="w-3 h-3" />
-                              </button>
-                              <button onClick={() => duplicateListing(l)} className="p-1.5 rounded hover:bg-secondary text-muted-foreground hover:text-foreground" title="Duplicate">
-                                <Copy className="w-3 h-3" />
-                              </button>
-                              <button onClick={() => setDeleteId(l.id)} className="p-1.5 rounded hover:bg-red-500/10 text-muted-foreground hover:text-red-400" title="Delete">
-                                <Trash2 className="w-3 h-3" />
-                              </button>
+        {/* ── Content ── */}
+        <div className="flex-1 flex flex-col bg-background overflow-hidden">
+          {/* Content header */}
+          <div className="flex items-center gap-3 px-5 py-3.5 border-b border-border/50 bg-card/60 shrink-0">
+            <span className="font-semibold text-sm">{NAV.find((n) => n.id === tab)?.label}</span>
+            <div className="flex items-center gap-1.5 ml-auto">
+              <button
+                onClick={() => { loadMyListings(); loadAllListings(); loadRequests(); loadMeta(); }}
+                className="p-1.5 rounded-lg hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
+                title="Refresh"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+
+          {/* Scrollable tab content */}
+          <div className="flex-1 overflow-y-auto p-5">
+
+            {/* ══ OVERVIEW ══════════════════════════════════════════════ */}
+            {tab === "overview" && (
+              <div className="space-y-6">
+                {/* KPI grid */}
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  {[
+                    { label: "Total Listings",    value: allMarketListings.length, emoji: "🛒", color: "text-primary"      },
+                    { label: "My Listings",        value: myListings.length,        emoji: "📦", color: "text-violet-400"   },
+                    { label: "Active",             value: activeCount,              emoji: "✅", color: "text-emerald-400"  },
+                    { label: "Featured",           value: featuredCount,            emoji: "⭐", color: "text-amber-400"    },
+                    { label: "Pending Requests",   value: pendingCount,             emoji: "📋", color: "text-orange-400"   },
+                    { label: "Listing Types",      value: allTypes.length,          emoji: "🏷️", color: "text-blue-400"    },
+                  ].map(({ label, value, emoji, color }) => (
+                    <Card key={label} className="p-4 flex items-center gap-3 bg-secondary/10 hover:bg-secondary/20 transition-colors">
+                      <span className="text-2xl shrink-0">{emoji}</span>
+                      <div>
+                        <p className={`text-2xl font-bold leading-tight ${color}`}>{value}</p>
+                        <p className="text-[10px] text-muted-foreground leading-none mt-0.5">{label}</p>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+
+                {/* Quick actions */}
+                <div>
+                  <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2.5">Quick Actions</p>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    {[
+                      { label: "New Listing",        Icon: PackagePlus,     onClick: () => { setEditTarget(null); setShowAddEdit(true); }, cls: "border-primary/30 bg-primary/10 text-primary hover:bg-primary/20"         },
+                      { label: "All Listings",       Icon: Store,           onClick: () => setTab("all"),       cls: "border-violet-500/30 bg-violet-500/10 text-violet-400 hover:bg-violet-500/20"  },
+                      { label: "Types & Categories", Icon: Layers,          onClick: () => setTab("types"),     cls: "border-blue-500/30 bg-blue-500/10 text-blue-400 hover:bg-blue-500/20"          },
+                      { label: "Requests",           Icon: ClipboardList,   onClick: () => setTab("requests"),  cls: "border-amber-500/30 bg-amber-500/10 text-amber-400 hover:bg-amber-500/20"      },
+                      { label: "My Listings",        Icon: PackagePlus,     onClick: () => setTab("listings"),  cls: "border-border/50 bg-secondary/40 text-foreground hover:bg-secondary/70"         },
+                      { label: "Analytics",          Icon: BarChart2,       onClick: () => setTab("analytics"), cls: "border-emerald-500/30 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20"},
+                    ].map(({ label, Icon, onClick, cls }) => (
+                      <button key={label} onClick={onClick} className={`flex items-center gap-2.5 p-3 rounded-xl border text-sm font-medium transition-all ${cls}`}>
+                        <Icon className="w-4 h-4 shrink-0" />{label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Recent listings */}
+                {allMarketListings.length > 0 && (
+                  <div>
+                    <div className="flex items-center justify-between mb-2.5">
+                      <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Recent Listings</p>
+                      <button onClick={() => setTab("all")} className="text-xs text-primary hover:underline">View all →</button>
+                    </div>
+                    <div className="space-y-1.5">
+                      {allMarketListings.slice(0, 6).map((l) => {
+                        const t = typeMap[l.listing_type];
+                        const pal = t ? (COLOR_PALETTE[t.color] || COLOR_PALETTE.violet) : COLOR_PALETTE.violet;
+                        return (
+                          <div key={l.id} className="flex items-center gap-3 p-2.5 rounded-lg border border-border/30 hover:bg-secondary/20 transition-colors">
+                            <span className="text-base shrink-0 w-6 text-center">{t?.icon || "📦"}</span>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-xs font-medium truncate">{l.name}</p>
+                              <p className="text-[10px] text-muted-foreground truncate">{l.publisher_name}</p>
                             </div>
-                          </td>
+                            <Badge className={`text-[9px] px-1.5 py-0 shrink-0 ${pal.badgeClass}`}>{t?.label || l.listing_type}</Badge>
+                            <PriceBadge price_cents={l.price_cents} pricing_model={l.pricing_model} />
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {allMarketListings.length === 0 && (
+                  <div className="flex flex-col items-center justify-center py-12 text-center">
+                    <Store className="w-14 h-14 mb-4 text-muted-foreground/15" />
+                    <p className="text-sm font-medium text-muted-foreground mb-1">Marketplace is empty</p>
+                    <p className="text-xs text-muted-foreground mb-4">Add your first listing to get started</p>
+                    <button
+                      onClick={() => { setEditTarget(null); setShowAddEdit(true); }}
+                      className="text-xs bg-primary text-primary-foreground px-4 py-2 rounded-lg hover:bg-primary/90 flex items-center gap-1.5 font-medium"
+                    >
+                      <Plus className="w-3.5 h-3.5" />Add First Listing
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* ══ MY LISTINGS ═══════════════════════════════════════════ */}
+            {tab === "listings" && (
+              loadingL ? (
+                <div className="space-y-2">{[1,2,3,4].map((i) => <div key={i} className="h-11 animate-pulse bg-secondary/20 rounded-lg" />)}</div>
+              ) : myListings.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-center">
+                  <PackagePlus className="w-12 h-12 mb-3 text-muted-foreground/20" />
+                  <p className="text-sm font-medium text-muted-foreground mb-1">No listings yet</p>
+                  <p className="text-xs text-muted-foreground mb-4">Start selling by creating your first listing</p>
+                  <button onClick={() => { setEditTarget(null); setShowAddEdit(true); }} className="text-xs bg-primary text-primary-foreground px-4 py-2 rounded-lg hover:bg-primary/90 flex items-center gap-1.5 font-medium">
+                    <Plus className="w-3.5 h-3.5" />Add First Listing
+                  </button>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="border-b border-border/50">
+                        {["Name","Type","Category","Price","Status",""].map((h, i) => (
+                          <th key={i} className={`py-2.5 font-semibold text-muted-foreground text-left ${i === 5 ? "text-right" : ""}`}>{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {myListings.map((l) => {
+                        const t = typeMap[l.listing_type];
+                        const pal = t ? (COLOR_PALETTE[t.color] || COLOR_PALETTE.violet) : COLOR_PALETTE.violet;
+                        return (
+                          <tr key={l.id} className="border-b border-border/20 hover:bg-secondary/10 transition-colors">
+                            <td className="py-2.5 font-medium max-w-44 truncate pr-2">{t?.icon || "📦"} {l.name}</td>
+                            <td className="py-2.5 pr-2"><Badge className={`text-[9px] px-1.5 py-0 ${pal.badgeClass}`}>{t?.label || l.listing_type}</Badge></td>
+                            <td className="py-2.5 text-muted-foreground pr-2 max-w-28 truncate">{l.category || "—"}</td>
+                            <td className="py-2.5 pr-2"><PriceBadge price_cents={l.price_cents} pricing_model={l.pricing_model} /></td>
+                            <td className="py-2.5 pr-2">
+                              <button onClick={() => toggleListingActive(l)}>
+                                <Badge className={`text-[9px] px-1.5 py-0 cursor-pointer ${l.is_active !== false ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/40" : "bg-secondary text-muted-foreground"}`}>
+                                  {l.is_active !== false ? <><Eye className="w-2.5 h-2.5 inline mr-0.5" />Active</> : <><EyeOff className="w-2.5 h-2.5 inline mr-0.5" />Hidden</>}
+                                </Badge>
+                              </button>
+                            </td>
+                            <td className="py-2.5">
+                              <div className="flex items-center justify-end gap-1">
+                                <button onClick={() => { setEditTarget(l); setShowAddEdit(true); }} className="p-1.5 rounded hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors" title="Edit"><Pencil className="w-3 h-3" /></button>
+                                <button onClick={() => duplicateListing(l)} className="p-1.5 rounded hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors" title="Duplicate"><Copy className="w-3 h-3" /></button>
+                                <button onClick={() => setDeleteId(l.id)} className="p-1.5 rounded hover:bg-red-500/10 text-muted-foreground hover:text-red-400 transition-colors" title="Delete"><Trash2 className="w-3 h-3" /></button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )
+            )}
+
+            {/* ══ ALL LISTINGS ══════════════════════════════════════════ */}
+            {tab === "all" && (
+              <div className="space-y-3">
+                {/* Search + filter */}
+                <div className="flex items-center gap-2 flex-wrap">
+                  <div className="relative flex-1 min-w-48">
+                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+                    <Input className="pl-8 h-8 text-xs bg-secondary/20" placeholder="Search by name or publisher…" value={allSearch} onChange={(e) => setAllSearch(e.target.value)} />
+                  </div>
+                  <Select value={allTypeFilter} onValueChange={setAllTypeFilter}>
+                    <SelectTrigger className="h-8 text-xs w-40"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Types</SelectItem>
+                      {allTypes.map((t) => <SelectItem key={t.code} value={t.code}>{t.icon} {t.label}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                  <span className="text-xs text-muted-foreground shrink-0">{filteredAllListings.length} listings</span>
+                </div>
+
+                {loadingAll ? (
+                  <div className="space-y-2">{[1,2,3,4,5].map((i) => <div key={i} className="h-10 animate-pulse bg-secondary/20 rounded-lg" />)}</div>
+                ) : filteredAllListings.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-12 text-center">
+                    <Store className="w-10 h-10 mb-2 text-muted-foreground/20" />
+                    <p className="text-sm text-muted-foreground">{allSearch || allTypeFilter !== "all" ? "No results found" : "Marketplace is empty"}</p>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-xs">
+                      <thead>
+                        <tr className="border-b border-border/50">
+                          {["Name","Type","Publisher","Price","Featured","Status",""].map((h, i) => (
+                            <th key={i} className={`py-2.5 font-semibold text-muted-foreground text-left ${i === 6 ? "text-right" : ""}`}>{h}</th>
+                          ))}
                         </tr>
+                      </thead>
+                      <tbody>
+                        {filteredAllListings.map((l) => {
+                          const t = typeMap[l.listing_type];
+                          const pal = t ? (COLOR_PALETTE[t.color] || COLOR_PALETTE.violet) : COLOR_PALETTE.violet;
+                          return (
+                            <tr key={l.id} className="border-b border-border/20 hover:bg-secondary/10 transition-colors">
+                              <td className="py-2.5 font-medium max-w-40 truncate pr-2">{t?.icon || "📦"} {l.name}</td>
+                              <td className="py-2.5 pr-2"><Badge className={`text-[9px] px-1.5 py-0 ${pal.badgeClass}`}>{t?.label || l.listing_type}</Badge></td>
+                              <td className="py-2.5 text-muted-foreground pr-2 max-w-28 truncate">{l.publisher_name || "—"}</td>
+                              <td className="py-2.5 pr-2"><PriceBadge price_cents={l.price_cents} pricing_model={l.pricing_model} /></td>
+                              <td className="py-2.5 pr-2">
+                                <button onClick={() => toggleAllFeatured(l)}>
+                                  <Badge className={`text-[9px] px-1.5 py-0 cursor-pointer ${l.is_featured ? "bg-amber-500/20 text-amber-400 border-amber-500/40" : "bg-secondary text-muted-foreground border-border/40"}`}>
+                                    {l.is_featured ? "⭐ Yes" : "No"}
+                                  </Badge>
+                                </button>
+                              </td>
+                              <td className="py-2.5 pr-2">
+                                <button onClick={() => toggleListingActive(l)}>
+                                  <Badge className={`text-[9px] px-1.5 py-0 cursor-pointer ${l.is_active !== false ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/40" : "bg-secondary text-muted-foreground"}`}>
+                                    {l.is_active !== false ? "Active" : "Hidden"}
+                                  </Badge>
+                                </button>
+                              </td>
+                              <td className="py-2.5">
+                                <div className="flex items-center justify-end gap-1">
+                                  <button onClick={() => { setEditTarget(l); setShowAddEdit(true); }} className="p-1.5 rounded hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors" title="Edit"><Pencil className="w-3 h-3" /></button>
+                                  <button onClick={() => setDeleteId(l.id)} className="p-1.5 rounded hover:bg-red-500/10 text-muted-foreground hover:text-red-400 transition-colors" title="Delete"><Trash2 className="w-3 h-3" /></button>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* ══ TYPES & CATEGORIES ════════════════════════════════════ */}
+            {tab === "types" && <TypesAndCategoriesPanel onTypesChange={handleTypesChange} />}
+
+            {/* ══ REQUESTS ══════════════════════════════════════════════ */}
+            {tab === "requests" && (
+              requests.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-center">
+                  <ClipboardList className="w-12 h-12 mb-3 text-muted-foreground/20" />
+                  <p className="text-sm font-medium text-muted-foreground">No listing requests yet</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {requests.map((req) => (
+                    <div key={req.id} className="flex items-start gap-3 p-3.5 rounded-xl border border-border/50 hover:bg-secondary/10 transition-colors">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap mb-1">
+                          <span className="font-semibold text-sm">{req.name}</span>
+                          <Badge variant="outline" className="text-[9px] px-1.5 py-0">{req.listing_type}</Badge>
+                          <Badge className={`text-[9px] px-1.5 py-0 ml-auto ${
+                            req.status === "approved" ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/40"
+                            : req.status === "rejected" ? "bg-red-500/20 text-red-400 border-red-500/40"
+                            : "bg-amber-500/20 text-amber-400 border-amber-500/40"
+                          }`}>{req.status}</Badge>
+                        </div>
+                        <p className="text-xs text-muted-foreground line-clamp-2">{req.description}</p>
+                        {req.contact && <p className="text-[10px] text-muted-foreground mt-1 flex items-center gap-1">📧 {req.contact}</p>}
+                      </div>
+                      {req.status === "pending" && (
+                        <div className="flex gap-1.5 shrink-0">
+                          <button onClick={() => updateRequest(req.id, "approved")} className="p-1.5 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 transition-colors" title="Approve">
+                            <CheckCircle2 className="w-3.5 h-3.5" />
+                          </button>
+                          <button onClick={() => updateRequest(req.id, "rejected")} className="p-1.5 rounded-lg bg-red-500/20 hover:bg-red-500/30 text-red-400 transition-colors" title="Reject">
+                            <XCircle className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )
+            )}
+
+            {/* ══ ANALYTICS ═════════════════════════════════════════════ */}
+            {tab === "analytics" && (
+              <div className="space-y-7">
+                {/* Summary cards */}
+                <div className="grid grid-cols-3 gap-3">
+                  <Card className="p-4 bg-secondary/10 text-center">
+                    <p className="text-2xl font-bold text-primary">{allMarketListings.length}</p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">Total Listings</p>
+                  </Card>
+                  <Card className="p-4 bg-secondary/10 text-center">
+                    <p className="text-2xl font-bold text-emerald-400">{activeCount}</p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">Active</p>
+                  </Card>
+                  <Card className="p-4 bg-secondary/10 text-center">
+                    <p className="text-2xl font-bold text-amber-400">{featuredCount}</p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">Featured</p>
+                  </Card>
+                </div>
+
+                {/* By type */}
+                <div>
+                  <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-3">Listings by Type</p>
+                  <div className="space-y-3">
+                    {listingsByType.map((t) => {
+                      const pct = allMarketListings.length ? Math.round((t.count / allMarketListings.length) * 100) : 0;
+                      const bar = typeBarColor[t.color] || "bg-violet-500";
+                      return (
+                        <div key={t.code} className="flex items-center gap-3">
+                          <span className="text-base shrink-0 w-6 text-center">{t.icon}</span>
+                          <div className="flex-1">
+                            <div className="flex items-center justify-between text-xs mb-1.5">
+                              <span className="font-medium">{t.label}</span>
+                              <span className="text-muted-foreground">{t.count} ({pct}%)</span>
+                            </div>
+                            <div className="h-2 rounded-full bg-secondary/40">
+                              <div className={`h-full rounded-full ${bar} transition-all`} style={{ width: `${pct}%` }} />
+                            </div>
+                          </div>
+                        </div>
                       );
                     })}
-                  </tbody>
-                </table>
-              </div>
-            )
-          )}
-
-          {/* TYPES & CATEGORIES TAB */}
-          {tab === "types" && <TypesAndCategoriesPanel onTypesChange={handleTypesChange} />}
-
-          {/* REQUESTS TAB */}
-          {tab === "requests" && (
-            requests.length === 0 ? (
-              <div className="text-center py-8">
-                <ClipboardList className="w-8 h-8 mx-auto mb-2 text-muted-foreground/30" />
-                <p className="text-sm text-muted-foreground">No listing requests</p>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {requests.map((req) => (
-                  <div key={req.id} className="flex items-start gap-3 p-3 rounded-lg border border-border/50 hover:bg-secondary/10">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-medium text-sm">{req.name}</span>
-                        <Badge variant="outline" className="text-[9px] px-1.5 py-0">{req.listing_type}</Badge>
-                        <Badge className={`text-[9px] px-1.5 py-0 ml-auto ${req.status === "approved" ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/40" : req.status === "rejected" ? "bg-red-500/20 text-red-400 border-red-500/40" : "bg-amber-500/20 text-amber-400 border-amber-500/40"}`}>{req.status}</Badge>
-                      </div>
-                      <p className="text-xs text-muted-foreground truncate mt-0.5">{req.description}</p>
-                      {req.contact && <p className="text-[10px] text-muted-foreground mt-0.5">{req.contact}</p>}
-                    </div>
-                    {req.status === "pending" && (
-                      <div className="flex gap-1 shrink-0">
-                        <button onClick={() => updateRequest(req.id, "approved")} className="p-1.5 rounded bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400"><CheckCircle2 className="w-3.5 h-3.5" /></button>
-                        <button onClick={() => updateRequest(req.id, "rejected")} className="p-1.5 rounded bg-red-500/20 hover:bg-red-500/30 text-red-400"><XCircle className="w-3.5 h-3.5" /></button>
-                      </div>
-                    )}
                   </div>
-                ))}
+                </div>
+
+                {/* Pricing breakdown */}
+                <div>
+                  <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-3">Pricing Models</p>
+                  <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
+                    {pricingBreakdown.map(({ label, count, dot }) => (
+                      <Card key={label} className="p-3 bg-secondary/10 flex flex-col items-center gap-1.5">
+                        <div className={`w-3 h-3 rounded-full ${dot}`} />
+                        <p className="text-lg font-bold leading-none">{count}</p>
+                        <p className="text-[10px] text-muted-foreground text-center">{label}</p>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Top categories */}
+                {topCategories.length > 0 && (
+                  <div>
+                    <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-3">Top Categories</p>
+                    <div className="space-y-2.5">
+                      {topCategories.map(([cat, count], i) => (
+                        <div key={cat} className="flex items-center gap-3 text-xs">
+                          <span className={`w-5 text-center font-mono shrink-0 ${i === 0 ? "text-amber-400" : i === 1 ? "text-slate-400" : i === 2 ? "text-amber-700" : "text-muted-foreground"}`}>#{i + 1}</span>
+                          <span className="flex-1 font-medium truncate">{cat}</span>
+                          <span className="text-muted-foreground shrink-0">{count}</span>
+                          <div className="w-28 h-1.5 rounded-full bg-secondary/40 shrink-0">
+                            <div className="h-full rounded-full bg-primary/60" style={{ width: `${(count / (topCategories[0]?.[1] || 1)) * 100}%` }} />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Active ratio */}
+                {allMarketListings.length > 0 && (
+                  <div>
+                    <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-3">Active vs Hidden</p>
+                    <div className="flex items-center gap-3">
+                      <div className="flex-1 h-3 rounded-full bg-secondary/40 overflow-hidden">
+                        <div
+                          className="h-full bg-emerald-500 rounded-full transition-all"
+                          style={{ width: `${(activeCount / allMarketListings.length) * 100}%` }}
+                        />
+                      </div>
+                      <span className="text-xs text-muted-foreground shrink-0">
+                        {activeCount} active / {allMarketListings.length - activeCount} hidden
+                      </span>
+                    </div>
+                  </div>
+                )}
               </div>
-            )
-          )}
+            )}
+
+          </div>
         </div>
       </div>
 
@@ -1183,8 +1565,8 @@ export default function ManagementPanel({
       <DeleteConfirmDialog
         open={!!deleteId} onClose={() => setDeleteId(null)}
         onConfirm={() => deleteId && deleteListing(deleteId)}
-        name={myListings.find((l) => l.id === deleteId)?.name || ""}
+        name={[...myListings, ...allMarketListings].find((l) => l.id === deleteId)?.name || ""}
       />
-    </div>
+    </>
   );
 }
