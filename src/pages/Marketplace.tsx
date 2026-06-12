@@ -579,6 +579,7 @@ export default function Marketplace() {
   const [search, setSearch] = useState("");
   const [activeType, setActiveType] = useState<"all" | ListingType>("all");
   const [activeCategory, setActiveCategory] = useState("All");
+  const [activeSubCategory, setActiveSubCategory] = useState("All");
   const [priceFilter, setPriceFilter] = useState<"all" | "free" | "paid">("all");
   const [sortBy, setSortBy] = useState("featured");
   const [viewGrid, setViewGrid] = useState(true);
@@ -640,6 +641,7 @@ export default function Marketplace() {
   const handleTypeChange = (type: "all" | ListingType) => {
     setActiveType(type);
     setActiveCategory("All");
+    setActiveSubCategory("All");
   };
 
   const handlePurchase = async (item: Listing) => {
@@ -669,6 +671,7 @@ export default function Marketplace() {
     let result = [...listings];
     if (activeType !== "all") result = result.filter((l) => l.listing_type === activeType);
     if (activeCategory !== "All") result = result.filter((l) => l.category === activeCategory);
+    if (activeSubCategory !== "All") result = result.filter((l) => l.sub_category === activeSubCategory);
     if (priceFilter === "free") result = result.filter((l) => l.pricing_model === "free" || l.price_cents === 0);
     if (priceFilter === "paid") result = result.filter((l) => l.pricing_model !== "free" && l.price_cents > 0);
     if (search.trim()) {
@@ -687,12 +690,23 @@ export default function Marketplace() {
       case "price_high":  result.sort((a, b) => b.price_cents - a.price_cents); break;
     }
     return result;
-  }, [listings, activeType, activeCategory, priceFilter, search, sortBy]);
+  }, [listings, activeType, activeCategory, activeSubCategory, priceFilter, search, sortBy]);
 
   const filterCategories = useMemo(() => {
     if (activeType === "all") return ["All", ...Array.from(new Set(listings.map((l) => l.category).filter(Boolean)))];
     return ["All", ...(typeConfigMap[activeType]?.categories || [])];
   }, [activeType, listings, typeConfigMap]);
+
+  // Sub-categories for the currently selected main category (from mp_categories DB)
+  const filterSubCategories = useMemo(() => {
+    if (activeCategory === "All") return [];
+    // Find the DB category row whose name matches activeCategory and has the right type
+    const parentRow = mpCategories.find(
+      (c) => c.name === activeCategory && (activeType === "all" || c.listing_type === activeType) && !c.parent_id
+    );
+    if (!parentRow) return [];
+    return mpCategories.filter((c) => c.parent_id === parentRow.id).map((c) => c.name);
+  }, [activeCategory, activeType, mpCategories]);
 
   const kpis = useMemo(() => ({
     total: listings.length,
@@ -867,7 +881,7 @@ export default function Marketplace() {
             {filterCategories.map((cat) => (
               <button
                 key={cat}
-                onClick={() => setActiveCategory(cat)}
+                onClick={() => { setActiveCategory(cat); setActiveSubCategory("All"); }}
                 className={`shrink-0 text-xs px-2.5 py-1 rounded-full border transition-all whitespace-nowrap ${
                   activeCategory === cat
                     ? "bg-primary text-primary-foreground border-primary"
@@ -903,15 +917,37 @@ export default function Marketplace() {
           </div>
         </div>
 
+        {/* ══ SUB-CATEGORY ROW (shows when a main category has sub-categories) ═══ */}
+        {filterSubCategories.length > 0 && (
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5">
+            <span className="text-[10px] text-muted-foreground shrink-0 flex items-center gap-1">
+              <ChevronRight className="w-3 h-3" />{activeCategory}
+            </span>
+            {["All", ...filterSubCategories].map((sub) => (
+              <button
+                key={sub}
+                onClick={() => setActiveSubCategory(sub)}
+                className={`shrink-0 text-xs px-2 py-0.5 rounded-full border transition-all whitespace-nowrap ${
+                  activeSubCategory === sub
+                    ? "bg-secondary text-foreground border-border"
+                    : "border-border/30 text-muted-foreground hover:border-border/60 hover:text-foreground"
+                }`}
+              >
+                {sub === "All" ? `All ${activeCategory}` : sub}
+              </button>
+            ))}
+          </div>
+        )}
+
         {/* ══ RESULTS COUNT ════════════════════════════════════════════════ */}
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
           <span>
             {filtered.length} listing{filtered.length !== 1 ? "s" : ""}
-            {activeType !== "all" && <span className="ml-1 text-foreground font-medium">in {TYPE_CONFIG[activeType].label}</span>}
+            {activeType !== "all" && <span className="ml-1 text-foreground font-medium">in {typeConfigMap[activeType]?.label || activeType}</span>}
           </span>
           {(search || activeType !== "all" || activeCategory !== "All" || priceFilter !== "all") && (
             <button className="flex items-center gap-1 text-primary hover:underline ml-2"
-              onClick={() => { setSearch(""); setActiveType("all"); setActiveCategory("All"); setPriceFilter("all"); }}>
+              onClick={() => { setSearch(""); setActiveType("all"); setActiveCategory("All"); setActiveSubCategory("All"); setPriceFilter("all"); }}>
               <X className="w-3 h-3" />Clear filters
             </button>
           )}
