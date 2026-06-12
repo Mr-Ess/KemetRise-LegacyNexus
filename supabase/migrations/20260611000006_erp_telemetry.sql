@@ -131,6 +131,9 @@ ALTER TABLE public.central_router_outbox ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.webhook_retry_queue   ENABLE ROW LEVEL SECURITY;
 
 -- Telemetry: tenant-scoped read (text comparison for tenant_id)
+DROP POLICY IF EXISTS "telemetry_select" ON 
+DROP POLICY IF EXISTS "telemetry_select" ON public.telemetry_events;
+DROP POLICY IF EXISTS "telemetry_select" ON public.telemetry_events;
 CREATE POLICY "telemetry_select" ON public.telemetry_events FOR SELECT
   USING (
     tenant_id = auth.uid()::text
@@ -144,14 +147,32 @@ CREATE POLICY "telemetry_select" ON public.telemetry_events FOR SELECT
   );
 
 -- Service accounts / edge functions can insert telemetry
+DROP POLICY IF EXISTS "telemetry_insert" ON 
+DROP POLICY IF EXISTS "telemetry_insert" ON public.telemetry_events;
+DROP POLICY IF EXISTS "telemetry_insert" ON public.telemetry_events;
 CREATE POLICY "telemetry_insert" ON public.telemetry_events FOR INSERT
   WITH CHECK (true);  -- Controlled by edge function auth
 
-CREATE POLICY "webhook_endpoints_all"     ON public.webhook_endpoints     FOR ALL USING (tenant_id IN (SELECT public.get_user_tenant_ids()));
+DROP POLICY IF EXISTS "webhook_endpoints_all" ON 
+DROP POLICY IF EXISTS "webhook_endpoints_all" ON public.webhook_endpoints;
+DROP POLICY IF EXISTS "webhook_endpoints_all" ON public.webhook_endpoints;
+CREATE POLICY "webhook_endpoints_all" ON public.webhook_endpoints     FOR ALL USING (tenant_id IN (SELECT public.get_user_tenant_ids()));
+DROP POLICY IF EXISTS "webhook_deliveries_select" ON 
+DROP POLICY IF EXISTS "webhook_deliveries_select" ON public.webhook_deliveries;
+DROP POLICY IF EXISTS "webhook_deliveries_select" ON public.webhook_deliveries;
 CREATE POLICY "webhook_deliveries_select" ON public.webhook_deliveries    FOR SELECT USING (tenant_id IN (SELECT public.get_user_tenant_ids()));
+DROP POLICY IF EXISTS "webhook_deliveries_insert" ON 
+DROP POLICY IF EXISTS "webhook_deliveries_insert" ON public.webhook_deliveries;
+DROP POLICY IF EXISTS "webhook_deliveries_insert" ON public.webhook_deliveries;
 CREATE POLICY "webhook_deliveries_insert" ON public.webhook_deliveries    FOR INSERT WITH CHECK (true);
+DROP POLICY IF EXISTS "webhook_deliveries_update" ON 
+DROP POLICY IF EXISTS "webhook_deliveries_update" ON public.webhook_deliveries;
+DROP POLICY IF EXISTS "webhook_deliveries_update" ON public.webhook_deliveries;
 CREATE POLICY "webhook_deliveries_update" ON public.webhook_deliveries    FOR UPDATE USING (true);
-CREATE POLICY "central_router_select"     ON public.central_router_outbox FOR SELECT USING (
+DROP POLICY IF EXISTS "central_router_select" ON 
+DROP POLICY IF EXISTS "central_router_select" ON public.central_router_outbox;
+DROP POLICY IF EXISTS "central_router_select" ON public.central_router_outbox;
+CREATE POLICY "central_router_select" ON public.central_router_outbox FOR SELECT USING (
   tenant_id IN (
     SELECT id::text FROM public.tenants WHERE owner_user_id = auth.uid()
     UNION
@@ -160,8 +181,14 @@ CREATE POLICY "central_router_select"     ON public.central_router_outbox FOR SE
     WHERE tm.user_id = auth.uid() AND tm.is_active = true
   )
 );
-CREATE POLICY "central_router_insert"     ON public.central_router_outbox FOR INSERT WITH CHECK (true);
-CREATE POLICY "retry_queue_all"           ON public.webhook_retry_queue   FOR ALL USING (true);
+DROP POLICY IF EXISTS "central_router_insert" ON 
+DROP POLICY IF EXISTS "central_router_insert" ON public.central_router_outbox;
+DROP POLICY IF EXISTS "central_router_insert" ON public.central_router_outbox;
+CREATE POLICY "central_router_insert" ON public.central_router_outbox FOR INSERT WITH CHECK (true);
+DROP POLICY IF EXISTS "retry_queue_all" ON 
+DROP POLICY IF EXISTS "retry_queue_all" ON public.webhook_retry_queue;
+DROP POLICY IF EXISTS "retry_queue_all" ON public.webhook_retry_queue;
+CREATE POLICY "retry_queue_all" ON public.webhook_retry_queue   FOR ALL USING (true);
 
 -- ─── MASTER EMIT FUNCTION: Routes all ERP events to Central Router ────────
 -- Called by any table trigger or application code to emit a standardized payload.

@@ -106,6 +106,9 @@ ALTER TABLE public.workflow_registry ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.sector_configs   ENABLE ROW LEVEL SECURITY;
 
 -- TENANTS
+DROP POLICY IF EXISTS "tenants_select" ON 
+DROP POLICY IF EXISTS "tenants_select" ON public.tenants;
+DROP POLICY IF EXISTS "tenants_select" ON public.tenants;
 CREATE POLICY "tenants_select" ON public.tenants FOR SELECT
   USING (
     owner_user_id = auth.uid()
@@ -115,9 +118,15 @@ CREATE POLICY "tenants_select" ON public.tenants FOR SELECT
     )
   );
 
+DROP POLICY IF EXISTS "tenants_insert" ON 
+DROP POLICY IF EXISTS "tenants_insert" ON public.tenants;
+DROP POLICY IF EXISTS "tenants_insert" ON public.tenants;
 CREATE POLICY "tenants_insert" ON public.tenants FOR INSERT
   WITH CHECK (owner_user_id = auth.uid());
 
+DROP POLICY IF EXISTS "tenants_update" ON 
+DROP POLICY IF EXISTS "tenants_update" ON public.tenants;
+DROP POLICY IF EXISTS "tenants_update" ON public.tenants;
 CREATE POLICY "tenants_update" ON public.tenants FOR UPDATE
   USING (
     owner_user_id = auth.uid()
@@ -127,16 +136,25 @@ CREATE POLICY "tenants_update" ON public.tenants FOR UPDATE
     )
   );
 
+DROP POLICY IF EXISTS "tenants_delete" ON 
+DROP POLICY IF EXISTS "tenants_delete" ON public.tenants;
+DROP POLICY IF EXISTS "tenants_delete" ON public.tenants;
 CREATE POLICY "tenants_delete" ON public.tenants FOR DELETE
   USING (owner_user_id = auth.uid());
 
 -- TENANT MEMBERS
+DROP POLICY IF EXISTS "tenant_members_select" ON 
+DROP POLICY IF EXISTS "tenant_members_select" ON public.tenant_members;
+DROP POLICY IF EXISTS "tenant_members_select" ON public.tenant_members;
 CREATE POLICY "tenant_members_select" ON public.tenant_members FOR SELECT
   USING (
     user_id = auth.uid()
     OR tenant_id IN (SELECT id FROM public.tenants WHERE owner_user_id = auth.uid())
   );
 
+DROP POLICY IF EXISTS "tenant_members_insert" ON 
+DROP POLICY IF EXISTS "tenant_members_insert" ON public.tenant_members;
+DROP POLICY IF EXISTS "tenant_members_insert" ON public.tenant_members;
 CREATE POLICY "tenant_members_insert" ON public.tenant_members FOR INSERT
   WITH CHECK (
     tenant_id IN (
@@ -147,6 +165,9 @@ CREATE POLICY "tenant_members_insert" ON public.tenant_members FOR INSERT
     )
   );
 
+DROP POLICY IF EXISTS "tenant_members_update" ON 
+DROP POLICY IF EXISTS "tenant_members_update" ON public.tenant_members;
+DROP POLICY IF EXISTS "tenant_members_update" ON public.tenant_members;
 CREATE POLICY "tenant_members_update" ON public.tenant_members FOR UPDATE
   USING (
     tenant_id IN (
@@ -158,6 +179,9 @@ CREATE POLICY "tenant_members_update" ON public.tenant_members FOR UPDATE
   );
 
 -- WORKFLOW REGISTRY
+DROP POLICY IF EXISTS "workflow_registry_select" ON 
+DROP POLICY IF EXISTS "workflow_registry_select" ON public.workflow_registry;
+DROP POLICY IF EXISTS "workflow_registry_select" ON public.workflow_registry;
 CREATE POLICY "workflow_registry_select" ON public.workflow_registry FOR SELECT
   USING (
     tenant_id IN (
@@ -167,6 +191,9 @@ CREATE POLICY "workflow_registry_select" ON public.workflow_registry FOR SELECT
     )
   );
 
+DROP POLICY IF EXISTS "workflow_registry_write" ON 
+DROP POLICY IF EXISTS "workflow_registry_write" ON public.workflow_registry;
+DROP POLICY IF EXISTS "workflow_registry_write" ON public.workflow_registry;
 CREATE POLICY "workflow_registry_write" ON public.workflow_registry FOR ALL
   USING (
     tenant_id IN (
@@ -178,6 +205,9 @@ CREATE POLICY "workflow_registry_write" ON public.workflow_registry FOR ALL
   );
 
 -- SECTOR CONFIGS
+DROP POLICY IF EXISTS "sector_configs_all" ON 
+DROP POLICY IF EXISTS "sector_configs_all" ON public.sector_configs;
+DROP POLICY IF EXISTS "sector_configs_all" ON public.sector_configs;
 CREATE POLICY "sector_configs_all" ON public.sector_configs FOR ALL
   USING (
     tenant_id IN (

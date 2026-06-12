@@ -228,14 +228,41 @@ ALTER TABLE public.com_order_items           ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.com_coupons               ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.com_payment_transactions  ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "com_products_all"             ON public.com_products             FOR ALL USING (tenant_id IN (SELECT public.get_user_tenant_ids()));
-CREATE POLICY "com_license_keys_all"         ON public.com_license_keys         FOR ALL USING (tenant_id IN (SELECT public.get_user_tenant_ids()));
-CREATE POLICY "com_warehouses_all"           ON public.com_warehouses           FOR ALL USING (tenant_id IN (SELECT public.get_user_tenant_ids()));
-CREATE POLICY "com_inventory_all"            ON public.com_inventory            FOR ALL USING (tenant_id IN (SELECT public.get_user_tenant_ids()));
-CREATE POLICY "com_inventory_movements_all"  ON public.com_inventory_movements  FOR ALL USING (tenant_id IN (SELECT public.get_user_tenant_ids()));
-CREATE POLICY "com_orders_all"               ON public.com_orders               FOR ALL USING (tenant_id IN (SELECT public.get_user_tenant_ids()));
-CREATE POLICY "com_order_items_all"          ON public.com_order_items          FOR ALL USING (tenant_id IN (SELECT public.get_user_tenant_ids()));
-CREATE POLICY "com_coupons_all"              ON public.com_coupons              FOR ALL USING (tenant_id IN (SELECT public.get_user_tenant_ids()));
+DROP POLICY IF EXISTS "com_products_all" ON 
+DROP POLICY IF EXISTS "com_products_all" ON public.com_products;
+DROP POLICY IF EXISTS "com_products_all" ON public.com_products;
+CREATE POLICY "com_products_all" ON public.com_products             FOR ALL USING (tenant_id IN (SELECT public.get_user_tenant_ids()));
+DROP POLICY IF EXISTS "com_license_keys_all" ON 
+DROP POLICY IF EXISTS "com_license_keys_all" ON public.com_license_keys;
+DROP POLICY IF EXISTS "com_license_keys_all" ON public.com_license_keys;
+CREATE POLICY "com_license_keys_all" ON public.com_license_keys         FOR ALL USING (tenant_id IN (SELECT public.get_user_tenant_ids()));
+DROP POLICY IF EXISTS "com_warehouses_all" ON 
+DROP POLICY IF EXISTS "com_warehouses_all" ON public.com_warehouses;
+DROP POLICY IF EXISTS "com_warehouses_all" ON public.com_warehouses;
+CREATE POLICY "com_warehouses_all" ON public.com_warehouses           FOR ALL USING (tenant_id IN (SELECT public.get_user_tenant_ids()));
+DROP POLICY IF EXISTS "com_inventory_all" ON 
+DROP POLICY IF EXISTS "com_inventory_all" ON public.com_inventory;
+DROP POLICY IF EXISTS "com_inventory_all" ON public.com_inventory;
+CREATE POLICY "com_inventory_all" ON public.com_inventory            FOR ALL USING (tenant_id IN (SELECT public.get_user_tenant_ids()));
+DROP POLICY IF EXISTS "com_inventory_movements_all" ON 
+DROP POLICY IF EXISTS "com_inventory_movements_all" ON public.com_inventory_movements;
+DROP POLICY IF EXISTS "com_inventory_movements_all" ON public.com_inventory_movements;
+CREATE POLICY "com_inventory_movements_all" ON public.com_inventory_movements  FOR ALL USING (tenant_id IN (SELECT public.get_user_tenant_ids()));
+DROP POLICY IF EXISTS "com_orders_all" ON 
+DROP POLICY IF EXISTS "com_orders_all" ON public.com_orders;
+DROP POLICY IF EXISTS "com_orders_all" ON public.com_orders;
+CREATE POLICY "com_orders_all" ON public.com_orders               FOR ALL USING (tenant_id IN (SELECT public.get_user_tenant_ids()));
+DROP POLICY IF EXISTS "com_order_items_all" ON 
+DROP POLICY IF EXISTS "com_order_items_all" ON public.com_order_items;
+DROP POLICY IF EXISTS "com_order_items_all" ON public.com_order_items;
+CREATE POLICY "com_order_items_all" ON public.com_order_items          FOR ALL USING (tenant_id IN (SELECT public.get_user_tenant_ids()));
+DROP POLICY IF EXISTS "com_coupons_all" ON 
+DROP POLICY IF EXISTS "com_coupons_all" ON public.com_coupons;
+DROP POLICY IF EXISTS "com_coupons_all" ON public.com_coupons;
+CREATE POLICY "com_coupons_all" ON public.com_coupons              FOR ALL USING (tenant_id IN (SELECT public.get_user_tenant_ids()));
+DROP POLICY IF EXISTS "com_payment_transactions_all" ON 
+DROP POLICY IF EXISTS "com_payment_transactions_all" ON public.com_payment_transactions;
+DROP POLICY IF EXISTS "com_payment_transactions_all" ON public.com_payment_transactions;
 CREATE POLICY "com_payment_transactions_all" ON public.com_payment_transactions FOR ALL USING (tenant_id IN (SELECT public.get_user_tenant_ids()));
 
 -- ─── FUNCTION: Deduct inventory on order ──────────────────────────────────

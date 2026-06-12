@@ -211,15 +211,42 @@ ALTER TABLE public.fin_tax_rules         ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.fin_einvoice_webhooks ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.fin_gateway_configs   ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "fin_accounts_all"          ON public.fin_accounts          FOR ALL USING (tenant_id IN (SELECT public.get_user_tenant_ids()));
-CREATE POLICY "fin_ledger_all"            ON public.fin_ledger_entries    FOR ALL USING (tenant_id IN (SELECT public.get_user_tenant_ids()));
-CREATE POLICY "fin_invoices_all"          ON public.fin_invoices          FOR ALL USING (tenant_id IN (SELECT public.get_user_tenant_ids()));
-CREATE POLICY "fin_invoice_items_all"     ON public.fin_invoice_items     FOR ALL USING (tenant_id IN (SELECT public.get_user_tenant_ids()));
-CREATE POLICY "fin_receipts_all"          ON public.fin_receipts          FOR ALL USING (tenant_id IN (SELECT public.get_user_tenant_ids()));
-CREATE POLICY "fin_currency_rates_all"    ON public.fin_currency_rates    FOR ALL USING (tenant_id IN (SELECT public.get_user_tenant_ids()));
-CREATE POLICY "fin_tax_rules_all"         ON public.fin_tax_rules         FOR ALL USING (tenant_id IN (SELECT public.get_user_tenant_ids()));
+DROP POLICY IF EXISTS "fin_accounts_all" ON 
+DROP POLICY IF EXISTS "fin_accounts_all" ON public.fin_accounts;
+DROP POLICY IF EXISTS "fin_accounts_all" ON public.fin_accounts;
+CREATE POLICY "fin_accounts_all" ON public.fin_accounts          FOR ALL USING (tenant_id IN (SELECT public.get_user_tenant_ids()));
+DROP POLICY IF EXISTS "fin_ledger_all" ON 
+DROP POLICY IF EXISTS "fin_ledger_all" ON public.fin_ledger_entries;
+DROP POLICY IF EXISTS "fin_ledger_all" ON public.fin_ledger_entries;
+CREATE POLICY "fin_ledger_all" ON public.fin_ledger_entries    FOR ALL USING (tenant_id IN (SELECT public.get_user_tenant_ids()));
+DROP POLICY IF EXISTS "fin_invoices_all" ON 
+DROP POLICY IF EXISTS "fin_invoices_all" ON public.fin_invoices;
+DROP POLICY IF EXISTS "fin_invoices_all" ON public.fin_invoices;
+CREATE POLICY "fin_invoices_all" ON public.fin_invoices          FOR ALL USING (tenant_id IN (SELECT public.get_user_tenant_ids()));
+DROP POLICY IF EXISTS "fin_invoice_items_all" ON 
+DROP POLICY IF EXISTS "fin_invoice_items_all" ON public.fin_invoice_items;
+DROP POLICY IF EXISTS "fin_invoice_items_all" ON public.fin_invoice_items;
+CREATE POLICY "fin_invoice_items_all" ON public.fin_invoice_items     FOR ALL USING (tenant_id IN (SELECT public.get_user_tenant_ids()));
+DROP POLICY IF EXISTS "fin_receipts_all" ON 
+DROP POLICY IF EXISTS "fin_receipts_all" ON public.fin_receipts;
+DROP POLICY IF EXISTS "fin_receipts_all" ON public.fin_receipts;
+CREATE POLICY "fin_receipts_all" ON public.fin_receipts          FOR ALL USING (tenant_id IN (SELECT public.get_user_tenant_ids()));
+DROP POLICY IF EXISTS "fin_currency_rates_all" ON 
+DROP POLICY IF EXISTS "fin_currency_rates_all" ON public.fin_currency_rates;
+DROP POLICY IF EXISTS "fin_currency_rates_all" ON public.fin_currency_rates;
+CREATE POLICY "fin_currency_rates_all" ON public.fin_currency_rates    FOR ALL USING (tenant_id IN (SELECT public.get_user_tenant_ids()));
+DROP POLICY IF EXISTS "fin_tax_rules_all" ON 
+DROP POLICY IF EXISTS "fin_tax_rules_all" ON public.fin_tax_rules;
+DROP POLICY IF EXISTS "fin_tax_rules_all" ON public.fin_tax_rules;
+CREATE POLICY "fin_tax_rules_all" ON public.fin_tax_rules         FOR ALL USING (tenant_id IN (SELECT public.get_user_tenant_ids()));
+DROP POLICY IF EXISTS "fin_einvoice_webhooks_all" ON 
+DROP POLICY IF EXISTS "fin_einvoice_webhooks_all" ON public.fin_einvoice_webhooks;
+DROP POLICY IF EXISTS "fin_einvoice_webhooks_all" ON public.fin_einvoice_webhooks;
 CREATE POLICY "fin_einvoice_webhooks_all" ON public.fin_einvoice_webhooks FOR ALL USING (tenant_id IN (SELECT public.get_user_tenant_ids()));
-CREATE POLICY "fin_gateway_configs_all"   ON public.fin_gateway_configs   FOR ALL USING (tenant_id IN (SELECT public.get_user_tenant_ids()));
+DROP POLICY IF EXISTS "fin_gateway_configs_all" ON 
+DROP POLICY IF EXISTS "fin_gateway_configs_all" ON public.fin_gateway_configs;
+DROP POLICY IF EXISTS "fin_gateway_configs_all" ON public.fin_gateway_configs;
+CREATE POLICY "fin_gateway_configs_all" ON public.fin_gateway_configs   FOR ALL USING (tenant_id IN (SELECT public.get_user_tenant_ids()));
 
 -- ─── FUNCTION: Auto-calculate invoice totals ──────────────────────────────
 CREATE OR REPLACE FUNCTION public.fn_sync_invoice_totals()
