@@ -7,7 +7,7 @@ import {
   Monitor, Box, Wrench, Repeat, Tag, Users,
   SlidersHorizontal, Truck, Plus, Pencil, Trash2, Settings,
 } from "lucide-react";
-import ManagementPanel, { DeleteConfirmDialog, type MpCategory } from "@/components/marketplace/MarketplaceManager";
+import ManagementPanel, { DeleteConfirmDialog, COLOR_PALETTE, type MpCategory, type MpListingType } from "@/components/marketplace/MarketplaceManager";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
@@ -26,7 +26,7 @@ import { toast } from "sonner";
 /* ═══════════════════════════════════════════════════════════════════════════
    TYPES
 ═══════════════════════════════════════════════════════════════════════════ */
-type ListingType = "digital" | "physical" | "service" | "subscription";
+type ListingType = string;
 type PricingModel = "free" | "one_time" | "monthly" | "annual" | "contact";
 
 interface Listing {
@@ -54,54 +54,30 @@ interface Listing {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   CONFIGURATION
+   CONFIGURATION  — runtime config is built from DB; static fallback below
 ═══════════════════════════════════════════════════════════════════════════ */
-const TYPE_CONFIG: Record<
-  ListingType,
-  {
-    label: string; labelAr: string; icon: string;
-    gradient: string; border: string; badgeClass: string;
-    accent: string; hoverBorder: string; shadow: string;
-    categories: string[];
-  }
-> = {
-  digital: {
-    label: "Digital Products", labelAr: "منتجات رقمية", icon: "💾",
-    gradient: "from-violet-600/20 via-blue-600/10 to-transparent",
-    border: "border-violet-500/40",
-    badgeClass: "bg-violet-500/20 text-violet-300 border-violet-500/40",
-    accent: "text-violet-400", hoverBorder: "hover:border-violet-500/50",
-    shadow: "hover:shadow-violet-500/5",
-    categories: ["Software","Templates","E-books","Online Courses","Plugins","UI Kits","Fonts","Audio","Video","Graphics"],
-  },
-  physical: {
-    label: "Physical Products", labelAr: "منتجات ملموسة", icon: "📦",
-    gradient: "from-emerald-600/20 via-teal-600/10 to-transparent",
-    border: "border-emerald-500/40",
-    badgeClass: "bg-emerald-500/20 text-emerald-300 border-emerald-500/40",
-    accent: "text-emerald-400", hoverBorder: "hover:border-emerald-500/50",
-    shadow: "hover:shadow-emerald-500/5",
-    categories: ["Electronics","Fashion","Furniture","Food & Beverage","Handcraft","Books","Sports","Tools","Accessories","Art"],
-  },
-  service: {
-    label: "Services", labelAr: "خدمات", icon: "🛠️",
-    gradient: "from-amber-600/20 via-orange-600/10 to-transparent",
-    border: "border-amber-500/40",
-    badgeClass: "bg-amber-500/20 text-amber-300 border-amber-500/40",
-    accent: "text-amber-400", hoverBorder: "hover:border-amber-500/50",
-    shadow: "hover:shadow-amber-500/5",
-    categories: ["Design","Development","Marketing","Writing & Translation","Consulting","Legal","Finance","Coaching","Photography","Videography"],
-  },
-  subscription: {
-    label: "Subscriptions", labelAr: "اشتراكات", icon: "♾️",
-    gradient: "from-pink-600/20 via-rose-600/10 to-transparent",
-    border: "border-pink-500/40",
-    badgeClass: "bg-pink-500/20 text-pink-300 border-pink-500/40",
-    accent: "text-pink-400", hoverBorder: "hover:border-pink-500/50",
-    shadow: "hover:shadow-pink-500/5",
-    categories: ["SaaS Tools","Media Streaming","Education","Fitness","Business","Entertainment","News & Data","Cloud Storage"],
-  },
+type TypeCfg = {
+  label: string; labelAr: string; icon: string;
+  gradient: string; border: string; badgeClass: string;
+  hoverBorder: string; shadow: string; categories: string[];
 };
+const FALLBACK_CFG: TypeCfg = {
+  label: "Other", labelAr: "أخرى", icon: "📦",
+  ...COLOR_PALETTE.violet,
+  categories: [],
+};
+function buildTypeConfig(types: MpListingType[]): Record<string, TypeCfg> {
+  return Object.fromEntries(
+    types.map((t) => [
+      t.code,
+      {
+        label: t.label, labelAr: t.label_ar, icon: t.icon,
+        ...(COLOR_PALETTE[t.color] || COLOR_PALETTE.violet),
+        categories: t.default_categories || [],
+      },
+    ])
+  );
+}
 
 /* ═══════════════════════════════════════════════════════════════════════════
    HELPERS
@@ -150,11 +126,10 @@ function PriceBadge({ price_cents, pricing_model }: { price_cents: number; prici
 ═══════════════════════════════════════════════════════════════════════════ */
 
 /* ── Digital ─────────────────────────────────────────────────────────────── */
-function DigitalCard({ item, onDetails, onWishlist, wishlisted }: {
-  item: Listing; onDetails: (i: Listing) => void;
+function DigitalCard({ item, cfg, onDetails, onWishlist, wishlisted }: {
+  item: Listing; cfg: TypeCfg; onDetails: (i: Listing) => void;
   onWishlist: (id: string) => void; wishlisted: boolean;
 }) {
-  const cfg = TYPE_CONFIG.digital;
   return (
     <Card
       className={`group relative flex flex-col p-4 cursor-pointer ${cfg.hoverBorder} transition-all hover:shadow-lg ${cfg.shadow} bg-background/60 backdrop-blur-sm`}
@@ -202,11 +177,11 @@ function DigitalCard({ item, onDetails, onWishlist, wishlisted }: {
 }
 
 /* ── Physical ────────────────────────────────────────────────────────────── */
-function PhysicalCard({ item, onDetails, onWishlist, wishlisted }: {
-  item: Listing; onDetails: (i: Listing) => void;
+function PhysicalCard({ item, cfg, onDetails, onWishlist, wishlisted }: {
+  item: Listing; cfg: TypeCfg; onDetails: (i: Listing) => void;
   onWishlist: (id: string) => void; wishlisted: boolean;
 }) {
-  const cfg = TYPE_CONFIG.physical;
+  
   const inStock = item.meta?.stock_qty === undefined || item.meta.stock_qty > 0;
   return (
     <Card
@@ -252,11 +227,10 @@ function PhysicalCard({ item, onDetails, onWishlist, wishlisted }: {
 }
 
 /* ── Service ─────────────────────────────────────────────────────────────── */
-function ServiceCard({ item, onDetails, onWishlist, wishlisted }: {
-  item: Listing; onDetails: (i: Listing) => void;
+function ServiceCard({ item, cfg, onDetails, onWishlist, wishlisted }: {
+  item: Listing; cfg: TypeCfg; onDetails: (i: Listing) => void;
   onWishlist: (id: string) => void; wishlisted: boolean;
 }) {
-  const cfg = TYPE_CONFIG.service;
   return (
     <Card
       className={`group relative flex flex-col p-4 cursor-pointer ${cfg.hoverBorder} transition-all hover:shadow-lg ${cfg.shadow} bg-background/60 backdrop-blur-sm`}
@@ -306,11 +280,10 @@ function ServiceCard({ item, onDetails, onWishlist, wishlisted }: {
 }
 
 /* ── Subscription ────────────────────────────────────────────────────────── */
-function SubscriptionCard({ item, onDetails, onWishlist, wishlisted }: {
-  item: Listing; onDetails: (i: Listing) => void;
+function SubscriptionCard({ item, cfg, onDetails, onWishlist, wishlisted }: {
+  item: Listing; cfg: TypeCfg; onDetails: (i: Listing) => void;
   onWishlist: (id: string) => void; wishlisted: boolean;
 }) {
-  const cfg = TYPE_CONFIG.subscription;
   const features: string[] = item.meta?.features || [];
   return (
     <Card
@@ -364,13 +337,12 @@ function SubscriptionCard({ item, onDetails, onWishlist, wishlisted }: {
 /* ═══════════════════════════════════════════════════════════════════════════
    LISTING DETAIL DIALOG
 ═══════════════════════════════════════════════════════════════════════════ */
-function ListingDetailDialog({ item, open, onClose, onPurchase, isPurchased, onWishlist, wishlisted }: {
-  item: Listing | null; open: boolean; onClose: () => void;
+function ListingDetailDialog({ item, cfg, open, onClose, onPurchase, isPurchased, onWishlist, wishlisted }: {
+  item: Listing | null; cfg: TypeCfg; open: boolean; onClose: () => void;
   onPurchase: (i: Listing) => void; isPurchased: boolean;
   onWishlist: (id: string) => void; wishlisted: boolean;
 }) {
   if (!item) return null;
-  const cfg = TYPE_CONFIG[item.listing_type];
   const price = formatPrice(item.price_cents, item.pricing_model);
   const features: string[] = item.meta?.features || [];
   const packages: any[] = item.meta?.packages || [];
@@ -499,8 +471,9 @@ function ListingDetailDialog({ item, open, onClose, onPurchase, isPurchased, onW
 /* ═══════════════════════════════════════════════════════════════════════════
    REQUEST LISTING DIALOG
 ═══════════════════════════════════════════════════════════════════════════ */
-function RequestListingDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const [form, setForm] = useState({ name: "", listing_type: "digital", description: "", contact: "" });
+function RequestListingDialog({ open, onClose, listingTypes }: { open: boolean; onClose: () => void; listingTypes: MpListingType[] }) {
+  const firstType = listingTypes[0]?.code || "digital";
+  const [form, setForm] = useState({ name: "", listing_type: firstType, description: "", contact: "" });
   const [loading, setLoading] = useState(false);
   const db = supabase as any;
   const submit = async () => {
@@ -528,10 +501,9 @@ function RequestListingDialog({ open, onClose }: { open: boolean; onClose: () =>
             <Select value={form.listing_type} onValueChange={(v) => setForm((f) => ({ ...f, listing_type: v }))}>
               <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="digital">💾 Digital Product</SelectItem>
-                <SelectItem value="physical">📦 Physical Product</SelectItem>
-                <SelectItem value="service">🛠️ Service</SelectItem>
-                <SelectItem value="subscription">♾️ Subscription</SelectItem>
+                {listingTypes.filter((t) => t.is_active).map((t) => (
+                  <SelectItem key={t.code} value={t.code}>{t.icon} {t.label}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -559,11 +531,10 @@ function RequestListingDialog({ open, onClose }: { open: boolean; onClose: () =>
 /* ═══════════════════════════════════════════════════════════════════════════
    LIST-VIEW ROW
 ═══════════════════════════════════════════════════════════════════════════ */
-function ListingRow({ item, onDetails, onWishlist, wishlisted }: {
-  item: Listing; onDetails: (i: Listing) => void;
+function ListingRow({ item, cfg, onDetails, onWishlist, wishlisted }: {
+  item: Listing; cfg: TypeCfg; onDetails: (i: Listing) => void;
   onWishlist: (id: string) => void; wishlisted: boolean;
 }) {
-  const cfg = TYPE_CONFIG[item.listing_type];
   return (
     <Card className="flex items-center gap-4 p-3 cursor-pointer hover:bg-secondary/20 transition-colors" onClick={() => onDetails(item)}>
       <div className={`text-2xl w-10 h-10 flex items-center justify-center rounded-lg bg-gradient-to-br ${cfg.gradient} border ${cfg.border} shrink-0 overflow-hidden`}>
@@ -600,6 +571,8 @@ export default function Marketplace() {
   const db = supabase as any;
 
   const [listings, setListings] = useState<Listing[]>([]);
+  const [listingTypes, setListingTypes] = useState<MpListingType[]>([]);
+  const [typeConfigMap, setTypeConfigMap] = useState<Record<string, TypeCfg>>({});
   const [purchased, setPurchased] = useState<string[]>([]);
   const [wishlist, setWishlist] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
@@ -615,12 +588,19 @@ export default function Marketplace() {
   // Management mode
   const [isManageMode, setIsManageMode] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
-  const [categories, setCategories] = useState<MpCategory[]>([]);
+  const [mpCategories, setMpCategories] = useState<MpCategory[]>([]);
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const loadCategories = async () => {
     const { data } = await (db as any).from("mp_categories").select("*").order("sort_order,name");
-    setCategories(data || []);
+    setMpCategories(data || []);
+  };
+
+  const loadTypes = async () => {
+    const { data } = await (db as any).from("mp_listing_types").select("*").eq("is_active", true).order("sort_order,label");
+    const types: MpListingType[] = data || [];
+    setListingTypes(types);
+    setTypeConfigMap(buildTypeConfig(types));
   };
 
   const load = async () => {
@@ -642,6 +622,7 @@ export default function Marketplace() {
   useEffect(() => {
     load();
     loadCategories();
+    loadTypes();
     supabase.auth.getUser().then(({ data: { user } }) => setCurrentUserId(user?.id ?? null));
   }, []);
 
@@ -697,23 +678,20 @@ export default function Marketplace() {
     return result;
   }, [listings, activeType, activeCategory, priceFilter, search, sortBy]);
 
-  const categories = useMemo(() => {
+  const filterCategories = useMemo(() => {
     if (activeType === "all") return ["All", ...Array.from(new Set(listings.map((l) => l.category).filter(Boolean)))];
-    return ["All", ...(TYPE_CONFIG[activeType]?.categories || [])];
-  }, [activeType, listings]);
+    return ["All", ...(typeConfigMap[activeType]?.categories || [])];
+  }, [activeType, listings, typeConfigMap]);
 
   const kpis = useMemo(() => ({
     total: listings.length,
-    digital: listings.filter((l) => l.listing_type === "digital").length,
-    physical: listings.filter((l) => l.listing_type === "physical").length,
-    services: listings.filter((l) => l.listing_type === "service").length,
-    subscriptions: listings.filter((l) => l.listing_type === "subscription").length,
     purchased: purchased.length,
     wishlist: wishlist.length,
   }), [listings, purchased, wishlist]);
 
   const renderCard = (item: Listing) => {
-    const cardProps = { item, onDetails: setDetailItem, onWishlist: handleWishlist, wishlisted: wishlist.includes(item.id) };
+    const cfg = typeConfigMap[item.listing_type] || FALLBACK_CFG;
+    const cardProps = { item, cfg, onDetails: setDetailItem, onWishlist: handleWishlist, wishlisted: wishlist.includes(item.id) };
     const isOwner = !!currentUserId && item.publisher_user_id === currentUserId;
     let card: React.ReactNode;
     switch (item.listing_type) {
@@ -721,7 +699,7 @@ export default function Marketplace() {
       case "physical":     card = <PhysicalCard {...cardProps} />; break;
       case "service":      card = <ServiceCard {...cardProps} />; break;
       case "subscription": card = <SubscriptionCard {...cardProps} />; break;
-      default: return null;
+      default:             card = <DigitalCard {...cardProps} />; break;
     }
     return (
       <div key={item.id} className={isOwner ? "relative group/owner" : ""}>
@@ -798,21 +776,17 @@ export default function Marketplace() {
         <ManagementPanel
           currentUserId={currentUserId}
           onListingChange={load}
-          onCategoryChange={loadCategories}
+          onCategoryChange={() => { loadCategories(); loadTypes(); }}
         />
       )}
 
       <div className="px-4 py-4 max-w-7xl mx-auto space-y-4">
         {/* ══ KPI STRIP ════════════════════════════════════════════════════ */}
-        <div className="grid grid-cols-4 sm:grid-cols-7 gap-2">
+        <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
           {[
-            { label: "Total",         value: kpis.total,         Icon: Store,        color: "text-primary" },
-            { label: "Digital",       value: kpis.digital,       Icon: Monitor,      color: "text-violet-400" },
-            { label: "Physical",      value: kpis.physical,      Icon: Box,          color: "text-emerald-400" },
-            { label: "Services",      value: kpis.services,      Icon: Wrench,       color: "text-amber-400" },
-            { label: "Subscriptions", value: kpis.subscriptions, Icon: Repeat,       color: "text-pink-400" },
-            { label: "Purchased",     value: kpis.purchased,     Icon: ShoppingCart, color: "text-blue-400" },
-            { label: "Wishlist",      value: kpis.wishlist,      Icon: Heart,        color: "text-rose-400" },
+            { label: "Total",     value: kpis.total,     Icon: Store,        color: "text-primary" },
+            { label: "Purchased", value: kpis.purchased, Icon: ShoppingCart,  color: "text-blue-400" },
+            { label: "Wishlist",  value: kpis.wishlist,  Icon: Heart,         color: "text-rose-400" },
           ].map(({ label, value, Icon, color }) => (
             <Card key={label} className="p-3 flex items-center gap-2.5 bg-secondary/10">
               <Icon className={`w-4 h-4 shrink-0 ${color}`} />
@@ -822,6 +796,19 @@ export default function Marketplace() {
               </div>
             </Card>
           ))}
+          {listingTypes.map((t) => {
+            const count = listings.filter((l) => l.listing_type === t.code).length;
+            const pal = COLOR_PALETTE[t.color] || COLOR_PALETTE.violet;
+            return (
+              <Card key={t.code} className="p-3 flex items-center gap-2.5 bg-secondary/10">
+                <span className="text-base shrink-0">{t.icon}</span>
+                <div>
+                  <p className="text-[10px] text-muted-foreground leading-none">{t.label}</p>
+                  <p className="text-lg font-bold leading-tight">{count}</p>
+                </div>
+              </Card>
+            );
+          })}
         </div>
 
         {/* ══ TYPE SELECTOR ════════════════════════════════════════════════ */}
@@ -840,22 +827,23 @@ export default function Marketplace() {
               <p className="text-[10px] text-muted-foreground">{kpis.total} listings</p>
             </div>
           </button>
-          {(Object.entries(TYPE_CONFIG) as [ListingType, typeof TYPE_CONFIG[ListingType]][]).map(([type, cfg]) => {
-            const count = type === "digital" ? kpis.digital : type === "physical" ? kpis.physical : type === "service" ? kpis.services : kpis.subscriptions;
+          {listingTypes.map((t) => {
+            const cfg = typeConfigMap[t.code] || FALLBACK_CFG;
+            const count = listings.filter((l) => l.listing_type === t.code).length;
             return (
               <button
-                key={type}
-                onClick={() => handleTypeChange(type)}
+                key={t.code}
+                onClick={() => handleTypeChange(t.code)}
                 className={`flex items-center gap-2.5 p-3 rounded-xl border transition-all text-left ${
-                  activeType === type
+                  activeType === t.code
                     ? `${cfg.border} bg-gradient-to-r ${cfg.gradient} shadow-sm`
                     : "border-border/50 hover:border-border hover:bg-secondary/20"
                 }`}
               >
-                <span className="text-2xl">{cfg.icon}</span>
+                <span className="text-2xl">{t.icon}</span>
                 <div>
-                  <p className="text-xs font-semibold">{cfg.label}</p>
-                  <p className="text-[10px] text-muted-foreground">{cfg.labelAr} · {count}</p>
+                  <p className="text-xs font-semibold">{t.label}</p>
+                  <p className="text-[10px] text-muted-foreground">{t.label_ar} · {count}</p>
                 </div>
               </button>
             );
@@ -865,7 +853,7 @@ export default function Marketplace() {
         {/* ══ FILTER BAR ═══════════════════════════════════════════════════ */}
         <div className="flex items-center gap-2 flex-wrap">
           <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 flex-1 min-w-0">
-            {categories.map((cat) => (
+            {filterCategories.map((cat) => (
               <button
                 key={cat}
                 onClick={() => setActiveCategory(cat)}
@@ -943,7 +931,7 @@ export default function Marketplace() {
         ) : (
           <div className="space-y-2">
             {filtered.map((item) => (
-              <ListingRow key={item.id} item={item} onDetails={setDetailItem} onWishlist={handleWishlist} wishlisted={wishlist.includes(item.id)} />
+              <ListingRow key={item.id} item={item} cfg={typeConfigMap[item.listing_type] || FALLBACK_CFG} onDetails={setDetailItem} onWishlist={handleWishlist} wishlisted={wishlist.includes(item.id)} />
             ))}
           </div>
         )}
@@ -951,13 +939,13 @@ export default function Marketplace() {
 
       {/* ══ DIALOGS ══════════════════════════════════════════════════════════ */}
       <ListingDetailDialog
-        item={detailItem} open={!!detailItem} onClose={() => setDetailItem(null)}
+        item={detailItem} cfg={detailItem ? (typeConfigMap[detailItem.listing_type] || FALLBACK_CFG) : FALLBACK_CFG} open={!!detailItem} onClose={() => setDetailItem(null)}
         onPurchase={handlePurchase}
         isPurchased={detailItem ? purchased.includes(detailItem.id) : false}
         onWishlist={handleWishlist}
         wishlisted={detailItem ? wishlist.includes(detailItem.id) : false}
       />
-      <RequestListingDialog open={showRequest} onClose={() => setShowRequest(false)} />
+      <RequestListingDialog open={showRequest} onClose={() => setShowRequest(false)} listingTypes={listingTypes} />
       <DeleteConfirmDialog
         open={!!deleteId}
         onClose={() => setDeleteId(null)}
