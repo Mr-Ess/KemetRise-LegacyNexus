@@ -425,6 +425,17 @@ function MallManagerDrawer({ onClose, currentUserId }: { onClose: () => void; cu
   const [editLoading, setEditLoading] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<MallStore | null>(null);
 
+  // Products management state
+  const [productSearch, setProductSearch] = useState("");
+  const [productStoreFilter, setProductStoreFilter] = useState("all");
+  const [editProduct, setEditProduct] = useState<MallProduct | null>(null);
+  const [showAddProduct, setShowAddProduct] = useState(false);
+  const [deleteProductConfirm, setDeleteProductConfirm] = useState<MallProduct | null>(null);
+  const [productFormLoading, setProductFormLoading] = useState(false);
+  const EMPTY_PRODUCT_FORM = { name:"", description:"", store_id:"", category:"", price_cents:"0", compare_price_cents:"", pricing_model:"one_time", stock_qty:"", is_digital:false, is_featured:false, thumbnail_url:"" };
+  const [productForm, setProductForm] = useState<typeof EMPTY_PRODUCT_FORM>(EMPTY_PRODUCT_FORM);
+  const setPF = (k: keyof typeof EMPTY_PRODUCT_FORM, v: string | boolean) => setProductForm((f) => ({ ...f, [k]: v }));
+
   const load = async () => {
     setLoading(true);
     const [{ data: s }, { data: p }, { data: a }, { data: f }] = await Promise.all([
@@ -547,6 +558,84 @@ function MallManagerDrawer({ onClose, currentUserId }: { onClose: () => void; cu
     toast.success(`"${s.name}" ${newStatus === "suspended" ? "suspended" : "reactivated"}`);
     load();
   };
+
+  // ── Product helpers ──────────────────────────────────────────────
+  const openEditProduct = (p: MallProduct) => {
+    setEditProduct(p);
+    setProductForm({
+      name: p.name || "",
+      description: p.description || "",
+      store_id: p.store_id || "",
+      category: p.category || "",
+      price_cents: String(p.price_cents ?? 0),
+      compare_price_cents: p.compare_price_cents != null ? String(p.compare_price_cents) : "",
+      pricing_model: p.pricing_model || "one_time",
+      stock_qty: p.stock_qty != null ? String(p.stock_qty) : "",
+      is_digital: p.is_digital ?? false,
+      is_featured: p.is_featured ?? false,
+      thumbnail_url: (p as any).thumbnail_url || "",
+    });
+  };
+
+  const saveProduct = async (isNew: boolean) => {
+    if (!productForm.name.trim() || !productForm.store_id || productForm.store_id === "__none__") {
+      toast.error("Product name and store are required"); return;
+    }
+    setProductFormLoading(true);
+    const payload = {
+      name: productForm.name.trim(),
+      description: productForm.description.trim(),
+      store_id: productForm.store_id,
+      category: productForm.category.trim(),
+      price_cents: Math.round(parseFloat(productForm.price_cents || "0") * 100),
+      compare_price_cents: productForm.compare_price_cents ? Math.round(parseFloat(productForm.compare_price_cents) * 100) : null,
+      pricing_model: productForm.pricing_model,
+      stock_qty: productForm.stock_qty !== "" ? parseInt(productForm.stock_qty) : null,
+      is_digital: productForm.is_digital,
+      is_featured: productForm.is_featured,
+      thumbnail_url: productForm.thumbnail_url.trim() || null,
+      is_active: true,
+      is_new: isNew,
+      name_ar: "",
+      tags: [],
+      currency: "USD",
+    };
+    let error: any = null;
+    if (isNew || !editProduct) {
+      ({ error } = await db.from("mall_products").insert(payload));
+    } else {
+      ({ error } = await db.from("mall_products").update(payload).eq("id", editProduct.id));
+    }
+    setProductFormLoading(false);
+    if (error) { toast.error(error.message); return; }
+    toast.success(isNew ? "Product added!" : `"${productForm.name}" updated`);
+    setEditProduct(null); setShowAddProduct(false);
+    setProductForm(EMPTY_PRODUCT_FORM);
+    load();
+  };
+
+  const toggleProductActive = async (p: MallProduct) => {
+    await db.from("mall_products").update({ is_active: !p.is_active }).eq("id", p.id);
+    toast.success(`"${p.name}" ${!p.is_active ? "shown" : "hidden"}`);
+    load();
+  };
+
+  const confirmDeleteProduct = async (p: MallProduct) => {
+    const { error } = await db.from("mall_products").delete().eq("id", p.id);
+    if (error) { toast.error(error.message); return; }
+    setDeleteProductConfirm(null);
+    toast.success(`"${p.name}" deleted`);
+    load();
+  };
+
+  const filteredProducts = products.filter((p) => {
+    if (productStoreFilter !== "all" && p.store_id !== productStoreFilter) return false;
+    if (productSearch.trim()) {
+      const q = productSearch.toLowerCase();
+      if (!p.name?.toLowerCase().includes(q) && !p.category?.toLowerCase().includes(q)) return false;
+    }
+    return true;
+  });
 
   const filteredStores = useMemo(() => {
     let r = [...stores];
@@ -739,38 +828,86 @@ function MallManagerDrawer({ onClose, currentUserId }: { onClose: () => void; cu
             {/* PRODUCTS */}
             {tab === "products" && (
               <div className="space-y-3">
-                <p className="text-xs text-muted-foreground">{products.length} total products across all stores</p>
+                {/* Toolbar */}
+                <div className="flex items-center gap-2 flex-wrap">
+                  <div className="relative flex-1 min-w-40">
+                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+                    <Input className="pl-8 h-8 text-xs bg-secondary/20" placeholder="Search products…" value={productSearch} onChange={(e) => setProductSearch(e.target.value)} />
+                  </div>
+                  <Select value={productStoreFilter} onValueChange={setProductStoreFilter}>
+                    <SelectTrigger className="h-8 text-xs w-40"><SelectValue placeholder="All stores" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All stores</SelectItem>
+                      {stores.map((s) => <SelectItem key={s.id} value={s.id}>🏪 {s.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                  <span className="text-xs text-muted-foreground">{filteredProducts.length} products</span>
+                  <button onClick={() => { setProductForm(EMPTY_PRODUCT_FORM); setShowAddProduct(true); }}
+                    className="ml-auto flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 transition-colors">
+                    <Plus className="w-3.5 h-3.5" />Add Product
+                  </button>
+                </div>
                 {loading ? (
                   <div className="space-y-2">{[1,2,3,4].map((i) => <div key={i} className="h-10 animate-pulse bg-secondary/20 rounded-lg" />)}</div>
-                ) : products.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-12 text-center"><Package className="w-10 h-10 mb-2 text-muted-foreground/20" /><p className="text-sm text-muted-foreground">No products yet</p></div>
+                ) : filteredProducts.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-12 text-center">
+                    <Package className="w-10 h-10 mb-2 text-muted-foreground/20" />
+                    <p className="text-sm text-muted-foreground">No products yet</p>
+                    <button onClick={() => { setProductForm(EMPTY_PRODUCT_FORM); setShowAddProduct(true); }}
+                      className="mt-3 text-xs text-primary hover:underline">+ Add your first product</button>
+                  </div>
                 ) : (
                   <div className="overflow-x-auto">
                     <table className="w-full text-xs">
                       <thead>
                         <tr className="border-b border-border/50">
-                          {["Product","Store","Category","Price","Status","Sales",""].map((h, i) => (
-                            <th key={i} className={`py-2.5 font-semibold text-muted-foreground text-left ${i === 6 ? "text-right" : ""}`}>{h}</th>
+                          {["Product","Store","Category","Price","Status","Featured","Sales",""].map((h, i) => (
+                            <th key={i} className={`py-2.5 font-semibold text-muted-foreground text-left ${i === 7 ? "text-right" : ""} pr-2`}>{h}</th>
                           ))}
                         </tr>
                       </thead>
                       <tbody>
-                        {products.map((p) => {
+                        {filteredProducts.map((p) => {
                           const s = stores.find((st) => st.id === p.store_id);
                           return (
                             <tr key={p.id} className="border-b border-border/20 hover:bg-secondary/10">
-                              <td className="py-2.5 font-medium max-w-36 truncate pr-2">📦 {p.name}</td>
+                              <td className="py-2.5 font-medium max-w-36 pr-2">
+                                <div className="flex items-center gap-1.5">
+                                  {(p as any).thumbnail_url
+                                    ? <img src={(p as any).thumbnail_url} className="w-6 h-6 rounded object-cover shrink-0" />
+                                    : <span className="text-base shrink-0">📦</span>}
+                                  <span className="truncate">{p.name}</span>
+                                </div>
+                              </td>
                               <td className="py-2.5 text-muted-foreground pr-2 max-w-28 truncate">{s?.name || "—"}</td>
-                              <td className="py-2.5 text-muted-foreground pr-2">{p.category || "—"}</td>
+                              <td className="py-2.5 text-muted-foreground pr-2 max-w-24 truncate">{p.category || "—"}</td>
                               <td className="py-2.5 pr-2"><PriceBadge cents={p.price_cents} model={p.pricing_model} /></td>
                               <td className="py-2.5 pr-2">
-                                <Badge className={`text-[9px] px-1.5 py-0 ${p.is_active ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/40" : "bg-secondary text-muted-foreground"}`}>
-                                  {p.is_active ? "Active" : "Hidden"}
-                                </Badge>
+                                <button onClick={() => toggleProductActive(p)}>
+                                  <Badge className={`text-[9px] px-1.5 py-0 cursor-pointer ${p.is_active ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/40" : "bg-secondary text-muted-foreground"}`}>
+                                    {p.is_active ? "Active" : "Hidden"}
+                                  </Badge>
+                                </button>
+                              </td>
+                              <td className="py-2.5 pr-2">
+                                <button onClick={() => { db.from("mall_products").update({ is_featured: !p.is_featured }).eq("id", p.id); load(); }}>
+                                  <Badge className={`text-[9px] px-1.5 py-0 cursor-pointer ${p.is_featured ? "bg-amber-500/20 text-amber-400 border-amber-500/40" : "bg-secondary text-muted-foreground border-border/40"}`}>
+                                    {p.is_featured ? "⭐ Yes" : "No"}
+                                  </Badge>
+                                </button>
                               </td>
                               <td className="py-2.5 pr-2 text-muted-foreground">{p.sales_count}</td>
                               <td className="py-2.5 text-right">
-                                <button onClick={() => deleteProduct(p.id)} className="p-1.5 rounded hover:bg-red-500/10 text-muted-foreground hover:text-red-400"><Trash2 className="w-3 h-3" /></button>
+                                <div className="flex items-center justify-end gap-1">
+                                  <button onClick={() => openEditProduct(p)} title="Edit product"
+                                    className="p-1.5 rounded-lg bg-blue-500/15 hover:bg-blue-500/25 text-blue-400 transition-colors">
+                                    <Pencil className="w-3.5 h-3.5" />
+                                  </button>
+                                  <button onClick={() => setDeleteProductConfirm(p)} title="Delete product"
+                                    className="p-1.5 rounded-lg bg-red-500/15 hover:bg-red-500/25 text-red-400 transition-colors">
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
                               </td>
                             </tr>
                           );
@@ -891,6 +1028,110 @@ function MallManagerDrawer({ onClose, currentUserId }: { onClose: () => void; cu
           </div>
         </div>
       </div>
+
+      {/* ── Add / Edit Product Dialog ─────────────────────────── */}
+      {(showAddProduct || !!editProduct) && (() => {
+        const isNew = !editProduct;
+        return (
+          <Dialog open={true} onOpenChange={(v) => { if (!v) { setShowAddProduct(false); setEditProduct(null); setProductForm(EMPTY_PRODUCT_FORM); } }}>
+            <DialogContent className="max-w-lg max-h-[88vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  {isNew ? <Plus className="w-4 h-4 text-primary" /> : <Pencil className="w-4 h-4 text-primary" />}
+                  {isNew ? "Add Product" : "Edit Product"}
+                </DialogTitle>
+              </DialogHeader>
+              <div className="space-y-3 py-1">
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="col-span-2">
+                    <Label className="text-xs mb-1.5 block">Product Name *</Label>
+                    <Input className="h-8 text-sm" placeholder="My Product" value={productForm.name} onChange={(e) => setPF("name", e.target.value)} />
+                  </div>
+                  <div className="col-span-2">
+                    <Label className="text-xs mb-1.5 block">Description</Label>
+                    <Textarea className="text-sm resize-none" rows={2} placeholder="What is this product?" value={productForm.description} onChange={(e) => setPF("description", e.target.value)} />
+                  </div>
+                  <div className="col-span-2">
+                    <Label className="text-xs mb-1.5 block">Store *</Label>
+                    <Select value={productForm.store_id || "__none__"} onValueChange={(v) => setPF("store_id", v === "__none__" ? "" : v)}>
+                      <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Select store" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__none__">— Select store —</SelectItem>
+                        {stores.map((s) => <SelectItem key={s.id} value={s.id}>🏪 {s.name}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label className="text-xs mb-1.5 block">Category</Label>
+                    <Input className="h-8 text-sm" placeholder="e.g. Electronics" value={productForm.category} onChange={(e) => setPF("category", e.target.value)} />
+                  </div>
+                  <div>
+                    <Label className="text-xs mb-1.5 block">Pricing Model</Label>
+                    <Select value={productForm.pricing_model} onValueChange={(v) => setPF("pricing_model", v)}>
+                      <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="one_time">One-time</SelectItem>
+                        <SelectItem value="subscription">Subscription</SelectItem>
+                        <SelectItem value="free">Free</SelectItem>
+                        <SelectItem value="contact">Contact for price</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label className="text-xs mb-1.5 block">Price (USD)</Label>
+                    <Input className="h-8 text-sm" type="number" min="0" step="0.01" placeholder="0.00" value={productForm.price_cents} onChange={(e) => setPF("price_cents", e.target.value)} />
+                  </div>
+                  <div>
+                    <Label className="text-xs mb-1.5 block">Compare Price (optional)</Label>
+                    <Input className="h-8 text-sm" type="number" min="0" step="0.01" placeholder="Original price" value={productForm.compare_price_cents} onChange={(e) => setPF("compare_price_cents", e.target.value)} />
+                  </div>
+                  <div>
+                    <Label className="text-xs mb-1.5 block">Stock Qty</Label>
+                    <Input className="h-8 text-sm" type="number" min="0" placeholder="Leave blank = unlimited" value={productForm.stock_qty} onChange={(e) => setPF("stock_qty", e.target.value)} />
+                  </div>
+                  <div className="col-span-2">
+                    <Label className="text-xs mb-1.5 block">Thumbnail URL</Label>
+                    <Input className="h-8 text-sm" placeholder="https://…" value={productForm.thumbnail_url} onChange={(e) => setPF("thumbnail_url", e.target.value)} />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input type="checkbox" id="is_digital" checked={productForm.is_digital as boolean} onChange={(e) => setPF("is_digital", e.target.checked)} className="accent-primary" />
+                    <Label htmlFor="is_digital" className="text-xs cursor-pointer">Digital product</Label>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input type="checkbox" id="is_featured_p" checked={productForm.is_featured as boolean} onChange={(e) => setPF("is_featured", e.target.checked)} className="accent-primary" />
+                    <Label htmlFor="is_featured_p" className="text-xs cursor-pointer">Featured ⭐</Label>
+                  </div>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" size="sm" onClick={() => { setShowAddProduct(false); setEditProduct(null); setProductForm(EMPTY_PRODUCT_FORM); }}>Cancel</Button>
+                <Button size="sm" onClick={() => saveProduct(isNew)} disabled={productFormLoading} className="gap-1.5">
+                  {productFormLoading ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : isNew ? <Plus className="w-3.5 h-3.5" /> : <Check className="w-3.5 h-3.5" />}
+                  {isNew ? "Add Product" : "Save Changes"}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        );
+      })()}
+
+      {/* ── Delete Product Confirm ───────────────────────────────── */}
+      <Dialog open={!!deleteProductConfirm} onOpenChange={(v) => !v && setDeleteProductConfirm(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive"><Trash2 className="w-4 h-4" />Delete Product</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground py-2">
+            Delete <span className="font-semibold text-foreground">"{deleteProductConfirm?.name}"</span>? This cannot be undone.
+          </p>
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={() => setDeleteProductConfirm(null)}>Cancel</Button>
+            <Button variant="destructive" size="sm" onClick={() => deleteProductConfirm && confirmDeleteProduct(deleteProductConfirm)} className="gap-1.5">
+              <Trash2 className="w-3.5 h-3.5" />Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* ── Edit Store Dialog ─────────────────────────────────────── */}
       <Dialog open={!!editStore} onOpenChange={(v) => !v && setEditStore(null)}>
