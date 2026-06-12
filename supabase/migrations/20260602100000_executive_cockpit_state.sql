@@ -61,31 +61,21 @@ ON CONFLICT ON CONSTRAINT executive_cockpit_dept_code_uq DO NOTHING;
 ALTER TABLE public.executive_cockpit_state ENABLE ROW LEVEL SECURITY;
 
 -- Policy: authenticated users of the same tenant can read
-DO $$ BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_policies WHERE tablename = 'executive_cockpit_state' AND policyname = 'authenticated_read_cockpit'
-  ) THEN
-    CREATE POLICY "authenticated_read_cockpit"
-      ON public.executive_cockpit_state
-      FOR SELECT
-      TO authenticated
-      USING (true);
-  END IF;
-END $$;
+DROP POLICY IF EXISTS "authenticated_read_cockpit" ON public.executive_cockpit_state;
+CREATE POLICY "authenticated_read_cockpit"
+  ON public.executive_cockpit_state
+  FOR SELECT
+  TO authenticated
+  USING (true);
 
 -- Policy: only service_role (backend / Edge Functions) can write
-DO $$ BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_policies WHERE tablename = 'executive_cockpit_state' AND policyname = 'service_role_write_cockpit'
-  ) THEN
-    CREATE POLICY "service_role_write_cockpit"
-      ON public.executive_cockpit_state
-      FOR ALL
-      TO service_role
-      USING (true)
-      WITH CHECK (true);
-  END IF;
-END $$;
+DROP POLICY IF EXISTS "service_role_write_cockpit" ON public.executive_cockpit_state;
+CREATE POLICY "service_role_write_cockpit"
+  ON public.executive_cockpit_state
+  FOR ALL
+  TO service_role
+  USING (true)
+  WITH CHECK (true);
 
 -- Enable Realtime for this table (required for supabase.channel to work)
 -- Run this separately if the above doesn't enable it automatically:

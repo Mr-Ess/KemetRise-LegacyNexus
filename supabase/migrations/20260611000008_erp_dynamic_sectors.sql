@@ -20,14 +20,10 @@ CREATE TABLE IF NOT EXISTS public.erp_sector_registry (
 
 ALTER TABLE public.erp_sector_registry ENABLE ROW LEVEL SECURITY;
 
-DROP POLICY IF EXISTS "sectors_read_all" ON 
-DROP POLICY IF EXISTS "sectors_read_all" ON public.erp_sector_registry;
 DROP POLICY IF EXISTS "sectors_read_all" ON public.erp_sector_registry;
 CREATE POLICY "sectors_read_all" ON public.erp_sector_registry
   FOR SELECT USING (true);
 
-DROP POLICY IF EXISTS "sectors_manage" ON 
-DROP POLICY IF EXISTS "sectors_manage" ON public.erp_sector_registry;
 DROP POLICY IF EXISTS "sectors_manage" ON public.erp_sector_registry;
 CREATE POLICY "sectors_manage" ON public.erp_sector_registry
   FOR ALL USING (auth.uid() IS NOT NULL)
@@ -90,20 +86,14 @@ ALTER TABLE public.edu_courses     ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.edu_enrollments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.edu_attendance  ENABLE ROW LEVEL SECURITY;
 
-DROP POLICY IF EXISTS "edu_courses_all" ON 
 DROP POLICY IF EXISTS "edu_courses_all" ON public.edu_courses;
-DROP POLICY IF EXISTS "edu_courses_all" ON public.edu_courses;
-CREATE POLICY "edu_courses_all" ON public.edu_courses
+CREATE POLICY "edu_courses_all"     ON public.edu_courses
   FOR ALL USING (tenant_id IN (SELECT public.get_user_tenant_ids()));
-DROP POLICY IF EXISTS "edu_enrollments_all" ON 
-DROP POLICY IF EXISTS "edu_enrollments_all" ON public.edu_enrollments;
 DROP POLICY IF EXISTS "edu_enrollments_all" ON public.edu_enrollments;
 CREATE POLICY "edu_enrollments_all" ON public.edu_enrollments
   FOR ALL USING (tenant_id IN (SELECT public.get_user_tenant_ids()));
-DROP POLICY IF EXISTS "edu_attendance_all" ON 
 DROP POLICY IF EXISTS "edu_attendance_all" ON public.edu_attendance;
-DROP POLICY IF EXISTS "edu_attendance_all" ON public.edu_attendance;
-CREATE POLICY "edu_attendance_all" ON public.edu_attendance
+CREATE POLICY "edu_attendance_all"  ON public.edu_attendance
   FOR ALL USING (tenant_id IN (SELECT public.get_user_tenant_ids()));
 
 -- ─── 3. HR QR SESSIONS + ATTENDANCE LOG ──────────────────────────────────
@@ -134,13 +124,9 @@ CREATE TABLE IF NOT EXISTS public.hr_attendance_log (
 ALTER TABLE public.hr_qr_sessions   ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.hr_attendance_log ENABLE ROW LEVEL SECURITY;
 
-DROP POLICY IF EXISTS "hr_qr_all" ON 
 DROP POLICY IF EXISTS "hr_qr_all" ON public.hr_qr_sessions;
-DROP POLICY IF EXISTS "hr_qr_all" ON public.hr_qr_sessions;
-CREATE POLICY "hr_qr_all" ON public.hr_qr_sessions
+CREATE POLICY "hr_qr_all"  ON public.hr_qr_sessions
   FOR ALL USING (tenant_id IN (SELECT public.get_user_tenant_ids()));
-DROP POLICY IF EXISTS "hr_att_all" ON 
-DROP POLICY IF EXISTS "hr_att_all" ON public.hr_attendance_log;
 DROP POLICY IF EXISTS "hr_att_all" ON public.hr_attendance_log;
 CREATE POLICY "hr_att_all" ON public.hr_attendance_log
   FOR ALL USING (tenant_id IN (SELECT public.get_user_tenant_ids()));
@@ -183,8 +169,6 @@ CREATE TABLE IF NOT EXISTS public.fin_tax_rules (
 );
 
 ALTER TABLE public.fin_tax_rules ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "fin_tax_all" ON 
-DROP POLICY IF EXISTS "fin_tax_all" ON public.fin_tax_rules;
 DROP POLICY IF EXISTS "fin_tax_all" ON public.fin_tax_rules;
 CREATE POLICY "fin_tax_all" ON public.fin_tax_rules
   FOR ALL USING (tenant_id IN (SELECT public.get_user_tenant_ids()));
@@ -215,8 +199,6 @@ CREATE TABLE IF NOT EXISTS public.hr_employees (
 );
 
 ALTER TABLE public.hr_employees ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "hr_employees_all" ON 
-DROP POLICY IF EXISTS "hr_employees_all" ON public.hr_employees;
 DROP POLICY IF EXISTS "hr_employees_all" ON public.hr_employees;
 CREATE POLICY "hr_employees_all" ON public.hr_employees
   FOR ALL USING (tenant_id IN (SELECT public.get_user_tenant_ids()));

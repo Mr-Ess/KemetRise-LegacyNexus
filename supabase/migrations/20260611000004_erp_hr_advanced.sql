@@ -193,38 +193,22 @@ ALTER TABLE public.hr_biometric_events     ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.hr_payroll_cycles       ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.hr_payroll_entries      ENABLE ROW LEVEL SECURITY;
 
-DROP POLICY IF EXISTS "hr_deduction_rules_all" ON 
 DROP POLICY IF EXISTS "hr_deduction_rules_all" ON public.hr_deduction_rules;
-DROP POLICY IF EXISTS "hr_deduction_rules_all" ON public.hr_deduction_rules;
-CREATE POLICY "hr_deduction_rules_all" ON public.hr_deduction_rules   FOR ALL USING (tenant_id IN (SELECT public.get_user_tenant_ids()));
-DROP POLICY IF EXISTS "hr_qr_tokens_all" ON 
+CREATE POLICY "hr_deduction_rules_all"   ON public.hr_deduction_rules   FOR ALL USING (tenant_id IN (SELECT public.get_user_tenant_ids()));
 DROP POLICY IF EXISTS "hr_qr_tokens_all" ON public.hr_qr_tokens;
-DROP POLICY IF EXISTS "hr_qr_tokens_all" ON public.hr_qr_tokens;
-CREATE POLICY "hr_qr_tokens_all" ON public.hr_qr_tokens         FOR ALL USING (tenant_id IN (SELECT public.get_user_tenant_ids()));
-DROP POLICY IF EXISTS "hr_attendance_events_all" ON 
-DROP POLICY IF EXISTS "hr_attendance_events_all" ON public.hr_attendance_events;
+CREATE POLICY "hr_qr_tokens_all"         ON public.hr_qr_tokens         FOR ALL USING (tenant_id IN (SELECT public.get_user_tenant_ids()));
 DROP POLICY IF EXISTS "hr_attendance_events_all" ON public.hr_attendance_events;
 CREATE POLICY "hr_attendance_events_all" ON public.hr_attendance_events  FOR ALL USING (tenant_id IN (SELECT public.get_user_tenant_ids()));
-DROP POLICY IF EXISTS "hr_attendance_summary_all" ON 
-DROP POLICY IF EXISTS "hr_attendance_summary_all" ON public.hr_attendance_summary;
 DROP POLICY IF EXISTS "hr_attendance_summary_all" ON public.hr_attendance_summary;
 CREATE POLICY "hr_attendance_summary_all" ON public.hr_attendance_summary FOR ALL USING (tenant_id IN (SELECT public.get_user_tenant_ids()));
-DROP POLICY IF EXISTS "hr_biometric_devices_all" ON 
-DROP POLICY IF EXISTS "hr_biometric_devices_all" ON public.hr_biometric_devices;
 DROP POLICY IF EXISTS "hr_biometric_devices_all" ON public.hr_biometric_devices;
 CREATE POLICY "hr_biometric_devices_all" ON public.hr_biometric_devices  FOR ALL USING (tenant_id IN (SELECT public.get_user_tenant_ids()));
-DROP POLICY IF EXISTS "hr_biometric_events_all" ON 
 DROP POLICY IF EXISTS "hr_biometric_events_all" ON public.hr_biometric_events;
-DROP POLICY IF EXISTS "hr_biometric_events_all" ON public.hr_biometric_events;
-CREATE POLICY "hr_biometric_events_all" ON public.hr_biometric_events   FOR ALL USING (tenant_id IN (SELECT public.get_user_tenant_ids()));
-DROP POLICY IF EXISTS "hr_payroll_cycles_all" ON 
+CREATE POLICY "hr_biometric_events_all"  ON public.hr_biometric_events   FOR ALL USING (tenant_id IN (SELECT public.get_user_tenant_ids()));
 DROP POLICY IF EXISTS "hr_payroll_cycles_all" ON public.hr_payroll_cycles;
-DROP POLICY IF EXISTS "hr_payroll_cycles_all" ON public.hr_payroll_cycles;
-CREATE POLICY "hr_payroll_cycles_all" ON public.hr_payroll_cycles     FOR ALL USING (tenant_id IN (SELECT public.get_user_tenant_ids()));
-DROP POLICY IF EXISTS "hr_payroll_entries_all" ON 
+CREATE POLICY "hr_payroll_cycles_all"    ON public.hr_payroll_cycles     FOR ALL USING (tenant_id IN (SELECT public.get_user_tenant_ids()));
 DROP POLICY IF EXISTS "hr_payroll_entries_all" ON public.hr_payroll_entries;
-DROP POLICY IF EXISTS "hr_payroll_entries_all" ON public.hr_payroll_entries;
-CREATE POLICY "hr_payroll_entries_all" ON public.hr_payroll_entries    FOR ALL USING (tenant_id IN (SELECT public.get_user_tenant_ids()));
+CREATE POLICY "hr_payroll_entries_all"   ON public.hr_payroll_entries    FOR ALL USING (tenant_id IN (SELECT public.get_user_tenant_ids()));
 
 -- ─── FUNCTION: Generate encrypted QR token ─────────────────────────────────
 CREATE OR REPLACE FUNCTION public.fn_generate_qr_token(

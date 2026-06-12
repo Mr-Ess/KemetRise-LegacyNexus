@@ -68,26 +68,18 @@ DROP POLICY IF EXISTS "sector_configs_all"       ON public.sector_configs;
 -- ─── 3. TENANTS — safe non-recursive policies ────────────────────────────
 -- Uses get_user_tenant_ids() which has row_security=off, breaking the loop.
 
-DROP POLICY IF EXISTS "erp_tenants_select" ON 
-DROP POLICY IF EXISTS "erp_tenants_select" ON public.tenants;
 DROP POLICY IF EXISTS "erp_tenants_select" ON public.tenants;
 CREATE POLICY "erp_tenants_select" ON public.tenants FOR SELECT
   USING ( id IN (SELECT public.get_user_tenant_ids()) );
 
-DROP POLICY IF EXISTS "erp_tenants_insert" ON 
-DROP POLICY IF EXISTS "erp_tenants_insert" ON public.tenants;
 DROP POLICY IF EXISTS "erp_tenants_insert" ON public.tenants;
 CREATE POLICY "erp_tenants_insert" ON public.tenants FOR INSERT
   WITH CHECK ( owner_user_id = auth.uid() );
 
-DROP POLICY IF EXISTS "erp_tenants_update" ON 
-DROP POLICY IF EXISTS "erp_tenants_update" ON public.tenants;
 DROP POLICY IF EXISTS "erp_tenants_update" ON public.tenants;
 CREATE POLICY "erp_tenants_update" ON public.tenants FOR UPDATE
   USING ( public.is_tenant_admin(id) );
 
-DROP POLICY IF EXISTS "erp_tenants_delete" ON 
-DROP POLICY IF EXISTS "erp_tenants_delete" ON public.tenants;
 DROP POLICY IF EXISTS "erp_tenants_delete" ON public.tenants;
 CREATE POLICY "erp_tenants_delete" ON public.tenants FOR DELETE
   USING ( owner_user_id = auth.uid() );
@@ -96,8 +88,6 @@ CREATE POLICY "erp_tenants_delete" ON public.tenants FOR DELETE
 -- Simple rule: you can see rows where you are the member OR any row in
 -- a tenant you own. We check ownership via get_user_tenant_ids() (row_security=off).
 
-DROP POLICY IF EXISTS "erp_tenant_members_select" ON 
-DROP POLICY IF EXISTS "erp_tenant_members_select" ON public.tenant_members;
 DROP POLICY IF EXISTS "erp_tenant_members_select" ON public.tenant_members;
 CREATE POLICY "erp_tenant_members_select" ON public.tenant_members FOR SELECT
   USING (
@@ -105,24 +95,18 @@ CREATE POLICY "erp_tenant_members_select" ON public.tenant_members FOR SELECT
     OR tenant_id IN (SELECT public.get_user_tenant_ids())
   );
 
-DROP POLICY IF EXISTS "erp_tenant_members_insert" ON 
-DROP POLICY IF EXISTS "erp_tenant_members_insert" ON public.tenant_members;
 DROP POLICY IF EXISTS "erp_tenant_members_insert" ON public.tenant_members;
 CREATE POLICY "erp_tenant_members_insert" ON public.tenant_members FOR INSERT
   WITH CHECK (
     public.is_tenant_admin(tenant_id)
   );
 
-DROP POLICY IF EXISTS "erp_tenant_members_update" ON 
-DROP POLICY IF EXISTS "erp_tenant_members_update" ON public.tenant_members;
 DROP POLICY IF EXISTS "erp_tenant_members_update" ON public.tenant_members;
 CREATE POLICY "erp_tenant_members_update" ON public.tenant_members FOR UPDATE
   USING (
     public.is_tenant_admin(tenant_id)
   );
 
-DROP POLICY IF EXISTS "erp_tenant_members_delete" ON 
-DROP POLICY IF EXISTS "erp_tenant_members_delete" ON public.tenant_members;
 DROP POLICY IF EXISTS "erp_tenant_members_delete" ON public.tenant_members;
 CREATE POLICY "erp_tenant_members_delete" ON public.tenant_members FOR DELETE
   USING (
@@ -131,20 +115,14 @@ CREATE POLICY "erp_tenant_members_delete" ON public.tenant_members FOR DELETE
 
 -- ─── 5. WORKFLOW REGISTRY & SECTOR CONFIGS ───────────────────────────────
 
-DROP POLICY IF EXISTS "erp_workflow_registry_select" ON 
-DROP POLICY IF EXISTS "erp_workflow_registry_select" ON public.workflow_registry;
 DROP POLICY IF EXISTS "erp_workflow_registry_select" ON public.workflow_registry;
 CREATE POLICY "erp_workflow_registry_select" ON public.workflow_registry FOR SELECT
   USING ( tenant_id IN (SELECT public.get_user_tenant_ids()) );
 
-DROP POLICY IF EXISTS "erp_workflow_registry_write" ON 
-DROP POLICY IF EXISTS "erp_workflow_registry_write" ON public.workflow_registry;
 DROP POLICY IF EXISTS "erp_workflow_registry_write" ON public.workflow_registry;
 CREATE POLICY "erp_workflow_registry_write" ON public.workflow_registry FOR ALL
   USING ( public.is_tenant_admin(tenant_id) );
 
-DROP POLICY IF EXISTS "erp_sector_configs_all" ON 
-DROP POLICY IF EXISTS "erp_sector_configs_all" ON public.sector_configs;
 DROP POLICY IF EXISTS "erp_sector_configs_all" ON public.sector_configs;
 CREATE POLICY "erp_sector_configs_all" ON public.sector_configs FOR ALL
   USING ( tenant_id IN (SELECT public.get_user_tenant_ids()) );

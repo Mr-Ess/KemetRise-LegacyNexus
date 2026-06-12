@@ -670,138 +670,72 @@ ALTER TABLE public.cmp_service_tickets      ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.cmp_sla_policies         ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.cmp_timesheets           ENABLE ROW LEVEL SECURITY;
 
-DROP POLICY IF EXISTS "edu_instructors_all" ON 
 DROP POLICY IF EXISTS "edu_instructors_all" ON public.edu_instructors;
-DROP POLICY IF EXISTS "edu_instructors_all" ON public.edu_instructors;
-CREATE POLICY "edu_instructors_all" ON public.edu_instructors        FOR ALL USING (tenant_id IN (SELECT public.get_user_tenant_ids()));
-DROP POLICY IF EXISTS "edu_courses_all" ON 
+CREATE POLICY "edu_instructors_all"        ON public.edu_instructors        FOR ALL USING (tenant_id IN (SELECT public.get_user_tenant_ids()));
 DROP POLICY IF EXISTS "edu_courses_all" ON public.edu_courses;
-DROP POLICY IF EXISTS "edu_courses_all" ON public.edu_courses;
-CREATE POLICY "edu_courses_all" ON public.edu_courses            FOR ALL USING (tenant_id IN (SELECT public.get_user_tenant_ids()));
-DROP POLICY IF EXISTS "edu_class_schedules_all" ON 
+CREATE POLICY "edu_courses_all"            ON public.edu_courses            FOR ALL USING (tenant_id IN (SELECT public.get_user_tenant_ids()));
 DROP POLICY IF EXISTS "edu_class_schedules_all" ON public.edu_class_schedules;
-DROP POLICY IF EXISTS "edu_class_schedules_all" ON public.edu_class_schedules;
-CREATE POLICY "edu_class_schedules_all" ON public.edu_class_schedules    FOR ALL USING (tenant_id IN (SELECT public.get_user_tenant_ids()));
-DROP POLICY IF EXISTS "edu_enrollments_all" ON 
+CREATE POLICY "edu_class_schedules_all"    ON public.edu_class_schedules    FOR ALL USING (tenant_id IN (SELECT public.get_user_tenant_ids()));
 DROP POLICY IF EXISTS "edu_enrollments_all" ON public.edu_enrollments;
-DROP POLICY IF EXISTS "edu_enrollments_all" ON public.edu_enrollments;
-CREATE POLICY "edu_enrollments_all" ON public.edu_enrollments        FOR ALL USING (tenant_id IN (SELECT public.get_user_tenant_ids()));
-DROP POLICY IF EXISTS "edu_session_attendance_all" ON 
-DROP POLICY IF EXISTS "edu_session_attendance_all" ON public.edu_session_attendance;
+CREATE POLICY "edu_enrollments_all"        ON public.edu_enrollments        FOR ALL USING (tenant_id IN (SELECT public.get_user_tenant_ids()));
 DROP POLICY IF EXISTS "edu_session_attendance_all" ON public.edu_session_attendance;
 CREATE POLICY "edu_session_attendance_all" ON public.edu_session_attendance FOR ALL USING (tenant_id IN (SELECT public.get_user_tenant_ids()));
-DROP POLICY IF EXISTS "med_patients_all" ON 
 DROP POLICY IF EXISTS "med_patients_all" ON public.med_patients;
-DROP POLICY IF EXISTS "med_patients_all" ON public.med_patients;
-CREATE POLICY "med_patients_all" ON public.med_patients           FOR ALL USING (tenant_id IN (SELECT public.get_user_tenant_ids()));
-DROP POLICY IF EXISTS "med_doctors_all" ON 
+CREATE POLICY "med_patients_all"           ON public.med_patients           FOR ALL USING (tenant_id IN (SELECT public.get_user_tenant_ids()));
 DROP POLICY IF EXISTS "med_doctors_all" ON public.med_doctors;
-DROP POLICY IF EXISTS "med_doctors_all" ON public.med_doctors;
-CREATE POLICY "med_doctors_all" ON public.med_doctors            FOR ALL USING (tenant_id IN (SELECT public.get_user_tenant_ids()));
-DROP POLICY IF EXISTS "med_appointments_all" ON 
+CREATE POLICY "med_doctors_all"            ON public.med_doctors            FOR ALL USING (tenant_id IN (SELECT public.get_user_tenant_ids()));
 DROP POLICY IF EXISTS "med_appointments_all" ON public.med_appointments;
-DROP POLICY IF EXISTS "med_appointments_all" ON public.med_appointments;
-CREATE POLICY "med_appointments_all" ON public.med_appointments       FOR ALL USING (tenant_id IN (SELECT public.get_user_tenant_ids()));
-DROP POLICY IF EXISTS "med_ehr_records_all" ON 
+CREATE POLICY "med_appointments_all"       ON public.med_appointments       FOR ALL USING (tenant_id IN (SELECT public.get_user_tenant_ids()));
 DROP POLICY IF EXISTS "med_ehr_records_all" ON public.med_ehr_records;
-DROP POLICY IF EXISTS "med_ehr_records_all" ON public.med_ehr_records;
-CREATE POLICY "med_ehr_records_all" ON public.med_ehr_records        FOR ALL USING (tenant_id IN (SELECT public.get_user_tenant_ids()));
-DROP POLICY IF EXISTS "med_prescriptions_all" ON 
+CREATE POLICY "med_ehr_records_all"        ON public.med_ehr_records        FOR ALL USING (tenant_id IN (SELECT public.get_user_tenant_ids()));
 DROP POLICY IF EXISTS "med_prescriptions_all" ON public.med_prescriptions;
-DROP POLICY IF EXISTS "med_prescriptions_all" ON public.med_prescriptions;
-CREATE POLICY "med_prescriptions_all" ON public.med_prescriptions      FOR ALL USING (tenant_id IN (SELECT public.get_user_tenant_ids()));
-DROP POLICY IF EXISTS "med_billing_categories_all" ON 
-DROP POLICY IF EXISTS "med_billing_categories_all" ON public.med_billing_categories;
+CREATE POLICY "med_prescriptions_all"      ON public.med_prescriptions      FOR ALL USING (tenant_id IN (SELECT public.get_user_tenant_ids()));
 DROP POLICY IF EXISTS "med_billing_categories_all" ON public.med_billing_categories;
 CREATE POLICY "med_billing_categories_all" ON public.med_billing_categories FOR ALL USING (tenant_id IN (SELECT public.get_user_tenant_ids()));
-DROP POLICY IF EXISTS "spt_membership_plans_all" ON 
 DROP POLICY IF EXISTS "spt_membership_plans_all" ON public.spt_membership_plans;
-DROP POLICY IF EXISTS "spt_membership_plans_all" ON public.spt_membership_plans;
-CREATE POLICY "spt_membership_plans_all" ON public.spt_membership_plans   FOR ALL USING (tenant_id IN (SELECT public.get_user_tenant_ids()));
-DROP POLICY IF EXISTS "spt_members_all" ON 
+CREATE POLICY "spt_membership_plans_all"   ON public.spt_membership_plans   FOR ALL USING (tenant_id IN (SELECT public.get_user_tenant_ids()));
 DROP POLICY IF EXISTS "spt_members_all" ON public.spt_members;
-DROP POLICY IF EXISTS "spt_members_all" ON public.spt_members;
-CREATE POLICY "spt_members_all" ON public.spt_members            FOR ALL USING (tenant_id IN (SELECT public.get_user_tenant_ids()));
-DROP POLICY IF EXISTS "spt_subscriptions_all" ON 
+CREATE POLICY "spt_members_all"            ON public.spt_members            FOR ALL USING (tenant_id IN (SELECT public.get_user_tenant_ids()));
 DROP POLICY IF EXISTS "spt_subscriptions_all" ON public.spt_subscriptions;
-DROP POLICY IF EXISTS "spt_subscriptions_all" ON public.spt_subscriptions;
-CREATE POLICY "spt_subscriptions_all" ON public.spt_subscriptions      FOR ALL USING (tenant_id IN (SELECT public.get_user_tenant_ids()));
-DROP POLICY IF EXISTS "spt_trainers_all" ON 
+CREATE POLICY "spt_subscriptions_all"      ON public.spt_subscriptions      FOR ALL USING (tenant_id IN (SELECT public.get_user_tenant_ids()));
 DROP POLICY IF EXISTS "spt_trainers_all" ON public.spt_trainers;
-DROP POLICY IF EXISTS "spt_trainers_all" ON public.spt_trainers;
-CREATE POLICY "spt_trainers_all" ON public.spt_trainers           FOR ALL USING (tenant_id IN (SELECT public.get_user_tenant_ids()));
-DROP POLICY IF EXISTS "spt_access_logs_all" ON 
+CREATE POLICY "spt_trainers_all"           ON public.spt_trainers           FOR ALL USING (tenant_id IN (SELECT public.get_user_tenant_ids()));
 DROP POLICY IF EXISTS "spt_access_logs_all" ON public.spt_access_logs;
-DROP POLICY IF EXISTS "spt_access_logs_all" ON public.spt_access_logs;
-CREATE POLICY "spt_access_logs_all" ON public.spt_access_logs        FOR ALL USING (tenant_id IN (SELECT public.get_user_tenant_ids()));
-DROP POLICY IF EXISTS "spt_session_bookings_all" ON 
+CREATE POLICY "spt_access_logs_all"        ON public.spt_access_logs        FOR ALL USING (tenant_id IN (SELECT public.get_user_tenant_ids()));
 DROP POLICY IF EXISTS "spt_session_bookings_all" ON public.spt_session_bookings;
-DROP POLICY IF EXISTS "spt_session_bookings_all" ON public.spt_session_bookings;
-CREATE POLICY "spt_session_bookings_all" ON public.spt_session_bookings   FOR ALL USING (tenant_id IN (SELECT public.get_user_tenant_ids()));
-DROP POLICY IF EXISTS "leg_cases_all" ON 
+CREATE POLICY "spt_session_bookings_all"   ON public.spt_session_bookings   FOR ALL USING (tenant_id IN (SELECT public.get_user_tenant_ids()));
 DROP POLICY IF EXISTS "leg_cases_all" ON public.leg_cases;
-DROP POLICY IF EXISTS "leg_cases_all" ON public.leg_cases;
-CREATE POLICY "leg_cases_all" ON public.leg_cases              FOR ALL USING (tenant_id IN (SELECT public.get_user_tenant_ids()));
-DROP POLICY IF EXISTS "leg_documents_all" ON 
+CREATE POLICY "leg_cases_all"              ON public.leg_cases              FOR ALL USING (tenant_id IN (SELECT public.get_user_tenant_ids()));
 DROP POLICY IF EXISTS "leg_documents_all" ON public.leg_documents;
-DROP POLICY IF EXISTS "leg_documents_all" ON public.leg_documents;
-CREATE POLICY "leg_documents_all" ON public.leg_documents          FOR ALL USING (tenant_id IN (SELECT public.get_user_tenant_ids()));
-DROP POLICY IF EXISTS "leg_lawyers_all" ON 
+CREATE POLICY "leg_documents_all"          ON public.leg_documents          FOR ALL USING (tenant_id IN (SELECT public.get_user_tenant_ids()));
 DROP POLICY IF EXISTS "leg_lawyers_all" ON public.leg_lawyers;
-DROP POLICY IF EXISTS "leg_lawyers_all" ON public.leg_lawyers;
-CREATE POLICY "leg_lawyers_all" ON public.leg_lawyers            FOR ALL USING (tenant_id IN (SELECT public.get_user_tenant_ids()));
-DROP POLICY IF EXISTS "leg_appointments_all" ON 
+CREATE POLICY "leg_lawyers_all"            ON public.leg_lawyers            FOR ALL USING (tenant_id IN (SELECT public.get_user_tenant_ids()));
 DROP POLICY IF EXISTS "leg_appointments_all" ON public.leg_appointments;
-DROP POLICY IF EXISTS "leg_appointments_all" ON public.leg_appointments;
-CREATE POLICY "leg_appointments_all" ON public.leg_appointments       FOR ALL USING (tenant_id IN (SELECT public.get_user_tenant_ids()));
-DROP POLICY IF EXISTS "leg_contracts_all" ON 
+CREATE POLICY "leg_appointments_all"       ON public.leg_appointments       FOR ALL USING (tenant_id IN (SELECT public.get_user_tenant_ids()));
 DROP POLICY IF EXISTS "leg_contracts_all" ON public.leg_contracts;
-DROP POLICY IF EXISTS "leg_contracts_all" ON public.leg_contracts;
-CREATE POLICY "leg_contracts_all" ON public.leg_contracts          FOR ALL USING (tenant_id IN (SELECT public.get_user_tenant_ids()));
-DROP POLICY IF EXISTS "leg_billing_timesheets_all" ON 
-DROP POLICY IF EXISTS "leg_billing_timesheets_all" ON public.leg_billing_timesheets;
+CREATE POLICY "leg_contracts_all"          ON public.leg_contracts          FOR ALL USING (tenant_id IN (SELECT public.get_user_tenant_ids()));
 DROP POLICY IF EXISTS "leg_billing_timesheets_all" ON public.leg_billing_timesheets;
 CREATE POLICY "leg_billing_timesheets_all" ON public.leg_billing_timesheets FOR ALL USING (tenant_id IN (SELECT public.get_user_tenant_ids()));
-DROP POLICY IF EXISTS "tur_destinations_all" ON 
 DROP POLICY IF EXISTS "tur_destinations_all" ON public.tur_destinations;
-DROP POLICY IF EXISTS "tur_destinations_all" ON public.tur_destinations;
-CREATE POLICY "tur_destinations_all" ON public.tur_destinations       FOR ALL USING (tenant_id IN (SELECT public.get_user_tenant_ids()));
-DROP POLICY IF EXISTS "tur_trips_all" ON 
+CREATE POLICY "tur_destinations_all"       ON public.tur_destinations       FOR ALL USING (tenant_id IN (SELECT public.get_user_tenant_ids()));
 DROP POLICY IF EXISTS "tur_trips_all" ON public.tur_trips;
-DROP POLICY IF EXISTS "tur_trips_all" ON public.tur_trips;
-CREATE POLICY "tur_trips_all" ON public.tur_trips              FOR ALL USING (tenant_id IN (SELECT public.get_user_tenant_ids()));
-DROP POLICY IF EXISTS "tur_hotel_allotments_all" ON 
+CREATE POLICY "tur_trips_all"              ON public.tur_trips              FOR ALL USING (tenant_id IN (SELECT public.get_user_tenant_ids()));
 DROP POLICY IF EXISTS "tur_hotel_allotments_all" ON public.tur_hotel_allotments;
-DROP POLICY IF EXISTS "tur_hotel_allotments_all" ON public.tur_hotel_allotments;
-CREATE POLICY "tur_hotel_allotments_all" ON public.tur_hotel_allotments   FOR ALL USING (tenant_id IN (SELECT public.get_user_tenant_ids()));
-DROP POLICY IF EXISTS "tur_bookings_all" ON 
+CREATE POLICY "tur_hotel_allotments_all"   ON public.tur_hotel_allotments   FOR ALL USING (tenant_id IN (SELECT public.get_user_tenant_ids()));
 DROP POLICY IF EXISTS "tur_bookings_all" ON public.tur_bookings;
-DROP POLICY IF EXISTS "tur_bookings_all" ON public.tur_bookings;
-CREATE POLICY "tur_bookings_all" ON public.tur_bookings           FOR ALL USING (tenant_id IN (SELECT public.get_user_tenant_ids()));
-DROP POLICY IF EXISTS "tur_agent_commissions_all" ON 
+CREATE POLICY "tur_bookings_all"           ON public.tur_bookings           FOR ALL USING (tenant_id IN (SELECT public.get_user_tenant_ids()));
 DROP POLICY IF EXISTS "tur_agent_commissions_all" ON public.tur_agent_commissions;
-DROP POLICY IF EXISTS "tur_agent_commissions_all" ON public.tur_agent_commissions;
-CREATE POLICY "tur_agent_commissions_all" ON public.tur_agent_commissions  FOR ALL USING (tenant_id IN (SELECT public.get_user_tenant_ids()));
-DROP POLICY IF EXISTS "cmp_projects_all" ON 
+CREATE POLICY "tur_agent_commissions_all"  ON public.tur_agent_commissions  FOR ALL USING (tenant_id IN (SELECT public.get_user_tenant_ids()));
 DROP POLICY IF EXISTS "cmp_projects_all" ON public.cmp_projects;
-DROP POLICY IF EXISTS "cmp_projects_all" ON public.cmp_projects;
-CREATE POLICY "cmp_projects_all" ON public.cmp_projects           FOR ALL USING (tenant_id IN (SELECT public.get_user_tenant_ids()));
-DROP POLICY IF EXISTS "cmp_milestones_all" ON 
+CREATE POLICY "cmp_projects_all"           ON public.cmp_projects           FOR ALL USING (tenant_id IN (SELECT public.get_user_tenant_ids()));
 DROP POLICY IF EXISTS "cmp_milestones_all" ON public.cmp_milestones;
-DROP POLICY IF EXISTS "cmp_milestones_all" ON public.cmp_milestones;
-CREATE POLICY "cmp_milestones_all" ON public.cmp_milestones         FOR ALL USING (tenant_id IN (SELECT public.get_user_tenant_ids()));
-DROP POLICY IF EXISTS "cmp_service_tickets_all" ON 
+CREATE POLICY "cmp_milestones_all"         ON public.cmp_milestones         FOR ALL USING (tenant_id IN (SELECT public.get_user_tenant_ids()));
 DROP POLICY IF EXISTS "cmp_service_tickets_all" ON public.cmp_service_tickets;
-DROP POLICY IF EXISTS "cmp_service_tickets_all" ON public.cmp_service_tickets;
-CREATE POLICY "cmp_service_tickets_all" ON public.cmp_service_tickets    FOR ALL USING (tenant_id IN (SELECT public.get_user_tenant_ids()));
-DROP POLICY IF EXISTS "cmp_sla_policies_all" ON 
+CREATE POLICY "cmp_service_tickets_all"    ON public.cmp_service_tickets    FOR ALL USING (tenant_id IN (SELECT public.get_user_tenant_ids()));
 DROP POLICY IF EXISTS "cmp_sla_policies_all" ON public.cmp_sla_policies;
-DROP POLICY IF EXISTS "cmp_sla_policies_all" ON public.cmp_sla_policies;
-CREATE POLICY "cmp_sla_policies_all" ON public.cmp_sla_policies       FOR ALL USING (tenant_id IN (SELECT public.get_user_tenant_ids()));
-DROP POLICY IF EXISTS "cmp_timesheets_all" ON 
+CREATE POLICY "cmp_sla_policies_all"       ON public.cmp_sla_policies       FOR ALL USING (tenant_id IN (SELECT public.get_user_tenant_ids()));
 DROP POLICY IF EXISTS "cmp_timesheets_all" ON public.cmp_timesheets;
-DROP POLICY IF EXISTS "cmp_timesheets_all" ON public.cmp_timesheets;
-CREATE POLICY "cmp_timesheets_all" ON public.cmp_timesheets         FOR ALL USING (tenant_id IN (SELECT public.get_user_tenant_ids()));
+CREATE POLICY "cmp_timesheets_all"         ON public.cmp_timesheets         FOR ALL USING (tenant_id IN (SELECT public.get_user_tenant_ids()));
 
 -- ─── SECTOR INDEXES ────────────────────────────────────────────────────────
 CREATE INDEX IF NOT EXISTS idx_edu_courses_tenant       ON public.edu_courses(tenant_id);
