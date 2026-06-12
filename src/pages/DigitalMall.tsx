@@ -297,31 +297,46 @@ function ApplyStoreDialog({ open, onClose, floors }: {
 }) {
   const db = supabase as any;
   const [loading, setLoading] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [form, setForm] = useState({ store_name:"", floor_id:"", description:"", contact_name:"", contact_email:"", contact_phone:"", website_url:"", reason:"" });
-  const set = (k: keyof typeof form, v: string) => setForm((f) => ({ ...f, [k]: v }));
+  const set = (k: keyof typeof form, v: string) => { setSubmitError(null); setForm((f) => ({ ...f, [k]: v })); };
 
   const submit = async () => {
-    if (!form.store_name.trim() || !form.contact_email.trim()) return toast.error("Store name and email are required");
+    setSubmitError(null);
+    if (!form.store_name.trim() || !form.contact_email.trim()) {
+      setSubmitError("Store name and email are required.");
+      return;
+    }
     setLoading(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      await db.from("mall_store_applications").insert({
+      const { data: authData, error: authError } = await supabase.auth.getUser();
+      if (authError) console.warn("[ApplyStore] auth error:", authError.message);
+      const user = authData?.user ?? null;
+      const floor_id = form.floor_id && !form.floor_id.startsWith("seed-") ? form.floor_id : null;
+      const payload = {
         store_name: form.store_name.trim(),
-        floor_id: form.floor_id || null,
+        floor_id,
         description: form.description.trim(),
         contact_name: form.contact_name.trim(),
         contact_email: form.contact_email.trim(),
         contact_phone: form.contact_phone.trim() || null,
         website_url: form.website_url.trim() || null,
         reason: form.reason.trim() || null,
-        applicant_user_id: user?.id || null,
+        applicant_user_id: user?.id ?? null,
         status: "pending",
-      });
-      toast.success("Application submitted! We'll review it shortly.");
+      };
+      console.log("[ApplyStore] inserting:", payload);
+      const { data: inserted, error } = await db.from("mall_store_applications").insert(payload).select().single();
+      console.log("[ApplyStore] result:", { inserted, error });
+      if (error) throw error;
+      toast.success("Application submitted! We'll review it shortly.", { duration: 5000 });
       setForm({ store_name:"", floor_id:"", description:"", contact_name:"", contact_email:"", contact_phone:"", website_url:"", reason:"" });
       onClose();
     } catch (e: any) {
-      toast.error(e?.message || "Failed to submit");
+      const msg = e?.message || "Failed to submit application.";
+      console.error("[ApplyStore] error:", e);
+      setSubmitError(msg);
+      toast.error(msg, { duration: 6000 });
     } finally { setLoading(false); }
   };
 
@@ -375,6 +390,11 @@ function ApplyStoreDialog({ open, onClose, floors }: {
             </div>
           </div>
         </div>
+        {submitError && (
+          <div className="mx-2 mb-1 px-3 py-2 rounded-lg bg-destructive/15 border border-destructive/30 text-xs text-destructive font-medium">
+            ⚠️ {submitError}
+          </div>
+        )}
         <DialogFooter>
           <Button variant="outline" size="sm" onClick={onClose}>Cancel</Button>
           <Button size="sm" onClick={submit} disabled={loading} className="gap-1.5">
