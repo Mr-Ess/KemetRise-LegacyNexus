@@ -910,10 +910,10 @@ function MallManagerDrawer({ onClose, currentUserId }: { onClose: () => void; cu
               </div>
               <div className="col-span-2">
                 <Label className="text-xs mb-1.5 block">Floor / Category</Label>
-                <Select value={editForm.floor_id} onValueChange={(v) => setEditForm((f) => ({ ...f, floor_id: v }))}>
+                <Select value={editForm.floor_id || "__none__"} onValueChange={(v) => setEditForm((f) => ({ ...f, floor_id: v === "__none__" ? "" : v }))}>
                   <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Select floor" /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">— None —</SelectItem>
+                    <SelectItem value="__none__">— None —</SelectItem>
                     {floors.map((fl) => <SelectItem key={fl.id} value={fl.id}>{fl.icon} {fl.name}</SelectItem>)}
                   </SelectContent>
                 </Select>
