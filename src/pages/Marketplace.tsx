@@ -8,7 +8,7 @@ import {
   SlidersHorizontal, Truck, Plus, Pencil, Trash2, Settings,
 } from "lucide-react";
 import ManagementPanel, { DeleteConfirmDialog, COLOR_PALETTE, type MpCategory, type MpListingType } from "@/components/marketplace/MarketplaceManager";
-import { seedMarketplaceDefaults } from "@/components/marketplace/marketplaceSeed";
+import { seedMarketplaceDefaults, MARKETPLACE_SEED_TYPES } from "@/components/marketplace/marketplaceSeed";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
@@ -600,8 +600,12 @@ export default function Marketplace() {
 
   const loadTypes = async () => {
     await seedMarketplaceDefaults(db as any);
-    const { data } = await (db as any).from("mp_listing_types").select("*").eq("is_active", true).order("sort_order,label");
-    const types: MpListingType[] = data || [];
+    const { data } = await (db as any).from("mp_listing_types").select("*").eq("is_active", true).order("sort_order").order("label");
+    let types: MpListingType[] = data || [];
+    // Fallback to hardcoded seed types if DB is unavailable or tables don't exist yet
+    if (!types.length) {
+      types = MARKETPLACE_SEED_TYPES.map((t) => ({ ...t, id: `fallback-${t.code}` })) as MpListingType[];
+    }
     setListingTypes(types);
     setTypeConfigMap(buildTypeConfig(types));
   };

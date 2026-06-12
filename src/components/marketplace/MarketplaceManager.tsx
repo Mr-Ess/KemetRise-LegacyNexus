@@ -708,8 +708,8 @@ function TypesAndCategoriesPanel({ onTypesChange }: { onTypesChange: () => void 
 
   const load = async () => {
     await seedMarketplaceDefaults(db);
-    const { data: t } = await db.from("mp_listing_types").select("*").order("sort_order,label");
-    const { data: c } = await db.from("mp_categories").select("*").order("sort_order,name");
+    const { data: t } = await db.from("mp_listing_types").select("*").order("sort_order").order("label");
+    const { data: c } = await db.from("mp_categories").select("*").order("sort_order").order("name");
     setTypes(t || []); setCategories(c || []);
   };
   useEffect(() => { load(); }, []);
@@ -1015,8 +1015,8 @@ export default function ManagementPanel({
     setRequests(data || []);
   };
   const loadMeta = async () => {
-    const { data: t } = await db.from("mp_listing_types").select("*").order("sort_order,label");
-    const { data: c } = await db.from("mp_categories").select("*").order("sort_order,name");
+    const { data: t } = await db.from("mp_listing_types").select("*").order("sort_order").order("label");
+    const { data: c } = await db.from("mp_categories").select("*").order("sort_order").order("name");
     setAllTypes(t || []); setAllCategories(c || []);
   };
 
