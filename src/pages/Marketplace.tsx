@@ -1,181 +1,553 @@
 import { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { useTranslation } from "react-i18next";
 import {
-  ArrowLeft, Store, Star, Download, Check, Search, X,
-  Shield, Zap, Globe, Package, Code, BarChart2, MessageCircle,
-  FileText, RefreshCw, Sparkles, TrendingUp, Heart,
-  ExternalLink, Tag, Info, ChevronRight, Grid3X3, List,
-  AlertTriangle,
+  ArrowLeft, Store, Star, Search, Shield,
+  Download, Check, Heart, Grid3X3, List, Sparkles,
+  ShoppingCart, Clock, RefreshCw, X, ChevronRight,
+  Monitor, Box, Wrench, Repeat, Tag, Users,
+  SlidersHorizontal, Truck, Plus,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+} from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
-import { tenantDb } from "@/lib/tenantDb";
 import { toast } from "sonner";
 
-/* ─── Category icon map ──────────────────────────────────────────────────── */
-const CAT_ICONS: Record<string, React.ElementType> = {
-  All: Package, Analytics: BarChart2, Communication: MessageCircle,
-  Security: Shield, Productivity: Zap, Finance: TrendingUp,
-  Legal: FileText, Integration: Globe, Development: Code,
-  Marketing: Sparkles, AI: Sparkles,
+/* ═══════════════════════════════════════════════════════════════════════════
+   TYPES
+═══════════════════════════════════════════════════════════════════════════ */
+type ListingType = "digital" | "physical" | "service" | "subscription";
+type PricingModel = "free" | "one_time" | "monthly" | "annual" | "contact";
+
+interface Listing {
+  id: string;
+  listing_type: ListingType;
+  name: string;
+  description: string;
+  long_description?: string;
+  thumbnail_url?: string;
+  category: string;
+  tags: string[];
+  price_cents: number;
+  currency: string;
+  pricing_model: PricingModel;
+  publisher_name: string;
+  publisher_avatar?: string;
+  rating: number;
+  reviews_count: number;
+  sales_count: number;
+  is_featured: boolean;
+  is_new: boolean;
+  is_verified: boolean;
+  meta: Record<string, any>;
+  created_at: string;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   CONFIGURATION
+═══════════════════════════════════════════════════════════════════════════ */
+const TYPE_CONFIG: Record<
+  ListingType,
+  {
+    label: string; labelAr: string; icon: string;
+    gradient: string; border: string; badgeClass: string;
+    accent: string; hoverBorder: string; shadow: string;
+    categories: string[];
+  }
+> = {
+  digital: {
+    label: "Digital Products", labelAr: "منتجات رقمية", icon: "💾",
+    gradient: "from-violet-600/20 via-blue-600/10 to-transparent",
+    border: "border-violet-500/40",
+    badgeClass: "bg-violet-500/20 text-violet-300 border-violet-500/40",
+    accent: "text-violet-400", hoverBorder: "hover:border-violet-500/50",
+    shadow: "hover:shadow-violet-500/5",
+    categories: ["Software","Templates","E-books","Online Courses","Plugins","UI Kits","Fonts","Audio","Video","Graphics"],
+  },
+  physical: {
+    label: "Physical Products", labelAr: "منتجات ملموسة", icon: "📦",
+    gradient: "from-emerald-600/20 via-teal-600/10 to-transparent",
+    border: "border-emerald-500/40",
+    badgeClass: "bg-emerald-500/20 text-emerald-300 border-emerald-500/40",
+    accent: "text-emerald-400", hoverBorder: "hover:border-emerald-500/50",
+    shadow: "hover:shadow-emerald-500/5",
+    categories: ["Electronics","Fashion","Furniture","Food & Beverage","Handcraft","Books","Sports","Tools","Accessories","Art"],
+  },
+  service: {
+    label: "Services", labelAr: "خدمات", icon: "🛠️",
+    gradient: "from-amber-600/20 via-orange-600/10 to-transparent",
+    border: "border-amber-500/40",
+    badgeClass: "bg-amber-500/20 text-amber-300 border-amber-500/40",
+    accent: "text-amber-400", hoverBorder: "hover:border-amber-500/50",
+    shadow: "hover:shadow-amber-500/5",
+    categories: ["Design","Development","Marketing","Writing & Translation","Consulting","Legal","Finance","Coaching","Photography","Videography"],
+  },
+  subscription: {
+    label: "Subscriptions", labelAr: "اشتراكات", icon: "♾️",
+    gradient: "from-pink-600/20 via-rose-600/10 to-transparent",
+    border: "border-pink-500/40",
+    badgeClass: "bg-pink-500/20 text-pink-300 border-pink-500/40",
+    accent: "text-pink-400", hoverBorder: "hover:border-pink-500/50",
+    shadow: "hover:shadow-pink-500/5",
+    categories: ["SaaS Tools","Media Streaming","Education","Fitness","Business","Entertainment","News & Data","Cloud Storage"],
+  },
 };
 
-/* ─── Stars display ──────────────────────────────────────────────────────── */
-function Stars({ rating }: { rating: number }) {
+/* ═══════════════════════════════════════════════════════════════════════════
+   HELPERS
+═══════════════════════════════════════════════════════════════════════════ */
+function formatPrice(price_cents: number, pricing_model: PricingModel) {
+  if (pricing_model === "free" || price_cents === 0) return "Free";
+  if (pricing_model === "contact") return "Contact";
+  const amount = `$${(price_cents / 100).toFixed(0)}`;
+  if (pricing_model === "monthly") return `${amount}/mo`;
+  if (pricing_model === "annual") return `${amount}/yr`;
+  return amount;
+}
+
+function Stars({ rating, size = "sm" }: { rating: number; size?: "sm" | "xs" }) {
+  const sz = size === "xs" ? "w-2.5 h-2.5" : "w-3 h-3";
   return (
     <span className="flex items-center gap-0.5">
-      {[1,2,3,4,5].map(n => (
-        <Star key={n} className={`w-3 h-3 ${n <= Math.round(rating||0) ? "text-amber-400 fill-amber-400" : "text-muted-foreground"}`}/>
+      {[1, 2, 3, 4, 5].map((n) => (
+        <Star
+          key={n}
+          className={`${sz} ${
+            n <= Math.round(rating || 0)
+              ? "text-amber-400 fill-amber-400"
+              : "text-muted-foreground/30"
+          }`}
+        />
       ))}
-      <span className="ml-1 text-xs text-muted-foreground">{rating?.toFixed(1) || "—"}</span>
+      <span className="ml-1 text-[10px] text-muted-foreground">
+        {rating?.toFixed(1) || "—"}
+      </span>
     </span>
   );
 }
 
-/* ─── App Card ───────────────────────────────────────────────────────────── */
-function AppCard({ app, isInstalled, onInstall, onDetails, grid }: {
-  app: any; isInstalled: boolean; onInstall: (a: any) => void; onDetails: (a: any) => void; grid: boolean;
+function PriceBadge({ price_cents, pricing_model }: { price_cents: number; pricing_model: PricingModel }) {
+  const label = formatPrice(price_cents, pricing_model);
+  const cls =
+    label === "Free" ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/40"
+    : label === "Contact" ? "bg-blue-500/20 text-blue-400 border-blue-500/40"
+    : "bg-primary/20 text-primary border-primary/40";
+  return <span className={`text-xs font-bold px-2 py-0.5 rounded-md border ${cls}`}>{label}</span>;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   CARDS
+═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Digital ─────────────────────────────────────────────────────────────── */
+function DigitalCard({ item, onDetails, onWishlist, wishlisted }: {
+  item: Listing; onDetails: (i: Listing) => void;
+  onWishlist: (id: string) => void; wishlisted: boolean;
 }) {
-  const CatIcon = CAT_ICONS[app.category] ?? Package;
-  if (!grid) {
-    return (
-      <Card className="flex items-center gap-4 p-4 hover:bg-secondary/20 transition-colors cursor-pointer" onClick={() => onDetails(app)}>
-        <div className="text-4xl shrink-0 w-12 text-center">{app.icon || "📦"}</div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="font-display text-sm text-primary">{app.name}</span>
-            {app.featured && <Badge className="text-[9px] px-1.5 py-0 bg-amber-500/20 text-amber-400 border-amber-500/50">Featured</Badge>}
-            {app.is_new && <Badge className="text-[9px] px-1.5 py-0 bg-emerald-500/20 text-emerald-400 border-emerald-500/50">New</Badge>}
-            {app.verified && <Shield className="w-3 h-3 text-blue-400"/>}
-          </div>
-          <p className="text-xs text-muted-foreground truncate">{app.description}</p>
-          <div className="flex items-center gap-3 mt-1">
-            <Stars rating={app.rating}/>
-            <span className="text-[10px] text-muted-foreground flex items-center gap-1"><Download className="w-3 h-3"/>{app.installs?.toLocaleString()||0}</span>
-            <Badge variant="outline" className="text-[9px] flex items-center gap-0.5"><CatIcon className="w-2.5 h-2.5"/>{app.category}</Badge>
-          </div>
-        </div>
-        <div className="shrink-0 text-right space-y-1">
-          <p className="text-xs font-bold text-primary">{app.price_cents>0?`$${(app.price_cents/100).toFixed(2)}/mo`:"Free"}</p>
-          <Button size="sm" variant={isInstalled?"outline":"default"} className="text-xs h-7 gap-1" onClick={e=>{e.stopPropagation();onInstall(app);}}>
-            {isInstalled?<><Check className="w-3 h-3"/>Installed</>:<><Download className="w-3 h-3"/>Install</>}
-          </Button>
-        </div>
-      </Card>
-    );
-  }
+  const cfg = TYPE_CONFIG.digital;
   return (
-    <Card className="p-5 flex flex-col hover:border-primary/40 transition-colors cursor-pointer group" onClick={()=>onDetails(app)}>
-      <div className="flex items-start justify-between mb-3">
-        <div className="text-4xl">{app.icon||"📦"}</div>
-        <div className="flex flex-col items-end gap-1">
-          {app.featured&&<Badge className="text-[9px] px-1.5 bg-amber-500/20 text-amber-400 border-amber-500/50">Featured</Badge>}
-          {app.is_new&&<Badge className="text-[9px] px-1.5 bg-emerald-500/20 text-emerald-400 border-emerald-500/50">New</Badge>}
-          {app.verified&&<Shield className="w-3.5 h-3.5 text-blue-400"/>}
+    <Card
+      className={`group relative flex flex-col p-4 cursor-pointer ${cfg.hoverBorder} transition-all hover:shadow-lg ${cfg.shadow} bg-background/60 backdrop-blur-sm`}
+      onClick={() => onDetails(item)}
+    >
+      <button
+        className="absolute top-3 right-3 z-10 opacity-0 group-hover:opacity-100 transition-opacity"
+        onClick={(e) => { e.stopPropagation(); onWishlist(item.id); }}
+      >
+        <Heart className={`w-3.5 h-3.5 ${wishlisted ? "fill-rose-400 text-rose-400" : "text-muted-foreground"}`} />
+      </button>
+      <div className="flex items-start gap-3 mb-3">
+        <div className={`text-3xl w-12 h-12 rounded-xl flex items-center justify-center bg-gradient-to-br ${cfg.gradient} border ${cfg.border} shrink-0 overflow-hidden`}>
+          {item.thumbnail_url ? <img src={item.thumbnail_url} className="w-8 h-8 object-contain" alt={item.name} /> : "💾"}
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-1.5">
+            <span className="font-semibold text-sm text-foreground truncate">{item.name}</span>
+            {item.is_verified && <Shield className="w-3 h-3 text-blue-400 shrink-0" />}
+          </div>
+          <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+            {item.is_featured && <Badge className="text-[9px] px-1.5 py-0 bg-amber-500/20 text-amber-400 border-amber-500/40">Featured</Badge>}
+            {item.is_new && <Badge className="text-[9px] px-1.5 py-0 bg-emerald-500/20 text-emerald-400 border-emerald-500/40">New</Badge>}
+            <Badge className={`text-[9px] px-1.5 py-0 ${cfg.badgeClass}`}>{item.category}</Badge>
+          </div>
         </div>
       </div>
-      <h3 className="font-display text-sm text-primary group-hover:underline">{app.name}</h3>
-      <p className="text-xs text-muted-foreground mb-3 flex-1 line-clamp-2">{app.description}</p>
-      <Stars rating={app.rating}/>
-      <div className="flex items-center gap-2 text-[10px] text-muted-foreground mt-2 mb-3">
-        <span className="flex items-center gap-1"><Download className="w-3 h-3"/>{app.installs?.toLocaleString()||0} installs</span>
-        <span className="ml-auto font-medium text-xs text-primary">{app.price_cents>0?`$${(app.price_cents/100).toFixed(2)}/mo`:"Free"}</span>
+      <p className="text-xs text-muted-foreground line-clamp-2 mb-3 flex-1">{item.description}</p>
+      {item.meta?.file_type && (
+        <div className="flex items-center gap-2 text-[10px] text-muted-foreground mb-2">
+          <Tag className="w-3 h-3" />{item.meta.file_type}
+          {item.meta?.version && <span className="ml-auto">v{item.meta.version}</span>}
+        </div>
+      )}
+      <div className="flex items-center justify-between mt-auto pt-2 border-t border-border/50">
+        <Stars rating={item.rating} size="xs" />
+        <PriceBadge price_cents={item.price_cents} pricing_model={item.pricing_model} />
       </div>
-      <div className="flex items-center gap-2">
-        <Badge variant="outline" className="text-[9px] flex items-center gap-0.5 flex-1 justify-center"><CatIcon className="w-2.5 h-2.5"/>{app.category}</Badge>
-        <Button size="sm" variant={isInstalled?"outline":"default"} className="text-xs h-7 gap-1" onClick={e=>{e.stopPropagation();onInstall(app);}}>
-          {isInstalled?<><Check className="w-3 h-3"/>Installed</>:<><Download className="w-3 h-3"/>Install</>}
-        </Button>
+      <div className="text-[10px] text-muted-foreground mt-1 flex items-center gap-1">
+        <Download className="w-3 h-3" />{item.sales_count.toLocaleString()} downloads
+        <span className="ml-auto truncate">{item.publisher_name}</span>
       </div>
     </Card>
   );
 }
 
-/* ─── App Detail Dialog ──────────────────────────────────────────────────── */
-function AppDetailDialog({ app, open, onClose, isInstalled, onInstall }: {
-  app: any; open: boolean; onClose: ()=>void; isInstalled: boolean; onInstall: (a:any)=>void;
+/* ── Physical ────────────────────────────────────────────────────────────── */
+function PhysicalCard({ item, onDetails, onWishlist, wishlisted }: {
+  item: Listing; onDetails: (i: Listing) => void;
+  onWishlist: (id: string) => void; wishlisted: boolean;
 }) {
-  const [reviewText, setReviewText] = useState("");
-  const [reviewRating, setReviewRating] = useState(5);
-  const [submitting, setSubmitting] = useState(false);
-  if (!app) return null;
-  const CatIcon = CAT_ICONS[app.category]??Package;
-  const submitReview = async () => {
-    if (!reviewText.trim()) return;
-    setSubmitting(true);
-    try { await tenantDb.insert("app_reviews",{app_id:app.id,rating:reviewRating,review:reviewText.trim()}); toast.success("Review submitted!"); setReviewText(""); setReviewRating(5); }
-    catch { toast.error("Failed to submit review"); } finally { setSubmitting(false); }
-  };
+  const cfg = TYPE_CONFIG.physical;
+  const inStock = item.meta?.stock_qty === undefined || item.meta.stock_qty > 0;
   return (
-    <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[85vh] overflow-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-3">
-            <span className="text-4xl">{app.icon||"📦"}</span>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="font-display text-primary">{app.name}</span>
-                {app.verified&&<Badge className="text-[9px] gap-1 bg-blue-500/20 text-blue-400 border-blue-500/50"><Shield className="w-2.5 h-2.5"/>Verified</Badge>}
-              </div>
-              <div className="flex items-center gap-2 mt-1"><Stars rating={app.rating}/><span className="text-[10px] text-muted-foreground">{app.installs?.toLocaleString()||0} installs</span></div>
-            </div>
-          </DialogTitle>
-        </DialogHeader>
-        <div className="space-y-5 py-1">
-          <div className="flex flex-wrap gap-2">
-            <Badge variant="outline" className="gap-1"><CatIcon className="w-3 h-3"/>{app.category||"General"}</Badge>
-            <Badge variant="outline" className="gap-1"><Tag className="w-3 h-3"/>{app.price_cents>0?`$${(app.price_cents/100).toFixed(2)}/mo`:"Free"}</Badge>
-            {app.featured&&<Badge className="bg-amber-500/20 text-amber-400 border-amber-500/50">⭐ Featured</Badge>}
-            {app.version&&<Badge variant="outline" className="gap-1"><Code className="w-3 h-3"/>v{app.version}</Badge>}
-          </div>
-          <div>
-            <h4 className="font-display text-xs text-muted-foreground uppercase tracking-wider mb-2">About</h4>
-            <p className="text-sm">{app.description||"No description provided."}</p>
-            {app.long_description&&<p className="text-sm text-muted-foreground mt-2">{app.long_description}</p>}
-          </div>
-          {Array.isArray(app.features)&&app.features.length>0&&(
-            <div>
-              <h4 className="font-display text-xs text-muted-foreground uppercase tracking-wider mb-2">Key Features</h4>
-              <ul className="space-y-1">{app.features.map((f:string,i:number)=>(
-                <li key={i} className="flex items-center gap-2 text-sm"><Check className="w-3.5 h-3.5 text-emerald-400 shrink-0"/>{f}</li>
-              ))}</ul>
-            </div>
-          )}
-          <div className="grid grid-cols-2 gap-3 text-xs border rounded-lg p-3 bg-secondary/30">
-            {app.publisher&&<div><span className="text-muted-foreground">Publisher</span><p className="font-medium mt-0.5">{app.publisher}</p></div>}
-            {app.version&&<div><span className="text-muted-foreground">Version</span><p className="font-medium mt-0.5">{app.version}</p></div>}
-            {app.last_updated&&<div><span className="text-muted-foreground">Updated</span><p className="font-medium mt-0.5">{new Date(app.last_updated).toLocaleDateString()}</p></div>}
-            {app.support_url&&<div><span className="text-muted-foreground">Support</span><a href={app.support_url} target="_blank" rel="noreferrer" className="text-primary underline flex items-center gap-1 mt-0.5"><ExternalLink className="w-3 h-3"/>Docs</a></div>}
-          </div>
-          {app.requirements&&(
-            <div className="flex items-start gap-2 p-3 border border-amber-500/30 bg-amber-500/5 rounded-lg text-xs">
-              <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5"/>
-              <div><p className="font-semibold text-amber-400 mb-0.5">Requirements</p><p className="text-muted-foreground">{app.requirements}</p></div>
-            </div>
-          )}
-          <div>
-            <h4 className="font-display text-xs text-muted-foreground uppercase tracking-wider mb-2">Write a Review</h4>
-            <div className="space-y-2">
-              <div className="flex gap-1">{[1,2,3,4,5].map(n=>(
-                <button key={n} onClick={()=>setReviewRating(n)}><Star className={`w-5 h-5 ${n<=reviewRating?"text-amber-400 fill-amber-400":"text-muted-foreground"}`}/></button>
-              ))}</div>
-              <Textarea value={reviewText} onChange={e=>setReviewText(e.target.value)} placeholder="Share your experience…" rows={3} className="text-sm"/>
-              <Button size="sm" onClick={submitReview} disabled={submitting||!reviewText.trim()}>Submit Review</Button>
-            </div>
+    <Card
+      className={`group relative flex flex-col p-4 cursor-pointer ${cfg.hoverBorder} transition-all hover:shadow-lg ${cfg.shadow} bg-background/60 backdrop-blur-sm`}
+      onClick={() => onDetails(item)}
+    >
+      <button
+        className="absolute top-3 right-3 z-10 opacity-0 group-hover:opacity-100 transition-opacity"
+        onClick={(e) => { e.stopPropagation(); onWishlist(item.id); }}
+      >
+        <Heart className={`w-3.5 h-3.5 ${wishlisted ? "fill-rose-400 text-rose-400" : "text-muted-foreground"}`} />
+      </button>
+      <div className={`w-full h-28 rounded-lg mb-3 flex items-center justify-center bg-gradient-to-br ${cfg.gradient} border ${cfg.border} text-4xl overflow-hidden`}>
+        {item.thumbnail_url ? <img src={item.thumbnail_url} className="h-full w-full object-contain" alt={item.name} /> : "📦"}
+      </div>
+      <div className="flex items-center gap-1.5 mb-1 flex-wrap">
+        <span className="font-semibold text-sm text-foreground">{item.name}</span>
+        {item.is_verified && <Shield className="w-3 h-3 text-blue-400" />}
+      </div>
+      <div className="flex items-center gap-1.5 mb-2 flex-wrap">
+        <Badge className={`text-[9px] px-1.5 py-0 ${cfg.badgeClass}`}>{item.category}</Badge>
+        {item.is_new && <Badge className="text-[9px] px-1.5 py-0 bg-emerald-500/20 text-emerald-400 border-emerald-500/40">New</Badge>}
+        <Badge className={`text-[9px] px-1.5 py-0 ml-auto ${inStock ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/40" : "bg-red-500/20 text-red-400 border-red-500/40"}`}>
+          {inStock ? "In Stock" : "Out of Stock"}
+        </Badge>
+      </div>
+      <p className="text-xs text-muted-foreground line-clamp-2 mb-3 flex-1">{item.description}</p>
+      {item.meta?.shipping_zones && (
+        <div className="flex items-center gap-1 text-[10px] text-muted-foreground mb-2">
+          <Truck className="w-3 h-3" />Ships to: {item.meta.shipping_zones}
+        </div>
+      )}
+      <div className="flex items-center justify-between mt-auto pt-2 border-t border-border/50">
+        <Stars rating={item.rating} size="xs" />
+        <PriceBadge price_cents={item.price_cents} pricing_model={item.pricing_model} />
+      </div>
+      <div className="text-[10px] text-muted-foreground mt-1 flex items-center gap-1">
+        <ShoppingCart className="w-3 h-3" />{item.sales_count.toLocaleString()} sold
+        <span className="ml-auto truncate">{item.publisher_name}</span>
+      </div>
+    </Card>
+  );
+}
+
+/* ── Service ─────────────────────────────────────────────────────────────── */
+function ServiceCard({ item, onDetails, onWishlist, wishlisted }: {
+  item: Listing; onDetails: (i: Listing) => void;
+  onWishlist: (id: string) => void; wishlisted: boolean;
+}) {
+  const cfg = TYPE_CONFIG.service;
+  return (
+    <Card
+      className={`group relative flex flex-col p-4 cursor-pointer ${cfg.hoverBorder} transition-all hover:shadow-lg ${cfg.shadow} bg-background/60 backdrop-blur-sm`}
+      onClick={() => onDetails(item)}
+    >
+      <button
+        className="absolute top-3 right-3 z-10 opacity-0 group-hover:opacity-100 transition-opacity"
+        onClick={(e) => { e.stopPropagation(); onWishlist(item.id); }}
+      >
+        <Heart className={`w-3.5 h-3.5 ${wishlisted ? "fill-rose-400 text-rose-400" : "text-muted-foreground"}`} />
+      </button>
+      <div className="flex items-center gap-2 mb-3">
+        <div className={`w-10 h-10 rounded-full flex items-center justify-center text-xl bg-gradient-to-br ${cfg.gradient} border ${cfg.border} shrink-0 overflow-hidden`}>
+          {item.publisher_avatar ? <img src={item.publisher_avatar} className="w-full h-full object-cover" alt={item.publisher_name} /> : "🛠️"}
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-xs font-medium text-foreground truncate">{item.publisher_name}</p>
+          <div className="flex items-center gap-1">
+            {item.is_verified && <Shield className="w-3 h-3 text-blue-400" />}
+            <Badge className={`text-[9px] px-1.5 py-0 ${cfg.badgeClass}`}>{item.category}</Badge>
           </div>
         </div>
-        <DialogFooter className="gap-2">
-          <Button variant="outline" onClick={onClose}>Close</Button>
-          <Button variant={isInstalled?"outline":"default"} className="gap-2" onClick={()=>{onInstall(app);onClose();}}>
-            {isInstalled?<><X className="w-4 h-4"/>Uninstall</>:<><Download className="w-4 h-4"/>Install Now</>}
+      </div>
+      <h3 className="font-semibold text-sm text-foreground mb-1 group-hover:text-amber-400 transition-colors line-clamp-2">{item.name}</h3>
+      <p className="text-xs text-muted-foreground line-clamp-2 mb-3 flex-1">{item.description}</p>
+      <div className="grid grid-cols-2 gap-1.5 mb-3 text-[10px] text-muted-foreground">
+        {item.meta?.delivery_days && (
+          <div className="flex items-center gap-1 bg-secondary/30 rounded-md px-2 py-1">
+            <Clock className="w-3 h-3 text-amber-400" />{item.meta.delivery_days}d delivery
+          </div>
+        )}
+        {item.meta?.revisions && (
+          <div className="flex items-center gap-1 bg-secondary/30 rounded-md px-2 py-1">
+            <RefreshCw className="w-3 h-3 text-amber-400" />{item.meta.revisions} revisions
+          </div>
+        )}
+      </div>
+      <div className="flex items-center justify-between pt-2 border-t border-border/50">
+        <Stars rating={item.rating} size="xs" />
+        <div className="text-right">
+          <div className="text-[9px] text-muted-foreground">Starting at</div>
+          <PriceBadge price_cents={item.price_cents} pricing_model={item.pricing_model} />
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+/* ── Subscription ────────────────────────────────────────────────────────── */
+function SubscriptionCard({ item, onDetails, onWishlist, wishlisted }: {
+  item: Listing; onDetails: (i: Listing) => void;
+  onWishlist: (id: string) => void; wishlisted: boolean;
+}) {
+  const cfg = TYPE_CONFIG.subscription;
+  const features: string[] = item.meta?.features || [];
+  return (
+    <Card
+      className={`group relative flex flex-col p-4 cursor-pointer ${cfg.hoverBorder} transition-all hover:shadow-lg ${cfg.shadow} bg-background/60 backdrop-blur-sm`}
+      onClick={() => onDetails(item)}
+    >
+      <button
+        className="absolute top-3 right-3 z-10 opacity-0 group-hover:opacity-100 transition-opacity"
+        onClick={(e) => { e.stopPropagation(); onWishlist(item.id); }}
+      >
+        <Heart className={`w-3.5 h-3.5 ${wishlisted ? "fill-rose-400 text-rose-400" : "text-muted-foreground"}`} />
+      </button>
+      <div className="flex items-start gap-3 mb-3">
+        <div className={`text-3xl w-12 h-12 rounded-xl flex items-center justify-center bg-gradient-to-br ${cfg.gradient} border ${cfg.border} shrink-0 overflow-hidden`}>
+          {item.thumbnail_url ? <img src={item.thumbnail_url} className="w-8 h-8 object-contain" alt={item.name} /> : "♾️"}
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-1.5">
+            <span className="font-semibold text-sm truncate">{item.name}</span>
+            {item.is_verified && <Shield className="w-3 h-3 text-blue-400" />}
+          </div>
+          <Badge className={`text-[9px] px-1.5 py-0 mt-0.5 ${cfg.badgeClass}`}>{item.category}</Badge>
+        </div>
+      </div>
+      <p className="text-xs text-muted-foreground line-clamp-2 mb-3">{item.description}</p>
+      {features.length > 0 && (
+        <ul className="space-y-1 mb-3 flex-1">
+          {features.slice(0, 3).map((f, i) => (
+            <li key={i} className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+              <Check className="w-3 h-3 text-pink-400 shrink-0" />{f}
+            </li>
+          ))}
+          {features.length > 3 && <li className="text-[10px] text-muted-foreground pl-4">+{features.length - 3} more</li>}
+        </ul>
+      )}
+      <div className="flex items-center gap-2 text-[10px] text-muted-foreground mb-2">
+        {item.meta?.max_users && <span className="flex items-center gap-1"><Users className="w-3 h-3" />Up to {item.meta.max_users} users</span>}
+        {item.meta?.storage_gb && <span className="flex items-center gap-1 ml-auto"><Download className="w-3 h-3" />{item.meta.storage_gb}GB</span>}
+      </div>
+      <div className="flex items-center justify-between pt-2 border-t border-border/50">
+        <Stars rating={item.rating} size="xs" />
+        <PriceBadge price_cents={item.price_cents} pricing_model={item.pricing_model} />
+      </div>
+      {item.meta?.trial_days && (
+        <div className="text-[10px] text-pink-400 mt-1 text-center">{item.meta.trial_days}-day free trial</div>
+      )}
+    </Card>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   LISTING DETAIL DIALOG
+═══════════════════════════════════════════════════════════════════════════ */
+function ListingDetailDialog({ item, open, onClose, onPurchase, isPurchased, onWishlist, wishlisted }: {
+  item: Listing | null; open: boolean; onClose: () => void;
+  onPurchase: (i: Listing) => void; isPurchased: boolean;
+  onWishlist: (id: string) => void; wishlisted: boolean;
+}) {
+  if (!item) return null;
+  const cfg = TYPE_CONFIG[item.listing_type];
+  const price = formatPrice(item.price_cents, item.pricing_model);
+  const features: string[] = item.meta?.features || [];
+  const packages: any[] = item.meta?.packages || [];
+  return (
+    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+        <DialogHeader>
+          <div className="flex items-center gap-3">
+            <div className={`text-4xl w-14 h-14 rounded-xl flex items-center justify-center bg-gradient-to-br ${cfg.gradient} border ${cfg.border} shrink-0 overflow-hidden`}>
+              {item.thumbnail_url ? <img src={item.thumbnail_url} className="w-10 h-10 object-contain" alt={item.name} /> : cfg.icon}
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <DialogTitle className="text-lg">{item.name}</DialogTitle>
+                {item.is_verified && <Shield className="w-4 h-4 text-blue-400" />}
+              </div>
+              <div className="flex items-center gap-2 mt-1 flex-wrap">
+                <Badge className={`text-[9px] px-2 py-0.5 ${cfg.badgeClass}`}>{cfg.label}</Badge>
+                <Badge variant="outline" className="text-[9px] px-2 py-0.5">{item.category}</Badge>
+                {item.is_featured && <Badge className="text-[9px] px-2 py-0.5 bg-amber-500/20 text-amber-400 border-amber-500/40">Featured</Badge>}
+                {item.is_new && <Badge className="text-[9px] px-2 py-0.5 bg-emerald-500/20 text-emerald-400 border-emerald-500/40">New</Badge>}
+              </div>
+            </div>
+          </div>
+        </DialogHeader>
+        <div className="flex items-center gap-4 py-3 border-y border-border/50">
+          <Stars rating={item.rating} />
+          <span className="text-xs text-muted-foreground">({item.reviews_count} reviews)</span>
+          <span className="text-xs text-muted-foreground ml-auto flex items-center gap-1">
+            {item.listing_type === "service" ? <><Users className="w-3 h-3" />{item.sales_count} orders</>
+             : item.listing_type === "subscription" ? <><Users className="w-3 h-3" />{item.sales_count} subscribers</>
+             : <><Download className="w-3 h-3" />{item.sales_count.toLocaleString()} sold</>}
+          </span>
+        </div>
+        <p className="text-sm text-muted-foreground leading-relaxed">{item.long_description || item.description}</p>
+        {item.listing_type === "digital" && Object.keys(item.meta || {}).length > 0 && (
+          <div className="grid grid-cols-2 gap-3">
+            {item.meta.file_type && <div className="bg-secondary/20 rounded-lg p-3"><p className="text-[10px] text-muted-foreground">File Type</p><p className="text-sm font-medium">{item.meta.file_type}</p></div>}
+            {item.meta.file_size && <div className="bg-secondary/20 rounded-lg p-3"><p className="text-[10px] text-muted-foreground">File Size</p><p className="text-sm font-medium">{item.meta.file_size}</p></div>}
+            {item.meta.version && <div className="bg-secondary/20 rounded-lg p-3"><p className="text-[10px] text-muted-foreground">Version</p><p className="text-sm font-medium">{item.meta.version}</p></div>}
+            {item.meta.license_type && <div className="bg-secondary/20 rounded-lg p-3"><p className="text-[10px] text-muted-foreground">License</p><p className="text-sm font-medium">{item.meta.license_type}</p></div>}
+            {item.meta.compatibility && <div className="bg-secondary/20 rounded-lg p-3 col-span-2"><p className="text-[10px] text-muted-foreground">Compatibility</p><p className="text-sm font-medium">{item.meta.compatibility}</p></div>}
+          </div>
+        )}
+        {item.listing_type === "physical" && Object.keys(item.meta || {}).length > 0 && (
+          <div className="grid grid-cols-2 gap-3">
+            {item.meta.weight_kg && <div className="bg-secondary/20 rounded-lg p-3"><p className="text-[10px] text-muted-foreground">Weight</p><p className="text-sm font-medium">{item.meta.weight_kg} kg</p></div>}
+            {item.meta.dimensions && <div className="bg-secondary/20 rounded-lg p-3"><p className="text-[10px] text-muted-foreground">Dimensions</p><p className="text-sm font-medium">{item.meta.dimensions}</p></div>}
+            {item.meta.sku && <div className="bg-secondary/20 rounded-lg p-3"><p className="text-[10px] text-muted-foreground">SKU</p><p className="text-sm font-medium">{item.meta.sku}</p></div>}
+            {item.meta.material && <div className="bg-secondary/20 rounded-lg p-3"><p className="text-[10px] text-muted-foreground">Material</p><p className="text-sm font-medium">{item.meta.material}</p></div>}
+            {item.meta.shipping_zones && <div className="bg-secondary/20 rounded-lg p-3 col-span-2"><p className="text-[10px] text-muted-foreground">Ships To</p><p className="text-sm font-medium flex items-center gap-1"><Truck className="w-3 h-3" />{item.meta.shipping_zones}</p></div>}
+          </div>
+        )}
+        {item.listing_type === "service" && packages.length > 0 && (
+          <div>
+            <p className="text-xs font-semibold mb-2">Packages</p>
+            <div className="grid grid-cols-3 gap-2">
+              {packages.map((pkg: any, i: number) => (
+                <div key={i} className="bg-secondary/20 rounded-lg p-3 border border-border/50">
+                  <p className="text-xs font-semibold">{pkg.name}</p>
+                  <p className="text-primary text-sm font-bold">${(pkg.price_cents / 100).toFixed(0)}</p>
+                  <ul className="mt-1 space-y-0.5">
+                    {pkg.features?.map((f: string, j: number) => (
+                      <li key={j} className="text-[10px] text-muted-foreground flex items-center gap-1">
+                        <Check className="w-2.5 h-2.5 text-amber-400 shrink-0" />{f}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        {item.listing_type === "subscription" && features.length > 0 && (
+          <div>
+            <p className="text-xs font-semibold mb-2">What&apos;s included</p>
+            <div className="grid grid-cols-2 gap-1.5">
+              {features.map((f: string, i: number) => (
+                <div key={i} className="flex items-center gap-1.5 text-xs text-muted-foreground bg-secondary/20 rounded-md px-2 py-1.5">
+                  <Check className="w-3 h-3 text-pink-400 shrink-0" />{f}
+                </div>
+              ))}
+            </div>
+            {(item.meta?.max_users || item.meta?.storage_gb || item.meta?.trial_days) && (
+              <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
+                {item.meta.max_users && <span className="flex items-center gap-1"><Users className="w-3 h-3 text-pink-400" />Up to {item.meta.max_users} users</span>}
+                {item.meta.storage_gb && <span className="flex items-center gap-1"><Download className="w-3 h-3 text-pink-400" />{item.meta.storage_gb}GB storage</span>}
+                {item.meta.trial_days && <span className="text-pink-400">{item.meta.trial_days}-day free trial</span>}
+              </div>
+            )}
+          </div>
+        )}
+        {item.tags?.length > 0 && (
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <Tag className="w-3 h-3 text-muted-foreground" />
+            {item.tags.map((t) => <Badge key={t} variant="outline" className="text-[9px] px-1.5 py-0">{t}</Badge>)}
+          </div>
+        )}
+        <div className="flex items-center gap-2 pt-3 border-t border-border/50">
+          <div className="w-8 h-8 rounded-full bg-secondary/30 flex items-center justify-center text-sm overflow-hidden shrink-0">
+            {item.publisher_avatar ? <img src={item.publisher_avatar} className="w-full h-full object-cover" alt={item.publisher_name} /> : "👤"}
+          </div>
+          <div>
+            <p className="text-xs font-medium">{item.publisher_name}</p>
+            <p className="text-[10px] text-muted-foreground">Publisher / Seller</p>
+          </div>
+          <div className="ml-auto flex items-center gap-2">
+            <Button variant="ghost" size="sm" className="gap-1 text-xs" onClick={() => onWishlist(item.id)}>
+              <Heart className={`w-3.5 h-3.5 ${wishlisted ? "fill-rose-400 text-rose-400" : ""}`} />
+              {wishlisted ? "Saved" : "Save"}
+            </Button>
+            <Button size="sm" className="gap-1 text-xs" disabled={isPurchased} onClick={() => onPurchase(item)}>
+              {isPurchased ? <><Check className="w-3 h-3" />Owned</>
+               : item.pricing_model === "free" || item.price_cents === 0 ? <><Download className="w-3 h-3" />Get Free</>
+               : item.listing_type === "service" ? <><Wrench className="w-3 h-3" />Order Now</>
+               : item.listing_type === "subscription" ? <><Repeat className="w-3 h-3" />Subscribe</>
+               : <><ShoppingCart className="w-3 h-3" />Purchase — {price}</>}
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   REQUEST LISTING DIALOG
+═══════════════════════════════════════════════════════════════════════════ */
+function RequestListingDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const [form, setForm] = useState({ name: "", listing_type: "digital", description: "", contact: "" });
+  const [loading, setLoading] = useState(false);
+  const db = supabase as any;
+  const submit = async () => {
+    if (!form.name.trim() || !form.description.trim()) return toast.error("Please fill in name and description");
+    setLoading(true);
+    try {
+      await db.from("mp_listing_requests").insert(form);
+      toast.success("Request submitted! We will review it shortly.");
+      onClose();
+      setForm({ name: "", listing_type: "digital", description: "", contact: "" });
+    } catch { toast.error("Failed to submit request"); }
+    finally { setLoading(false); }
+  };
+  return (
+    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
+      <DialogContent>
+        <DialogHeader><DialogTitle>Request a Listing</DialogTitle></DialogHeader>
+        <div className="space-y-3">
+          <div>
+            <Label className="text-xs">Name / Title *</Label>
+            <Input className="mt-1" placeholder="e.g. React UI Kit Pro" value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} />
+          </div>
+          <div>
+            <Label className="text-xs">Type *</Label>
+            <Select value={form.listing_type} onValueChange={(v) => setForm((f) => ({ ...f, listing_type: v }))}>
+              <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="digital">💾 Digital Product</SelectItem>
+                <SelectItem value="physical">📦 Physical Product</SelectItem>
+                <SelectItem value="service">🛠️ Service</SelectItem>
+                <SelectItem value="subscription">♾️ Subscription</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label className="text-xs">Description *</Label>
+            <Textarea className="mt-1" rows={3} placeholder="Describe the product or service..." value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} />
+          </div>
+          <div>
+            <Label className="text-xs">Contact / URL (optional)</Label>
+            <Input className="mt-1" placeholder="Email or website URL" value={form.contact} onChange={(e) => setForm((f) => ({ ...f, contact: e.target.value }))} />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" size="sm" onClick={onClose}>Cancel</Button>
+          <Button size="sm" disabled={loading} onClick={submit}>
+            {loading ? <RefreshCw className="w-3 h-3 animate-spin mr-1" /> : <Plus className="w-3 h-3 mr-1" />}
+            Submit Request
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -183,247 +555,354 @@ function AppDetailDialog({ app, open, onClose, isInstalled, onInstall }: {
   );
 }
 
-/* ─── Request App Dialog ─────────────────────────────────────────────────── */
-function RequestAppDialog({ open, onClose }: { open: boolean; onClose: ()=>void }) {
-  const [form, setForm] = useState({name:"",description:"",use_case:"",contact:""});
-  const [loading, setLoading] = useState(false);
-  const submit = async () => {
-    if (!form.name.trim()||!form.description.trim()) return toast.error("Name and description required");
-    setLoading(true);
-    try { await tenantDb.insert("app_requests",form); toast.success("Request submitted!"); setForm({name:"",description:"",use_case:"",contact:""}); onClose(); }
-    catch { toast.error("Failed to submit"); } finally { setLoading(false); }
-  };
+/* ═══════════════════════════════════════════════════════════════════════════
+   LIST-VIEW ROW
+═══════════════════════════════════════════════════════════════════════════ */
+function ListingRow({ item, onDetails, onWishlist, wishlisted }: {
+  item: Listing; onDetails: (i: Listing) => void;
+  onWishlist: (id: string) => void; wishlisted: boolean;
+}) {
+  const cfg = TYPE_CONFIG[item.listing_type];
   return (
-    <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-md">
-        <DialogHeader><DialogTitle className="font-display">Request an App</DialogTitle></DialogHeader>
-        <div className="space-y-3 py-1">
-          <div><Label className="text-xs">App Name *</Label><Input value={form.name} onChange={e=>setForm(p=>({...p,name:e.target.value}))} placeholder="e.g. Slack Integration" className="mt-1"/></div>
-          <div><Label className="text-xs">Description *</Label><Textarea value={form.description} onChange={e=>setForm(p=>({...p,description:e.target.value}))} placeholder="What should this app do?" rows={3} className="mt-1 text-sm"/></div>
-          <div><Label className="text-xs">Use Case</Label><Input value={form.use_case} onChange={e=>setForm(p=>({...p,use_case:e.target.value}))} placeholder="How would you use it?" className="mt-1"/></div>
-          <div><Label className="text-xs">Contact Email (optional)</Label><Input type="email" value={form.contact} onChange={e=>setForm(p=>({...p,contact:e.target.value}))} placeholder="for follow-up" className="mt-1"/></div>
+    <Card className="flex items-center gap-4 p-3 cursor-pointer hover:bg-secondary/20 transition-colors" onClick={() => onDetails(item)}>
+      <div className={`text-2xl w-10 h-10 flex items-center justify-center rounded-lg bg-gradient-to-br ${cfg.gradient} border ${cfg.border} shrink-0 overflow-hidden`}>
+        {item.thumbnail_url ? <img src={item.thumbnail_url} className="w-7 h-7 object-contain" alt={item.name} /> : cfg.icon}
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="font-medium text-sm truncate">{item.name}</span>
+          {item.is_verified && <Shield className="w-3 h-3 text-blue-400 shrink-0" />}
+          <Badge className={`text-[9px] px-1.5 py-0 ${cfg.badgeClass}`}>{cfg.label}</Badge>
+          <Badge variant="outline" className="text-[9px] px-1.5 py-0">{item.category}</Badge>
         </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose}>Cancel</Button>
-          <Button onClick={submit} disabled={loading}>Submit Request</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        <p className="text-xs text-muted-foreground truncate mt-0.5">{item.description}</p>
+        <div className="flex items-center gap-3 mt-1">
+          <Stars rating={item.rating} size="xs" />
+          <span className="text-[10px] text-muted-foreground">{item.publisher_name}</span>
+        </div>
+      </div>
+      <div className="shrink-0 flex items-center gap-2">
+        <button onClick={(e) => { e.stopPropagation(); onWishlist(item.id); }}>
+          <Heart className={`w-3.5 h-3.5 ${wishlisted ? "fill-rose-400 text-rose-400" : "text-muted-foreground"}`} />
+        </button>
+        <PriceBadge price_cents={item.price_cents} pricing_model={item.pricing_model} />
+      </div>
+    </Card>
   );
 }
 
-/* ─── Main Marketplace ───────────────────────────────────────────────────── */
+/* ═══════════════════════════════════════════════════════════════════════════
+   MAIN PAGE
+═══════════════════════════════════════════════════════════════════════════ */
 export default function Marketplace() {
-  const nav = useNavigate();  const { t } = useTranslation();  const [apps, setApps] = useState<any[]>([]);
-  const [installed, setInstalled] = useState<Set<string>>(new Set());
+  const navigate = useNavigate();
+  const db = supabase as any;
+
+  const [listings, setListings] = useState<Listing[]>([]);
+  const [purchased, setPurchased] = useState<string[]>([]);
+  const [wishlist, setWishlist] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [cat, setCat] = useState("All");
-  const [tab, setTab] = useState("all");
-  const [sort, setSort] = useState<"featured"|"rating"|"installs"|"newest">("featured");
-  const [priceFilter, setPriceFilter] = useState<"all"|"free"|"paid">("all");
-  const [grid, setGrid] = useState(true);
-  const [detailApp, setDetailApp] = useState<any>(null);
-  const [requestOpen, setRequestOpen] = useState(false);
+  const [activeType, setActiveType] = useState<"all" | ListingType>("all");
+  const [activeCategory, setActiveCategory] = useState("All");
+  const [priceFilter, setPriceFilter] = useState<"all" | "free" | "paid">("all");
+  const [sortBy, setSortBy] = useState("featured");
+  const [viewGrid, setViewGrid] = useState(true);
+  const [detailItem, setDetailItem] = useState<Listing | null>(null);
+  const [showRequest, setShowRequest] = useState(false);
 
   const load = async () => {
     setLoading(true);
     try {
-      const data = await tenantDb.select("marketplace_apps", { orderBy: "featured", ascending: false });
-      setApps((data as any) || []);
+      const { data } = await db.from("mp_listings").select("*").eq("is_active", true);
+      setListings(data || []);
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        const ins = await tenantDb.select("installed_apps", { eq: { user_id: user.id } });
-        setInstalled(new Set((ins as any)?.map((x: any) => x.app_id) || []));
+        const { data: pur } = await db.from("mp_purchases").select("listing_id").eq("user_id", user.id);
+        setPurchased((pur || []).map((p: any) => p.listing_id));
+        const { data: wl } = await db.from("mp_wishlist").select("listing_id").eq("user_id", user.id);
+        setWishlist((wl || []).map((w: any) => w.listing_id));
       }
-    } finally { setLoading(false); }
+    } catch { /* tables may not exist yet */ }
+    finally { setLoading(false); }
   };
+
   useEffect(() => { load(); }, []);
 
-  const install = async (app: any) => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return toast.error("Sign in required");
-    const isInstalled = installed.has(app.id);
-    try {
-      if (isInstalled) {
-        await tenantDb.remove("installed_apps", { eq: { user_id: user.id, app_id: app.id } } as any);
-        setInstalled(s => { const n = new Set(s); n.delete(app.id); return n; });
-        toast.success(`${app.name} uninstalled`);
-      } else {
-        await tenantDb.insert("installed_apps", { user_id: user.id, app_id: app.id, installed_at: new Date().toISOString() });
-        setInstalled(s => new Set(s).add(app.id));
-        toast.success(`${app.name} installed! ✓`);
-      }
-    } catch { toast.error("Action failed"); }
+  const handleTypeChange = (type: "all" | ListingType) => {
+    setActiveType(type);
+    setActiveCategory("All");
   };
 
-  const cats = ["All", ...Array.from(new Set(apps.map(a => a.category).filter(Boolean)))];
-  const filtered = useMemo(() => {
-    let list = apps;
-    if (tab === "installed") list = list.filter(a => installed.has(a.id));
-    if (tab === "featured")  list = list.filter(a => a.featured);
-    if (cat !== "All") list = list.filter(a => a.category === cat);
-    if (priceFilter === "free") list = list.filter(a => !a.price_cents);
-    if (priceFilter === "paid") list = list.filter(a => a.price_cents > 0);
-    if (search) { const q = search.toLowerCase(); list = list.filter(a => a.name?.toLowerCase().includes(q)||a.description?.toLowerCase().includes(q)||a.category?.toLowerCase().includes(q)); }
-    return [...list].sort((a,b) => {
-      if (sort==="rating")   return (b.rating||0)-(a.rating||0);
-      if (sort==="installs") return (b.installs||0)-(a.installs||0);
-      if (sort==="newest")   return new Date(b.created_at||0).getTime()-new Date(a.created_at||0).getTime();
-      return (b.featured?1:0)-(a.featured?1:0);
-    });
-  }, [apps, tab, cat, priceFilter, search, sort, installed]);
+  const handlePurchase = async (item: Listing) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return toast.error("Please sign in to purchase");
+    try {
+      await db.from("mp_purchases").insert({ listing_id: item.id, user_id: user.id, amount_cents: item.price_cents });
+      setPurchased((prev) => [...prev, item.id]);
+      toast.success(`${item.name} added to your library!`);
+    } catch { toast.error("Purchase failed"); }
+  };
 
-  const featuredApps = apps.filter(a => a.featured).slice(0,3);
+  const handleWishlist = async (id: string) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return toast.error("Please sign in");
+    const isWished = wishlist.includes(id);
+    if (isWished) {
+      await db.from("mp_wishlist").delete().eq("listing_id", id).eq("user_id", user.id);
+      setWishlist((prev) => prev.filter((w) => w !== id));
+    } else {
+      await db.from("mp_wishlist").insert({ listing_id: id, user_id: user.id });
+      setWishlist((prev) => [...prev, id]);
+    }
+  };
+
+  const filtered = useMemo(() => {
+    let result = [...listings];
+    if (activeType !== "all") result = result.filter((l) => l.listing_type === activeType);
+    if (activeCategory !== "All") result = result.filter((l) => l.category === activeCategory);
+    if (priceFilter === "free") result = result.filter((l) => l.pricing_model === "free" || l.price_cents === 0);
+    if (priceFilter === "paid") result = result.filter((l) => l.pricing_model !== "free" && l.price_cents > 0);
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      result = result.filter((l) =>
+        l.name?.toLowerCase().includes(q) || l.description?.toLowerCase().includes(q) ||
+        l.category?.toLowerCase().includes(q) || l.publisher_name?.toLowerCase().includes(q)
+      );
+    }
+    switch (sortBy) {
+      case "featured":    result.sort((a, b) => (b.is_featured ? 1 : 0) - (a.is_featured ? 1 : 0)); break;
+      case "rating":      result.sort((a, b) => (b.rating || 0) - (a.rating || 0)); break;
+      case "popular":     result.sort((a, b) => (b.sales_count || 0) - (a.sales_count || 0)); break;
+      case "newest":      result.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()); break;
+      case "price_low":   result.sort((a, b) => a.price_cents - b.price_cents); break;
+      case "price_high":  result.sort((a, b) => b.price_cents - a.price_cents); break;
+    }
+    return result;
+  }, [listings, activeType, activeCategory, priceFilter, search, sortBy]);
+
+  const categories = useMemo(() => {
+    if (activeType === "all") return ["All", ...Array.from(new Set(listings.map((l) => l.category).filter(Boolean)))];
+    return ["All", ...(TYPE_CONFIG[activeType]?.categories || [])];
+  }, [activeType, listings]);
+
+  const kpis = useMemo(() => ({
+    total: listings.length,
+    digital: listings.filter((l) => l.listing_type === "digital").length,
+    physical: listings.filter((l) => l.listing_type === "physical").length,
+    services: listings.filter((l) => l.listing_type === "service").length,
+    subscriptions: listings.filter((l) => l.listing_type === "subscription").length,
+    purchased: purchased.length,
+    wishlist: wishlist.length,
+  }), [listings, purchased, wishlist]);
+
+  const renderCard = (item: Listing) => {
+    const props = { key: item.id, item, onDetails: setDetailItem, onWishlist: handleWishlist, wishlisted: wishlist.includes(item.id) };
+    switch (item.listing_type) {
+      case "digital":      return <DigitalCard {...props} />;
+      case "physical":     return <PhysicalCard {...props} />;
+      case "service":      return <ServiceCard {...props} />;
+      case "subscription": return <SubscriptionCard {...props} />;
+      default: return null;
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background">
-      {/* ── Sticky Header ── */}
-      <div className="border-b border-border bg-card/50 sticky top-0 z-10 backdrop-blur-sm">
-        <div className="max-w-7xl mx-auto px-6 py-3">
-          <div className="flex items-center justify-between gap-4 flex-wrap">
-            <div className="flex items-center gap-3">
-              <Button variant="ghost" size="sm" onClick={() => nav("/")} className="gap-1"><ArrowLeft className="w-4 h-4"/>{t('back_btn')}</Button>
-              <Store className="w-5 h-5 text-primary"/><span className="font-display text-lg text-primary">{t('marketplace')}</span>
-            </div>
-            <div className="flex items-center gap-2 flex-1 max-w-sm">
-              <div className="relative flex-1">
-                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"/>
-                <Input placeholder="Search apps…" value={search} onChange={e=>setSearch(e.target.value)} className="pl-9 h-9"/>
-                {search && <button onClick={()=>setSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"><X className="w-3.5 h-3.5"/></button>}
-              </div>
-              <Button size="sm" variant="outline" onClick={load}><RefreshCw className="w-3.5 h-3.5"/></Button>
-              <Button size="sm" variant="outline" onClick={()=>setGrid(g=>!g)} title={grid?"List view":"Grid view"}>
-                {grid?<List className="w-3.5 h-3.5"/>:<Grid3X3 className="w-3.5 h-3.5"/>}
-              </Button>
-            </div>
-            <Button size="sm" variant="outline" className="gap-1 text-xs" onClick={()=>setRequestOpen(true)}>
-              <Sparkles className="w-3.5 h-3.5"/>{t('request_app_btn')}
+      {/* ══ HEADER ═══════════════════════════════════════════════════════════ */}
+      <header className="sticky top-0 z-40 border-b border-border/50 bg-background/80 backdrop-blur-md">
+        <div className="flex items-center gap-3 px-4 py-3 max-w-7xl mx-auto">
+          <Button variant="ghost" size="icon" className="shrink-0 h-8 w-8" onClick={() => navigate(-1)}>
+            <ArrowLeft className="w-4 h-4" />
+          </Button>
+          <div className="flex items-center gap-2 shrink-0">
+            <Store className="w-5 h-5 text-primary" />
+            <span className="font-display font-bold text-base">Marketplace</span>
+          </div>
+          <div className="relative flex-1 max-w-md mx-auto">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+            <Input
+              className="pl-9 h-8 text-sm bg-secondary/30"
+              placeholder="Search products, services, subscriptions…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+            {search && (
+              <button className="absolute right-3 top-1/2 -translate-y-1/2" onClick={() => setSearch("")}>
+                <X className="w-3 h-3 text-muted-foreground" />
+              </button>
+            )}
+          </div>
+          <div className="flex items-center gap-1.5 ml-auto">
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={load} title="Refresh">
+              <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} />
+            </Button>
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setViewGrid(!viewGrid)} title={viewGrid ? "List view" : "Grid view"}>
+              {viewGrid ? <List className="w-3.5 h-3.5" /> : <Grid3X3 className="w-3.5 h-3.5" />}
+            </Button>
+            <Button size="sm" className="gap-1.5 text-xs h-8 ml-1" onClick={() => setShowRequest(true)}>
+              <Sparkles className="w-3.5 h-3.5" />Request Listing
             </Button>
           </div>
         </div>
-      </div>
+      </header>
 
-      <div className="max-w-7xl mx-auto px-6 py-6 space-y-6">
-        {/* ── KPI Strip ── */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div className="px-4 py-4 max-w-7xl mx-auto space-y-4">
+        {/* ══ KPI STRIP ════════════════════════════════════════════════════ */}
+        <div className="grid grid-cols-4 sm:grid-cols-7 gap-2">
           {[
-            {label:t('total_apps_label'),  value:apps.length,     icon:Package,  color:"text-primary"},
-            {label:t('free_apps_label'),   value:apps.filter(a=>!a.price_cents).length, icon:Heart, color:"text-emerald-400"},
-            {label:t('installed'),   value:installed.size,  icon:Check,    color:"text-blue-400"},
-            {label:t('categories_count_label'),  value:cats.length-1,   icon:Tag,      color:"text-amber-400"},
-          ].map(k=>(
-            <Card key={k.label} className="p-3 flex items-center gap-3">
-              <k.icon className={`w-6 h-6 ${k.color} opacity-80`}/>
-              <div><p className="text-[10px] text-muted-foreground uppercase tracking-wider">{k.label}</p><p className="text-xl font-bold">{k.value}</p></div>
+            { label: "Total",         value: kpis.total,         Icon: Store,        color: "text-primary" },
+            { label: "Digital",       value: kpis.digital,       Icon: Monitor,      color: "text-violet-400" },
+            { label: "Physical",      value: kpis.physical,      Icon: Box,          color: "text-emerald-400" },
+            { label: "Services",      value: kpis.services,      Icon: Wrench,       color: "text-amber-400" },
+            { label: "Subscriptions", value: kpis.subscriptions, Icon: Repeat,       color: "text-pink-400" },
+            { label: "Purchased",     value: kpis.purchased,     Icon: ShoppingCart, color: "text-blue-400" },
+            { label: "Wishlist",      value: kpis.wishlist,      Icon: Heart,        color: "text-rose-400" },
+          ].map(({ label, value, Icon, color }) => (
+            <Card key={label} className="p-3 flex items-center gap-2.5 bg-secondary/10">
+              <Icon className={`w-4 h-4 shrink-0 ${color}`} />
+              <div>
+                <p className="text-[10px] text-muted-foreground leading-none">{label}</p>
+                <p className="text-lg font-bold leading-tight">{value}</p>
+              </div>
             </Card>
           ))}
         </div>
 
-        {/* ── Featured Banner ── */}
-        {featuredApps.length > 0 && (
-          <div>
-            <h2 className="font-display text-xs text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-2">
-              <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400"/>{t('featured')}
-            </h2>
-            <div className="grid sm:grid-cols-3 gap-4">
-              {featuredApps.map(app=>(
-                <Card key={app.id} className="p-4 border-amber-500/30 bg-gradient-to-br from-amber-500/5 to-transparent cursor-pointer hover:border-amber-500/60 transition-colors" onClick={()=>setDetailApp(app)}>
-                  <div className="flex items-start gap-3">
-                    <div className="text-3xl">{app.icon||"📦"}</div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-display text-sm text-primary">{app.name}</p>
-                      <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">{app.description}</p>
-                      <div className="flex items-center gap-2 mt-2">
-                        <Stars rating={app.rating}/>
-                        <span className="ml-auto text-xs font-bold text-primary">{app.price_cents>0?`$${(app.price_cents/100).toFixed(2)}/mo`:"Free"}</span>
-                      </div>
-                    </div>
-                  </div>
-                </Card>
+        {/* ══ TYPE SELECTOR ════════════════════════════════════════════════ */}
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+          <button
+            onClick={() => handleTypeChange("all")}
+            className={`flex items-center gap-2.5 p-3 rounded-xl border transition-all text-left ${
+              activeType === "all"
+                ? "border-primary bg-primary/10 shadow-sm shadow-primary/10"
+                : "border-border/50 hover:border-border hover:bg-secondary/20"
+            }`}
+          >
+            <span className="text-2xl">🛒</span>
+            <div>
+              <p className="text-xs font-semibold">All</p>
+              <p className="text-[10px] text-muted-foreground">{kpis.total} listings</p>
+            </div>
+          </button>
+          {(Object.entries(TYPE_CONFIG) as [ListingType, typeof TYPE_CONFIG[ListingType]][]).map(([type, cfg]) => {
+            const count = type === "digital" ? kpis.digital : type === "physical" ? kpis.physical : type === "service" ? kpis.services : kpis.subscriptions;
+            return (
+              <button
+                key={type}
+                onClick={() => handleTypeChange(type)}
+                className={`flex items-center gap-2.5 p-3 rounded-xl border transition-all text-left ${
+                  activeType === type
+                    ? `${cfg.border} bg-gradient-to-r ${cfg.gradient} shadow-sm`
+                    : "border-border/50 hover:border-border hover:bg-secondary/20"
+                }`}
+              >
+                <span className="text-2xl">{cfg.icon}</span>
+                <div>
+                  <p className="text-xs font-semibold">{cfg.label}</p>
+                  <p className="text-[10px] text-muted-foreground">{cfg.labelAr} · {count}</p>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* ══ FILTER BAR ═══════════════════════════════════════════════════ */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 flex-1 min-w-0">
+            {categories.map((cat) => (
+              <button
+                key={cat}
+                onClick={() => setActiveCategory(cat)}
+                className={`shrink-0 text-xs px-2.5 py-1 rounded-full border transition-all whitespace-nowrap ${
+                  activeCategory === cat
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "border-border/50 text-muted-foreground hover:border-border hover:text-foreground"
+                }`}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <div className="flex items-center border border-border/50 rounded-lg overflow-hidden text-xs">
+              {(["all", "free", "paid"] as const).map((p) => (
+                <button key={p} onClick={() => setPriceFilter(p)}
+                  className={`px-2.5 py-1 capitalize transition-colors ${priceFilter === p ? "bg-primary text-primary-foreground" : "hover:bg-secondary/30"}`}>
+                  {p}
+                </button>
               ))}
             </div>
+            <Select value={sortBy} onValueChange={setSortBy}>
+              <SelectTrigger className="h-8 text-xs w-36 gap-1">
+                <SlidersHorizontal className="w-3 h-3 shrink-0" /><SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="featured">Featured</SelectItem>
+                <SelectItem value="rating">Top Rated</SelectItem>
+                <SelectItem value="popular">Most Popular</SelectItem>
+                <SelectItem value="newest">Newest</SelectItem>
+                <SelectItem value="price_low">Price: Low to High</SelectItem>
+                <SelectItem value="price_high">Price: High to Low</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
-        )}
+        </div>
 
-        {/* ── Category + Filters row ── */}
-        <div className="flex flex-wrap gap-2 items-center">
-          <div className="flex gap-1 flex-wrap">
-            {cats.map(c => { const Icon=CAT_ICONS[c]??Package; return (
-              <Button key={c} size="sm" variant={cat===c?"default":"outline"} className="h-7 text-xs gap-1" onClick={()=>setCat(c)}>
-                <Icon className="w-3 h-3"/>{c}
-              </Button>
-            ); })}
+        {/* ══ RESULTS COUNT ════════════════════════════════════════════════ */}
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <span>
+            {filtered.length} listing{filtered.length !== 1 ? "s" : ""}
+            {activeType !== "all" && <span className="ml-1 text-foreground font-medium">in {TYPE_CONFIG[activeType].label}</span>}
+          </span>
+          {(search || activeType !== "all" || activeCategory !== "All" || priceFilter !== "all") && (
+            <button className="flex items-center gap-1 text-primary hover:underline ml-2"
+              onClick={() => { setSearch(""); setActiveType("all"); setActiveCategory("All"); setPriceFilter("all"); }}>
+              <X className="w-3 h-3" />Clear filters
+            </button>
+          )}
+        </div>
+
+        {/* ══ CONTENT ══════════════════════════════════════════════════════ */}
+        {loading ? (
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+            {Array.from({ length: 10 }).map((_, i) => <Card key={i} className="h-48 animate-pulse bg-secondary/20" />)}
           </div>
-          <div className="ml-auto flex items-center gap-2 flex-wrap">
-            <span className="text-xs text-muted-foreground">{t('price')}:</span>
-            {(["all","free","paid"] as const).map(p=>(
-              <Button key={p} size="sm" variant={priceFilter===p?"default":"outline"} className="h-7 text-xs" onClick={()=>setPriceFilter(p)}>
-                {p==="all"?t('all_notifications'):p==="free"?t('free_app'):t('paid_app')}
-              </Button>
+        ) : filtered.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-24 text-center">
+            <Store className="w-16 h-16 text-muted-foreground/20 mb-4" />
+            <p className="text-muted-foreground text-sm mb-1">
+              {listings.length === 0 ? "No listings available yet" : "No listings match your filters"}
+            </p>
+            <p className="text-xs text-muted-foreground mb-4">
+              {listings.length === 0 ? "Be the first to list a product or service" : "Try adjusting your search or filters"}
+            </p>
+            <button className="text-primary text-sm flex items-center gap-1 hover:underline" onClick={() => setShowRequest(true)}>
+              Request a listing <ChevronRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        ) : viewGrid ? (
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+            {filtered.map((item) => renderCard(item))}
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {filtered.map((item) => (
+              <ListingRow key={item.id} item={item} onDetails={setDetailItem} onWishlist={handleWishlist} wishlisted={wishlist.includes(item.id)} />
             ))}
-            <select value={sort} onChange={e=>setSort(e.target.value as any)} className="h-7 text-xs bg-secondary border border-border rounded-md px-2 focus:outline-none focus:ring-1 focus:ring-primary/50">
-              <option value="featured">Featured</option>
-              <option value="rating">Top Rated</option>
-              <option value="installs">Most Installed</option>
-              <option value="newest">Newest</option>
-            </select>
           </div>
-        </div>
-
-        {/* ── Main Tabs ── */}
-        <Tabs value={tab} onValueChange={setTab}>
-          <TabsList className="mb-4">
-            <TabsTrigger value="all" className="text-xs">{t('all_apps')} ({apps.length})</TabsTrigger>
-            <TabsTrigger value="featured" className="text-xs">{t('featured')} ({apps.filter(a=>a.featured).length})</TabsTrigger>
-            <TabsTrigger value="installed" className="text-xs">{t('installed')} ({installed.size})</TabsTrigger>
-          </TabsList>
-          {["all","featured","installed"].map(tabKey=>(
-            <TabsContent key={tabKey} value={tabKey}>
-              {loading ? (
-                <div className={grid?"grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4":"space-y-3"}>
-                  {Array.from({length:8}).map((_,i)=>(
-                    <Card key={i} className="p-5 animate-pulse">
-                      <div className="h-10 w-10 bg-secondary rounded mb-3"/><div className="h-4 bg-secondary rounded w-3/4 mb-2"/><div className="h-3 bg-secondary rounded w-full mb-1"/><div className="h-3 bg-secondary rounded w-5/6"/>
-                    </Card>
-                  ))}
-                </div>
-              ) : filtered.length === 0 ? (
-                <div className="text-center py-20">
-                  <Store className="w-12 h-12 mx-auto mb-4 text-muted-foreground opacity-30"/>
-                  <p className="text-muted-foreground">{tab==="installed"?t('no_apps_installed'):t('no_apps_match')}</p>
-                  {tab!=="installed"&&<Button variant="link" className="mt-2" onClick={()=>setRequestOpen(true)}>{t('request_new_app_btn')} <ChevronRight className="w-3.5 h-3.5"/></Button>}
-                </div>
-              ) : (
-                <div className={grid?"grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4":"space-y-3"}>
-                  {filtered.map(app=>(
-                    <AppCard key={app.id} app={app} isInstalled={installed.has(app.id)} onInstall={install} onDetails={setDetailApp} grid={grid}/>
-                  ))}
-                </div>
-              )}
-            </TabsContent>
-          ))}
-        </Tabs>
-
-        {/* ── Empty marketplace ── */}
-        {!loading && apps.length === 0 && (
-          <Card className="p-12 text-center border-dashed">
-            <Store className="w-16 h-16 mx-auto mb-4 text-primary/30"/>
-            <h3 className="font-display text-lg text-primary mb-2">Marketplace Coming Soon</h3>
-            <p className="text-sm text-muted-foreground mb-4">Apps will appear here once published. You can request apps to be added.</p>
-            <Button onClick={()=>setRequestOpen(true)} className="gap-2"><Sparkles className="w-4 h-4"/>Request an App</Button>
-          </Card>
         )}
-
-        {/* ── Info footer ── */}
-        <div className="flex items-start gap-2 p-4 bg-secondary/30 rounded-lg text-xs text-muted-foreground">
-          <Info className="w-4 h-4 shrink-0 mt-0.5 text-blue-400"/>
-          <p>All apps are verified for security and compatibility. Installed apps may request access to your brand data. You can uninstall any app at any time. For enterprise integrations, <button className="text-primary underline" onClick={()=>setRequestOpen(true)}>contact us</button>.</p>
-        </div>
       </div>
 
-      <AppDetailDialog app={detailApp} open={!!detailApp} onClose={()=>setDetailApp(null)} isInstalled={detailApp?installed.has(detailApp.id):false} onInstall={install}/>
-      <RequestAppDialog open={requestOpen} onClose={()=>setRequestOpen(false)}/>
+      {/* ══ DIALOGS ══════════════════════════════════════════════════════════ */}
+      <ListingDetailDialog
+        item={detailItem} open={!!detailItem} onClose={() => setDetailItem(null)}
+        onPurchase={handlePurchase}
+        isPurchased={detailItem ? purchased.includes(detailItem.id) : false}
+        onWishlist={handleWishlist}
+        wishlisted={detailItem ? wishlist.includes(detailItem.id) : false}
+      />
+      <RequestListingDialog open={showRequest} onClose={() => setShowRequest(false)} />
     </div>
   );
 }
