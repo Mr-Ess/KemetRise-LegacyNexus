@@ -420,6 +420,10 @@ function MallManagerDrawer({ onClose, currentUserId }: { onClose: () => void; cu
   const [loading, setLoading] = useState(false);
   const [storeSearch, setStoreSearch] = useState("");
   const [storeStatus, setStoreStatus] = useState("all");
+  const [editStore, setEditStore] = useState<MallStore | null>(null);
+  const [editForm, setEditForm] = useState({ name:"", description:"", floor_id:"", owner_name:"", contact_email:"", contact_phone:"", website_url:"", cover_color:"violet", status:"active" });
+  const [editLoading, setEditLoading] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState<MallStore | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -490,6 +494,58 @@ function MallManagerDrawer({ onClose, currentUserId }: { onClose: () => void; cu
   const deleteProduct = async (id: string) => {
     await db.from("mall_products").delete().eq("id", id);
     load(); toast.success("Product removed");
+  };
+
+  const openEdit = (s: MallStore) => {
+    setEditStore(s);
+    setEditForm({
+      name: s.name || "",
+      description: (s as any).description || "",
+      floor_id: s.floor_id || "",
+      owner_name: s.owner_name || "",
+      contact_email: s.contact_email || "",
+      contact_phone: (s as any).contact_phone || "",
+      website_url: (s as any).website_url || "",
+      cover_color: s.cover_color || "violet",
+      status: s.status || "active",
+    });
+  };
+
+  const saveEdit = async () => {
+    if (!editStore) return;
+    setEditLoading(true);
+    const { error } = await db.from("mall_stores").update({
+      name: editForm.name.trim(),
+      description: editForm.description.trim(),
+      floor_id: editForm.floor_id && !editForm.floor_id.startsWith("seed-") ? editForm.floor_id : null,
+      owner_name: editForm.owner_name.trim(),
+      contact_email: editForm.contact_email.trim() || null,
+      contact_phone: editForm.contact_phone.trim() || null,
+      website_url: editForm.website_url.trim() || null,
+      cover_color: editForm.cover_color,
+      status: editForm.status,
+      is_active: editForm.status === "active",
+    }).eq("id", editStore.id);
+    setEditLoading(false);
+    if (error) { toast.error(error.message); return; }
+    toast.success(`"${editForm.name}" updated`);
+    setEditStore(null);
+    load();
+  };
+
+  const deleteStore = async (s: MallStore) => {
+    const { error } = await db.from("mall_stores").delete().eq("id", s.id);
+    if (error) { toast.error(error.message); return; }
+    setDeleteConfirm(null);
+    toast.success(`"${s.name}" deleted`);
+    load();
+  };
+
+  const suspendToggle = async (s: MallStore) => {
+    const newStatus = s.status === "suspended" ? "active" : "suspended";
+    await db.from("mall_stores").update({ status: newStatus, is_active: newStatus === "active" }).eq("id", s.id);
+    toast.success(`"${s.name}" ${newStatus === "suspended" ? "suspended" : "reactivated"}`);
+    load();
   };
 
   const filteredStores = useMemo(() => {
@@ -640,11 +696,9 @@ function MallManagerDrawer({ onClose, currentUserId }: { onClose: () => void; cu
                               </td>
                               <td className="py-2.5 text-muted-foreground pr-2 max-w-28 truncate">{s.owner_name || "—"}</td>
                               <td className="py-2.5 pr-2">
-                                <button onClick={() => toggleStore(s)}>
-                                  <Badge className={`text-[9px] px-1.5 py-0 cursor-pointer ${s.is_active && s.status === "active" ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/40" : "bg-secondary text-muted-foreground"}`}>
-                                    {s.is_active ? s.status : "Hidden"}
-                                  </Badge>
-                                </button>
+                                <Badge className={`text-[9px] px-1.5 py-0 ${s.is_active && s.status === "active" ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/40" : s.status === "suspended" ? "bg-amber-500/20 text-amber-400 border-amber-500/40" : "bg-secondary text-muted-foreground"}`}>
+                                  {s.is_active ? s.status : "hidden"}
+                                </Badge>
                               </td>
                               <td className="py-2.5 pr-2">
                                 <button onClick={() => toggleFeatured(s)}>
@@ -653,17 +707,24 @@ function MallManagerDrawer({ onClose, currentUserId }: { onClose: () => void; cu
                                   </Badge>
                                 </button>
                               </td>
-                              <td className="py-2.5 pr-2">
-                                <button onClick={() => toggleVerified(s)}>
-                                  <Badge className={`text-[9px] px-1.5 py-0 cursor-pointer ${s.is_verified ? "bg-blue-500/20 text-blue-400 border-blue-500/40" : "bg-secondary text-muted-foreground border-border/40"}`}>
-                                    {s.is_verified ? "✓ Yes" : "No"}
-                                  </Badge>
-                                </button>
-                              </td>
                               <td className="py-2.5 text-right">
-                                <button className="p-1.5 rounded hover:bg-red-500/10 text-muted-foreground hover:text-red-400" title="Suspend" onClick={() => { db.from("mall_stores").update({ status: s.status === "suspended" ? "active" : "suspended" }).eq("id", s.id); load(); }}>
-                                  {s.status === "suspended" ? <CheckCircle2 className="w-3 h-3" /> : <XCircle className="w-3 h-3" />}
-                                </button>
+                                <div className="flex items-center justify-end gap-1">
+                                  {/* Suspend / Resume */}
+                                  <button onClick={() => suspendToggle(s)} title={s.status === "suspended" ? "Resume store" : "Suspend store"}
+                                    className={`p-1.5 rounded-lg transition-colors ${s.status === "suspended" ? "bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400" : "bg-amber-500/15 hover:bg-amber-500/25 text-amber-400"}`}>
+                                    {s.status === "suspended" ? <CheckCircle2 className="w-3.5 h-3.5" /> : <Clock className="w-3.5 h-3.5" />}
+                                  </button>
+                                  {/* Edit */}
+                                  <button onClick={() => openEdit(s)} title="Edit store"
+                                    className="p-1.5 rounded-lg bg-blue-500/15 hover:bg-blue-500/25 text-blue-400 transition-colors">
+                                    <Pencil className="w-3.5 h-3.5" />
+                                  </button>
+                                  {/* Delete */}
+                                  <button onClick={() => setDeleteConfirm(s)} title="Delete store"
+                                    className="p-1.5 rounded-lg bg-red-500/15 hover:bg-red-500/25 text-red-400 transition-colors">
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
                               </td>
                             </tr>
                           );
@@ -830,6 +891,90 @@ function MallManagerDrawer({ onClose, currentUserId }: { onClose: () => void; cu
           </div>
         </div>
       </div>
+
+      {/* ── Edit Store Dialog ─────────────────────────────────────── */}
+      <Dialog open={!!editStore} onOpenChange={(v) => !v && setEditStore(null)}>
+        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><Pencil className="w-4 h-4 text-primary" />Edit Store</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-1">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="col-span-2">
+                <Label className="text-xs mb-1.5 block">Store Name *</Label>
+                <Input className="h-8 text-sm" value={editForm.name} onChange={(e) => setEditForm((f) => ({ ...f, name: e.target.value }))} />
+              </div>
+              <div className="col-span-2">
+                <Label className="text-xs mb-1.5 block">Description</Label>
+                <Textarea className="text-sm resize-none" rows={2} value={editForm.description} onChange={(e) => setEditForm((f) => ({ ...f, description: e.target.value }))} />
+              </div>
+              <div className="col-span-2">
+                <Label className="text-xs mb-1.5 block">Floor / Category</Label>
+                <Select value={editForm.floor_id} onValueChange={(v) => setEditForm((f) => ({ ...f, floor_id: v }))}>
+                  <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Select floor" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">— None —</SelectItem>
+                    {floors.map((fl) => <SelectItem key={fl.id} value={fl.id}>{fl.icon} {fl.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-xs mb-1.5 block">Owner Name</Label>
+                <Input className="h-8 text-sm" value={editForm.owner_name} onChange={(e) => setEditForm((f) => ({ ...f, owner_name: e.target.value }))} />
+              </div>
+              <div>
+                <Label className="text-xs mb-1.5 block">Status</Label>
+                <Select value={editForm.status} onValueChange={(v) => setEditForm((f) => ({ ...f, status: v }))}>
+                  <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="pending">Pending</SelectItem>
+                    <SelectItem value="suspended">Suspended</SelectItem>
+                    <SelectItem value="rejected">Rejected</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-xs mb-1.5 block">Email</Label>
+                <Input className="h-8 text-sm" type="email" value={editForm.contact_email} onChange={(e) => setEditForm((f) => ({ ...f, contact_email: e.target.value }))} />
+              </div>
+              <div>
+                <Label className="text-xs mb-1.5 block">Phone</Label>
+                <Input className="h-8 text-sm" value={editForm.contact_phone} onChange={(e) => setEditForm((f) => ({ ...f, contact_phone: e.target.value }))} />
+              </div>
+              <div className="col-span-2">
+                <Label className="text-xs mb-1.5 block">Website</Label>
+                <Input className="h-8 text-sm" value={editForm.website_url} onChange={(e) => setEditForm((f) => ({ ...f, website_url: e.target.value }))} />
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={() => setEditStore(null)}>Cancel</Button>
+            <Button size="sm" onClick={saveEdit} disabled={editLoading} className="gap-1.5">
+              {editLoading ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Delete Confirm Dialog ────────────────────────────────── */}
+      <Dialog open={!!deleteConfirm} onOpenChange={(v) => !v && setDeleteConfirm(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive"><Trash2 className="w-4 h-4" />Delete Store</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground py-2">
+            Are you sure you want to delete <span className="font-semibold text-foreground">"{deleteConfirm?.name}"</span>? This action cannot be undone and will remove all associated data.
+          </p>
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={() => setDeleteConfirm(null)}>Cancel</Button>
+            <Button variant="destructive" size="sm" onClick={() => deleteConfirm && deleteStore(deleteConfirm)} className="gap-1.5">
+              <Trash2 className="w-3.5 h-3.5" />Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
