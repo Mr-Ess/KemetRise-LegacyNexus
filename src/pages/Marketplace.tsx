@@ -5,8 +5,9 @@ import {
   Download, Check, Heart, Grid3X3, List, Sparkles,
   ShoppingCart, Clock, RefreshCw, X, ChevronRight,
   Monitor, Box, Wrench, Repeat, Tag, Users,
-  SlidersHorizontal, Truck, Plus,
+  SlidersHorizontal, Truck, Plus, Pencil, Trash2, Settings,
 } from "lucide-react";
+import ManagementPanel, { DeleteConfirmDialog, type MpCategory } from "@/components/marketplace/MarketplaceManager";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
@@ -611,6 +612,17 @@ export default function Marketplace() {
   const [detailItem, setDetailItem] = useState<Listing | null>(null);
   const [showRequest, setShowRequest] = useState(false);
 
+  // Management mode
+  const [isManageMode, setIsManageMode] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [categories, setCategories] = useState<MpCategory[]>([]);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+
+  const loadCategories = async () => {
+    const { data } = await (db as any).from("mp_categories").select("*").order("sort_order,name");
+    setCategories(data || []);
+  };
+
   const load = async () => {
     setLoading(true);
     try {
@@ -627,7 +639,11 @@ export default function Marketplace() {
     finally { setLoading(false); }
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+    loadCategories();
+    supabase.auth.getUser().then(({ data: { user } }) => setCurrentUserId(user?.id ?? null));
+  }, []);
 
   const handleTypeChange = (type: "all" | ListingType) => {
     setActiveType(type);
@@ -697,14 +713,37 @@ export default function Marketplace() {
   }), [listings, purchased, wishlist]);
 
   const renderCard = (item: Listing) => {
-    const props = { key: item.id, item, onDetails: setDetailItem, onWishlist: handleWishlist, wishlisted: wishlist.includes(item.id) };
+    const cardProps = { item, onDetails: setDetailItem, onWishlist: handleWishlist, wishlisted: wishlist.includes(item.id) };
+    const isOwner = !!currentUserId && item.publisher_user_id === currentUserId;
+    let card: React.ReactNode;
     switch (item.listing_type) {
-      case "digital":      return <DigitalCard {...props} />;
-      case "physical":     return <PhysicalCard {...props} />;
-      case "service":      return <ServiceCard {...props} />;
-      case "subscription": return <SubscriptionCard {...props} />;
+      case "digital":      card = <DigitalCard {...cardProps} />; break;
+      case "physical":     card = <PhysicalCard {...cardProps} />; break;
+      case "service":      card = <ServiceCard {...cardProps} />; break;
+      case "subscription": card = <SubscriptionCard {...cardProps} />; break;
       default: return null;
     }
+    return (
+      <div key={item.id} className={isOwner ? "relative group/owner" : ""}>
+        {card}
+        {isOwner && (
+          <div className="absolute top-2 left-2 flex gap-1 opacity-0 group-hover/owner:opacity-100 transition-opacity z-20">
+            <button
+              title="Edit"
+              onClick={(e) => { e.stopPropagation(); /* handled via ManagementPanel */ setIsManageMode(true); }}
+              className="p-1.5 rounded-md bg-background/90 border border-border shadow-sm hover:bg-secondary text-muted-foreground hover:text-foreground">
+              <Pencil className="w-3 h-3" />
+            </button>
+            <button
+              title="Delete"
+              onClick={(e) => { e.stopPropagation(); setDeleteId(item.id); }}
+              className="p-1.5 rounded-md bg-background/90 border border-red-500/40 shadow-sm hover:bg-red-500/10 text-red-400">
+              <Trash2 className="w-3 h-3" />
+            </button>
+          </div>
+        )}
+      </div>
+    );
   };
 
   return (
@@ -740,12 +779,28 @@ export default function Marketplace() {
             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setViewGrid(!viewGrid)} title={viewGrid ? "List view" : "Grid view"}>
               {viewGrid ? <List className="w-3.5 h-3.5" /> : <Grid3X3 className="w-3.5 h-3.5" />}
             </Button>
-            <Button size="sm" className="gap-1.5 text-xs h-8 ml-1" onClick={() => setShowRequest(true)}>
+            <Button
+              size="sm" variant={isManageMode ? "default" : "outline"}
+              className={`gap-1.5 text-xs h-8 ml-1 ${isManageMode ? "" : ""}`}
+              onClick={() => setIsManageMode(!isManageMode)}
+            >
+              <Settings className="w-3.5 h-3.5" />{isManageMode ? "Exit Manager" : "Manage"}
+            </Button>
+            <Button size="sm" className="gap-1.5 text-xs h-8" onClick={() => setShowRequest(true)}>
               <Sparkles className="w-3.5 h-3.5" />Request Listing
             </Button>
           </div>
         </div>
       </header>
+
+      {/* ══ MANAGEMENT PANEL ═════════════════════════════════════════════ */}
+      {isManageMode && (
+        <ManagementPanel
+          currentUserId={currentUserId}
+          onListingChange={load}
+          onCategoryChange={loadCategories}
+        />
+      )}
 
       <div className="px-4 py-4 max-w-7xl mx-auto space-y-4">
         {/* ══ KPI STRIP ════════════════════════════════════════════════════ */}
@@ -903,6 +958,12 @@ export default function Marketplace() {
         wishlisted={detailItem ? wishlist.includes(detailItem.id) : false}
       />
       <RequestListingDialog open={showRequest} onClose={() => setShowRequest(false)} />
+      <DeleteConfirmDialog
+        open={!!deleteId}
+        onClose={() => setDeleteId(null)}
+        onConfirm={async () => { if (deleteId) { await (db as any).from("mp_listings").delete().eq("id", deleteId); setDeleteId(null); load(); } }}
+        name={listings.find((l) => l.id === deleteId)?.name || ""}
+      />
     </div>
   );
 }
