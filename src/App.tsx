@@ -72,6 +72,8 @@ const ArtisticProduction = lazy(() => import("./pages/ArtisticProduction.tsx"));
 const ImportExport = lazy(() => import("./pages/ImportExport.tsx"));
 
 const FinanceAnalytics = lazy(() => import("./pages/FinanceAnalytics.tsx"));
+const ERPCockpit = lazy(() => import("./pages/ERPCockpit.tsx"));
+import { ERPProvider } from "@/context/ERPContext";
 
 const AffiliatedAgents = lazy(() => import("./pages/AffiliatedAgents.tsx"));
 const NotificationRules = lazy(() => import("./pages/NotificationRules.tsx"));
@@ -122,6 +124,7 @@ const App = () => (
                 <Route path="/accept-invite/:token" element={<AcceptInvite />} />
                 <Route path="/b/:id" element={<PublicBrand />} />
                 <Route path="/" element={<Protected><Index /></Protected>} />
+                <Route path="/erp" element={<Protected><ERPProvider><ERPCockpit /></ERPProvider></Protected>} />
                 <Route path="/brands" element={<Protected><BrandsHub /></Protected>} />
                 <Route path="/brands/add" element={<Navigate to="/brands" replace />} />
                 <Route path="/brands/:id" element={<Navigate to="/brands" replace />} />

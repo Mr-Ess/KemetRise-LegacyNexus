@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { ArrowLeft, Plus, Edit, Trash2, Building2, Users, Bot, Clock, X, Globe, Paperclip } from "lucide-react";
+import { ArrowLeft, Plus, Edit, Trash2, Building2, Users, Bot, Clock, X, Globe, Paperclip, CalendarDays } from "lucide-react";
 import { useEntities } from "@/hooks/useEntities";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,6 +23,9 @@ type AttachmentFile = { id: string; name: string; label: string };
 type SocialAccount = { id: string; platform: string; url: string };
 type SocialLinks = { website: string; facebook: string; instagram: string; twitter: string; linkedin: string; tiktok: string; youtube: string };
 type TeamMemberEntry = { id: string; name: string; position: string; isAI: boolean; contacts: ContactEntry[] };
+type ScheduleShift = { id: string; name: string; start: string; end: string; days: string[] };
+type HolidayEntry = { id: string; name: string; date: string; recurring: boolean; note: string };
+type WorkSchedule = { workingDays: string[]; openTime: string; closeTime: string; scheduleShifts: ScheduleShift[]; holidays: HolidayEntry[] };
 
 type Branch = {
   id: string; name: string; type: string; brandId?: string | null;
@@ -36,6 +39,7 @@ const defaultBranchTypes = ["Main", "Sub-branch", "Warehouse", "Data Center", "O
 const typeColors: Record<string, string> = { Main: "bg-primary/20 text-primary", "Sub-branch": "bg-nile/20 text-nile", Warehouse: "bg-scarab/20 text-scarab", "Data Center": "bg-blood-red/20 text-blood-red", Office: "bg-muted text-muted-foreground" };
 const statusToDb = (s: string) => s === "Active" ? "active" : s === "Maintenance" ? "maintenance" : "inactive";
 const emptySocialLinks: SocialLinks = { website: "", facebook: "", instagram: "", twitter: "", linkedin: "", tiktok: "", youtube: "" };
+const emptySchedule = (): WorkSchedule => ({ workingDays: ["Mon","Tue","Wed","Thu","Fri"], openTime: "09:00", closeTime: "17:00", scheduleShifts: [], holidays: [] });
 
 const Branches = () => {
   const navigate = useNavigate();
@@ -72,9 +76,10 @@ const Branches = () => {
   const [socialAccounts, setSocialAccounts] = useState<SocialAccount[]>([]);
   const [socialLinks, setSocialLinks] = useState<SocialLinks>(emptySocialLinks);
   const [teamDetails, setTeamDetails] = useState<TeamMemberEntry[]>([]);
+  const [schedule, setSchedule] = useState<WorkSchedule>(emptySchedule());
 
-  const resetForm = () => { setForm(empty()); setContacts([]); setExtraAttachments([]); setSocialAccounts([]); setSocialLinks(emptySocialLinks); setTeamDetails([]); setEditId(null); };
-  const openEdit = (b: Branch) => { const { id, ...rest } = b; setForm(rest); setContacts((b as any).contacts || []); setExtraAttachments((b as any).extraAttachments || []); setSocialAccounts((b as any).socialAccounts || []); setSocialLinks((b as any).socialLinks || emptySocialLinks); setTeamDetails((b as any).teamDetails || []); setEditId(b.id); setShowForm(true); };
+  const resetForm = () => { setForm(empty()); setContacts([]); setExtraAttachments([]); setSocialAccounts([]); setSocialLinks(emptySocialLinks); setTeamDetails([]); setSchedule(emptySchedule()); setEditId(null); };
+  const openEdit = (b: Branch) => { const { id, ...rest } = b; setForm(rest); setContacts((b as any).contacts || []); setExtraAttachments((b as any).extraAttachments || []); setSocialAccounts((b as any).socialAccounts || []); setSocialLinks((b as any).socialLinks || emptySocialLinks); setTeamDetails((b as any).teamDetails || []); setSchedule((b as any).schedule || emptySchedule()); setEditId(b.id); setShowForm(true); };
 
   const handleSubmit = async () => {
     if (!form.name.trim()) { toast.error("Name required"); return; }
@@ -89,7 +94,7 @@ const Branches = () => {
       responsible_person: form.responsiblePerson  || null,
       shifts:             form.shifts             || [],
       ai_tasks:           form.aiTasks            || null,
-      data:               { ...form, contacts, extraAttachments, socialAccounts, socialLinks, teamDetails },
+      data:               { ...form, contacts, extraAttachments, socialAccounts, socialLinks, teamDetails, schedule },
     };
     if (editId) { await update(editId, payload); toast.success("Branch updated"); }
     else { await create(payload); toast.success("Branch added"); }
@@ -303,6 +308,70 @@ const Branches = () => {
                 </div>
               ))}
             </div>
+            {/* Schedule & Working Hours */}
+            <div className="flex items-center gap-2 pb-1.5 border-b border-border mb-3 mt-5"><CalendarDays className="w-3.5 h-3.5 text-primary"/><span className="font-display text-[11px] tracking-wider text-primary uppercase">Schedule & Working Hours</span></div>
+            {/* Working Days */}
+            <div className="mb-3">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2">Working Days</p>
+              <div className="flex flex-wrap gap-1.5">
+                {["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].map(day => (
+                  <button key={day} type="button" onClick={() => setSchedule(p => ({ ...p, workingDays: p.workingDays.includes(day) ? p.workingDays.filter(d => d !== day) : [...p.workingDays, day] }))}
+                    className={`px-2.5 py-1 rounded text-[11px] font-display transition-colors ${schedule.workingDays.includes(day) ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground border border-border"}`}>{day}</button>
+                ))}
+              </div>
+            </div>
+            {/* Open / Close Times */}
+            <div className="grid grid-cols-2 gap-3 mb-3">
+              <div><Label className="text-xs">Opens At</Label><Input type="time" value={schedule.openTime} onChange={e => setSchedule(p => ({...p, openTime: e.target.value}))} className="mt-1 bg-secondary border-border text-xs"/></div>
+              <div><Label className="text-xs">Closes At</Label><Input type="time" value={schedule.closeTime} onChange={e => setSchedule(p => ({...p, closeTime: e.target.value}))} className="mt-1 bg-secondary border-border text-xs"/></div>
+            </div>
+            {/* Schedule Shifts */}
+            <div className="mb-3">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Shifts</p>
+                <Button type="button" variant="ghost" size="sm" onClick={() => setSchedule(p => ({ ...p, scheduleShifts: [...p.scheduleShifts, { id: crypto.randomUUID(), name: "", start: "09:00", end: "17:00", days: [] }] }))} className="h-6 text-[11px] gap-1 text-muted-foreground hover:text-foreground"><Plus className="w-3 h-3"/>Add Shift</Button>
+              </div>
+              {schedule.scheduleShifts.map((sh, i) => (
+                <div key={sh.id} className="p-2.5 bg-secondary/50 rounded border border-border mb-2">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Input value={sh.name} onChange={e => setSchedule(p => ({ ...p, scheduleShifts: p.scheduleShifts.map((s, si) => si === i ? { ...s, name: e.target.value } : s) }))} placeholder="Shift name…" className="flex-1 h-7 text-xs bg-secondary border-border"/>
+                    <Input type="time" value={sh.start} onChange={e => setSchedule(p => ({ ...p, scheduleShifts: p.scheduleShifts.map((s, si) => si === i ? { ...s, start: e.target.value } : s) }))} className="w-24 h-7 text-xs bg-secondary border-border"/>
+                    <span className="text-muted-foreground text-xs">→</span>
+                    <Input type="time" value={sh.end} onChange={e => setSchedule(p => ({ ...p, scheduleShifts: p.scheduleShifts.map((s, si) => si === i ? { ...s, end: e.target.value } : s) }))} className="w-24 h-7 text-xs bg-secondary border-border"/>
+                    <button type="button" onClick={() => setSchedule(p => ({ ...p, scheduleShifts: p.scheduleShifts.filter((_, si) => si !== i) }))} className="text-destructive p-0.5 hover:bg-destructive/10 rounded shrink-0"><X className="w-3 h-3"/></button>
+                  </div>
+                  <div className="flex flex-wrap gap-1">
+                    {["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].map(day => (
+                      <button key={day} type="button" onClick={() => setSchedule(p => ({ ...p, scheduleShifts: p.scheduleShifts.map((s, si) => si === i ? { ...s, days: s.days.includes(day) ? s.days.filter(d => d !== day) : [...s.days, day] } : s) }))}
+                        className={`px-1.5 py-0.5 rounded text-[10px] font-display transition-colors ${sh.days.includes(day) ? "bg-primary/80 text-primary-foreground" : "bg-secondary text-muted-foreground border border-border"}`}>{day}</button>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+            {/* Holidays & Closures */}
+            <div className="mb-3">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Holidays & Closures</p>
+                <Button type="button" variant="ghost" size="sm" onClick={() => setSchedule(p => ({ ...p, holidays: [...p.holidays, { id: crypto.randomUUID(), name: "", date: "", recurring: false, note: "" }] }))} className="h-6 text-[11px] gap-1 text-muted-foreground hover:text-foreground"><Plus className="w-3 h-3"/>Add Holiday</Button>
+              </div>
+              {schedule.holidays.map((h, i) => (
+                <div key={h.id} className="p-2.5 bg-secondary/50 rounded border border-border mb-2">
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <Input value={h.name} onChange={e => setSchedule(p => ({ ...p, holidays: p.holidays.map((hx, hi) => hi === i ? { ...hx, name: e.target.value } : hx) }))} placeholder="Holiday name…" className="flex-1 h-7 text-xs bg-secondary border-border"/>
+                    <Input type="date" value={h.date} onChange={e => setSchedule(p => ({ ...p, holidays: p.holidays.map((hx, hi) => hi === i ? { ...hx, date: e.target.value } : hx) }))} className="w-36 h-7 text-xs bg-secondary border-border"/>
+                    <button type="button" onClick={() => setSchedule(p => ({ ...p, holidays: p.holidays.filter((_, hi) => hi !== i) }))} className="text-destructive p-0.5 hover:bg-destructive/10 rounded shrink-0"><X className="w-3 h-3"/></button>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <label className="flex items-center gap-1.5 cursor-pointer shrink-0">
+                      <input type="checkbox" checked={h.recurring} onChange={e => setSchedule(p => ({ ...p, holidays: p.holidays.map((hx, hi) => hi === i ? { ...hx, recurring: e.target.checked } : hx) }))} className="w-3 h-3 accent-primary"/>
+                      <span className="text-[10px] text-muted-foreground">Yearly recurring</span>
+                    </label>
+                    <Input value={h.note} onChange={e => setSchedule(p => ({ ...p, holidays: p.holidays.map((hx, hi) => hi === i ? { ...hx, note: e.target.value } : hx) }))} placeholder="Note…" className="flex-1 h-7 text-xs bg-secondary border-border"/>
+                  </div>
+                </div>
+              ))}
+            </div>
             {/* Extra Attachments */}
             <div className="flex items-center gap-2 pb-1.5 border-b border-border mb-3 mt-5"><Paperclip className="w-3.5 h-3.5 text-primary"/><span className="font-display text-[11px] tracking-wider text-primary uppercase">Extra Attachments</span></div>
             <div className="space-y-2">
@@ -381,6 +450,42 @@ const Branches = () => {
                         <span className="text-foreground">{a.name}</span>
                       </div>
                     ))}
+                  </div>
+                )}
+                {((detail as any).schedule) && (
+                  <div className="space-y-2 border-t border-border pt-2">
+                    <p className="text-[10px] font-display text-muted-foreground uppercase tracking-wider">Schedule & Working Hours</p>
+                    {(detail as any).schedule.workingDays?.length > 0 && (
+                      <div className="flex flex-wrap gap-1">
+                        {(detail as any).schedule.workingDays.map((d: string) => <span key={d} className="px-2 py-0.5 rounded bg-primary/20 text-primary text-[10px] font-display">{d}</span>)}
+                        {((detail as any).schedule.openTime || (detail as any).schedule.closeTime) && <span className="text-[10px] text-muted-foreground self-center ml-1">· {(detail as any).schedule.openTime} → {(detail as any).schedule.closeTime}</span>}
+                      </div>
+                    )}
+                    {(detail as any).schedule.scheduleShifts?.length > 0 && (
+                      <div className="space-y-1">
+                        <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Shifts</p>
+                        {(detail as any).schedule.scheduleShifts.map((sh: ScheduleShift) => (
+                          <div key={sh.id} className="flex items-center gap-2 bg-secondary/50 px-2 py-1 rounded text-[10px]">
+                            <span className="font-display text-foreground">{sh.name || "Shift"}</span>
+                            <span className="text-muted-foreground">{sh.start} → {sh.end}</span>
+                            {sh.days?.length > 0 && <div className="flex gap-0.5 ml-auto">{sh.days.map((d: string) => <span key={d} className="px-1 py-0.5 rounded bg-primary/10 text-primary text-[9px]">{d}</span>)}</div>}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {(detail as any).schedule.holidays?.length > 0 && (
+                      <div className="space-y-1">
+                        <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Holidays</p>
+                        {(detail as any).schedule.holidays.map((h: HolidayEntry) => (
+                          <div key={h.id} className="flex items-center gap-2 bg-secondary/50 px-2 py-1 rounded text-[10px]">
+                            <span className="text-foreground font-display">{h.name}</span>
+                            {h.date && <span className="text-muted-foreground">{h.date}</span>}
+                            {h.recurring && <span className="text-[9px] text-primary bg-primary/10 px-1.5 py-0.5 rounded">🔁 Yearly</span>}
+                            {h.note && <span className="text-muted-foreground truncate">{h.note}</span>}
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 )}
                 <EntityApiHub entityName={detail.name} ownerKind="branch" ownerId={detail.id} />

@@ -54,7 +54,7 @@ export default function SystemLogs() {
       // Fallback: login_history failed attempts + ip_whitelist violations
       const { data: hist } = await supabase.from("login_history").select("*").order("created_at", { ascending: false }).limit(200);
       setSecAlerts((hist || []).map((h: any) => ({
-        id: h.id, alert_type: "Login", description: `Login from ${h.ip_address || "unknown IP"} — ${h.device || "unknown device"}`,
+        id: h.id, alert_type: "Login", description: `Login from ${h.ip_address || "unknown IP"} ? ${h.device || "unknown device"}`,
         ip_address: h.ip_address, severity: "info", resolved: false, created_at: h.created_at,
       })));
     } catch { setSecAlerts([]); } finally { setSecLoading(false); }
@@ -71,10 +71,10 @@ export default function SystemLogs() {
     try {
       let data: any[] = [];
       const { data: wh } = await supabase.from("webhook_deliveries").select("*").order("created_at", { ascending: false }).limit(500);
-      if (wh?.length) data = wh.map((w: any) => ({ ...w, source: "webhook", description: `${w.event_type||"event"} ? ${w.endpoint_url||"—"}` }));
+      if (wh?.length) data = wh.map((w: any) => ({ ...w, source: "webhook", description: `${w.event_type||"event"} ? ${w.endpoint_url||"?"}` }));
       else {
         const { data: api } = await supabase.from("api_request_logs").select("*").order("created_at", { ascending: false }).limit(500);
-        if (api?.length) data = api.map((r: any) => ({ ...r, source: "api", description: `${r.method||"GET"} ${r.path||"—"}` }));
+        if (api?.length) data = api.map((r: any) => ({ ...r, source: "api", description: `${r.method||"GET"} ${r.path||"?"}` }));
       }
       setIntegLogs(data);
     } catch { setIntegLogs([]); } finally { setIntegLoading(false); }
@@ -97,7 +97,7 @@ export default function SystemLogs() {
   const loadAgentLogs = async () => {
     setAgentLoading(true);
     try {
-      // 1. Try RPC that bypasses RLS (SECURITY DEFINER — all rows regardless of user_id)
+      // 1. Try RPC that bypasses RLS (SECURITY DEFINER ? all rows regardless of user_id)
       let data: any[] = [];
       const { data: rpcData, error: rpcErr } = await supabase.rpc("get_all_agent_logs", { p_limit: 500 });
       if (!rpcErr && rpcData?.length) {
@@ -136,7 +136,7 @@ export default function SystemLogs() {
               id: m.id,
               agent_code: (m.metadata?.agent_id || m.metadata?.agentId || "AI-AGENT").toString().toUpperCase(),
               agent_name: m.metadata?.agent_name || m.metadata?.agentName || "AI Agent",
-              action_taken: m.content?.slice(0, 200) || "—",
+              action_taken: m.content?.slice(0, 200) || "?",
               status: "completed",
               task_id: m.conversation_id,
               error_message: null,
@@ -150,7 +150,7 @@ export default function SystemLogs() {
       // Normalize nulls for display
       setAgentLogs((data || []).map((r: any) => ({
         ...r,
-        action_taken: r.action_taken || r.log_details?.action || r.log_details?.message || "—",
+        action_taken: r.action_taken || r.log_details?.action || r.log_details?.message || "?",
         agent_name: r.agent_name || r.agent_code || "Agent",
         status: r.status || "completed",
       })));
@@ -168,7 +168,7 @@ export default function SystemLogs() {
       // Try user_sessions first
       let data = await tenantDb.select("user_sessions", { eq: { revoked: false }, orderBy: "last_active", ascending: false }) as any[];
       if (!data?.length) {
-        // Fallback: login_history — written on every login, read-only display
+        // Fallback: login_history ? written on every login, read-only display
         const { data: hist } = await supabase
           .from("login_history")
           .select("*")
@@ -329,7 +329,7 @@ export default function SystemLogs() {
             <div className="flex flex-wrap gap-2 items-center">
               <div className="relative flex-1 min-w-[200px]">
                 <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                <Input value={auditQ} onChange={e => setAuditQ(e.target.value)} placeholder="Search action, module, table…" className="pl-9" />
+                <Input value={auditQ} onChange={e => setAuditQ(e.target.value)} placeholder="Search action, module, table?" className="pl-9" />
               </div>
               {["all","info","warning","error"].map(l => (
                 <Button key={l} size="sm" variant={auditLevel === l ? "default" : "outline"} onClick={() => setAuditLevel(l)}>
@@ -365,7 +365,7 @@ export default function SystemLogs() {
                       <tr key={l.id} className="border-t border-border hover:bg-secondary/20">
                         <td className="p-3 text-xs text-muted-foreground whitespace-nowrap">{new Date(l.created_at).toLocaleString()}</td>
                         <td className="p-3"><Badge variant={l.level === "error" ? "destructive" : "outline"}>{l.level}</Badge></td>
-                        <td className="p-3 text-xs">{l.module || "—"}</td>
+                        <td className="p-3 text-xs">{l.module || "?"}</td>
                         <td className="p-3 text-xs font-mono">{l.table_name}</td>
                         <td className="p-3 text-xs">{l.action}</td>
                       </tr>
@@ -382,7 +382,7 @@ export default function SystemLogs() {
             <div className="flex flex-wrap gap-2 items-center">
               <div className="relative flex-1 min-w-[200px]">
                 <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                <Input value={agentQ} onChange={e => setAgentQ(e.target.value)} placeholder="Search agent, action…" className="pl-9" />
+                <Input value={agentQ} onChange={e => setAgentQ(e.target.value)} placeholder="Search agent, action?" className="pl-9" />
               </div>
               {["all","pending","running","completed","failed"].map(s => (
                 <Button key={s} size="sm" variant={agentStatus === s ? "default" : "outline"} onClick={() => setAgentStatus(s)}>
@@ -415,10 +415,10 @@ export default function SystemLogs() {
                         <td className="p-3 text-xs">{l.action_taken}</td>
                         <td className="p-3">
                           <Badge variant={l.status === "failed" ? "destructive" : l.status === "completed" ? "default" : "secondary"}>
-                            {l.status || "—"}
+                            {l.status || "?"}
                           </Badge>
                         </td>
-                        <td className="p-3 text-xs font-mono text-muted-foreground">{l.task_id?.slice(0,8) || "—"}</td>
+                        <td className="p-3 text-xs font-mono text-muted-foreground">{l.task_id?.slice(0,8) || "?"}</td>
                         <td className="p-3 text-xs text-destructive">{l.error_message || ""}</td>
                       </tr>
                     ))}
@@ -473,7 +473,7 @@ export default function SystemLogs() {
                           <Badge variant="outline" className="text-[10px]">{s.device || "Desktop"}</Badge>
                         </div>
                         <p className="text-xs text-muted-foreground mt-0.5">
-                          IP: {s.ip_address || "—"} · Last active: {s.last_active ? new Date(s.last_active).toLocaleString() : "—"}
+                          IP: {s.ip_address || "?"} ? Last active: {s.last_active ? new Date(s.last_active).toLocaleString() : "?"}
                         </p>
                         {s.location && <p className="text-xs text-muted-foreground">{s.location}</p>}
                       </div>
@@ -492,7 +492,7 @@ export default function SystemLogs() {
             <div className="flex flex-wrap gap-2 items-center">
               <div className="relative flex-1 min-w-[200px]">
                 <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                <Input value={errorQ} onChange={e => setErrorQ(e.target.value)} placeholder="Search errors…" className="pl-9" />
+                <Input value={errorQ} onChange={e => setErrorQ(e.target.value)} placeholder="Search errors?" className="pl-9" />
               </div>
               {["all","error","warning","info"].map(s => (
                 <Button key={s} size="sm" variant={errorSeverity===s?"default":"outline"} onClick={() => setErrorSeverity(s)}>
@@ -526,8 +526,8 @@ export default function SystemLogs() {
                             {l.severity||"error"}
                           </Badge>
                         </td>
-                        <td className="p-3 text-xs font-mono text-muted-foreground">{l.source||"—"}</td>
-                        <td className="p-3 text-xs max-w-[300px] truncate">{l.message||l.action||"—"}</td>
+                        <td className="p-3 text-xs font-mono text-muted-foreground">{l.source||"?"}</td>
+                        <td className="p-3 text-xs max-w-[300px] truncate">{l.message||l.action||"?"}</td>
                         <td className="p-3 text-xs font-mono text-destructive max-w-[200px] truncate" title={l.stack_trace}>{l.stack_trace?"[stack]":""}</td>
                       </tr>
                     ))}
@@ -543,7 +543,7 @@ export default function SystemLogs() {
             <div className="flex flex-wrap gap-2 items-center">
               <div className="relative flex-1 min-w-[200px]">
                 <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                <Input value={secQ} onChange={e => setSecQ(e.target.value)} placeholder="Search alerts, IP, type…" className="pl-9" />
+                <Input value={secQ} onChange={e => setSecQ(e.target.value)} placeholder="Search alerts, IP, type?" className="pl-9" />
               </div>
               {["all","critical","high","medium","low","info"].map(s => (
                 <Button key={s} size="sm" variant={secSeverity===s?"default":"outline"} onClick={() => setSecSeverity(s)}>
@@ -574,8 +574,8 @@ export default function SystemLogs() {
                       <tr key={l.id} className="border-t border-border hover:bg-secondary/20">
                         <td className="p-3 text-xs text-muted-foreground whitespace-nowrap">{new Date(l.created_at).toLocaleString()}</td>
                         <td className="p-3"><Badge variant="outline" className="text-[10px]">{l.alert_type||"Alert"}</Badge></td>
-                        <td className="p-3 text-xs max-w-[280px] truncate">{l.description||"—"}</td>
-                        <td className="p-3 text-xs font-mono text-muted-foreground">{l.ip_address||"—"}</td>
+                        <td className="p-3 text-xs max-w-[280px] truncate">{l.description||"?"}</td>
+                        <td className="p-3 text-xs font-mono text-muted-foreground">{l.ip_address||"?"}</td>
                         <td className="p-3">
                           <Badge variant={/critical|high/i.test(l.severity||"")?"destructive":/medium/i.test(l.severity||"")?"outline":"secondary"}
                             className={/medium/i.test(l.severity||"")?"border-amber-500 text-amber-400":""}>
@@ -599,7 +599,7 @@ export default function SystemLogs() {
             <div className="flex flex-wrap gap-2 items-center">
               <div className="relative flex-1 min-w-[200px]">
                 <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                <Input value={integQ} onChange={e => setIntegQ(e.target.value)} placeholder="Search endpoint, event, source…" className="pl-9" />
+                <Input value={integQ} onChange={e => setIntegQ(e.target.value)} placeholder="Search endpoint, event, source?" className="pl-9" />
               </div>
               {["all","200","201","400","404","500"].map(s => (
                 <Button key={s} size="sm" variant={integStatus===s?"default":"outline"} onClick={() => setIntegStatus(s)}>
@@ -633,13 +633,13 @@ export default function SystemLogs() {
                         <tr key={l.id} className="border-t border-border hover:bg-secondary/20">
                           <td className="p-3 text-xs text-muted-foreground whitespace-nowrap">{new Date(l.created_at).toLocaleString()}</td>
                           <td className="p-3"><Badge variant="outline" className="text-[10px]">{l.source||l.integration_type||"api"}</Badge></td>
-                          <td className="p-3 text-xs max-w-[280px] truncate">{l.description||l.endpoint_url||"—"}</td>
+                          <td className="p-3 text-xs max-w-[280px] truncate">{l.description||l.endpoint_url||"?"}</td>
                           <td className="p-3">
-                            <Badge variant={isOk?"default":"destructive"} className="text-[10px] font-mono">{code||"—"}</Badge>
+                            <Badge variant={isOk?"default":"destructive"} className="text-[10px] font-mono">{code||"?"}</Badge>
                           </td>
-                          <td className="p-3 text-xs text-muted-foreground">{l.duration_ms!=null?`${l.duration_ms}ms`:"—"}</td>
+                          <td className="p-3 text-xs text-muted-foreground">{l.duration_ms!=null?`${l.duration_ms}ms`:"?"}</td>
                           <td className="p-3 text-xs font-mono text-muted-foreground max-w-[120px] truncate" title={JSON.stringify(l.response_body)}>
-                            {l.response_body?JSON.stringify(l.response_body).slice(0,40)+"…":"—"}
+                            {l.response_body?JSON.stringify(l.response_body).slice(0,40)+"?":"?"}
                           </td>
                         </tr>
                       );

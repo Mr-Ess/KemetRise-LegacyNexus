@@ -106,6 +106,7 @@ const Settings = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
+  const { t } = useTranslation();
   const [activeSection, setActiveSection] = useState("profile");
 
   // Auto-navigate to section from query param (e.g. /settings?section=notifications)
