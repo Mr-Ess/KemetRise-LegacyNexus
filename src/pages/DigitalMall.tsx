@@ -410,7 +410,7 @@ function MallManagerDrawer({ onClose, currentUserId }: { onClose: () => void; cu
       db.from("mall_floors").select("*").order("sort_order"),
     ]);
     setStores(s || []); setProducts(p || []);
-    setApplications(a || []); setFloors(f || SEED_FLOORS as any);
+    setApplications(a || []); setFloors(f?.length ? f : SEED_FLOORS.map((s, i) => ({ ...s, id: `seed-${i}` })) as any);
     setLoading(false);
   };
   useEffect(() => { load(); }, []);
@@ -806,7 +806,7 @@ export default function DigitalMall() {
       db.from("mall_stores").select("*").eq("is_active", true).order("created_at", { ascending: false }),
       db.from("mall_products").select("*").eq("is_active", true).order("created_at", { ascending: false }),
     ]);
-    setFloors(f?.length ? f : SEED_FLOORS as any);
+    setFloors(f?.length ? f : SEED_FLOORS.map((s, i) => ({ ...s, id: `seed-${i}` })) as any);
     setStores(s || []);
     setProducts(p || []);
 
