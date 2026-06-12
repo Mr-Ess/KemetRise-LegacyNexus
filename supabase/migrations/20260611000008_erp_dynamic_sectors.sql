@@ -186,7 +186,7 @@ ALTER TABLE public.com_products ADD COLUMN IF NOT EXISTS
 -- ─── 6. HR EMPLOYEES table (if not exists from migration 004) ─────────────
 CREATE TABLE IF NOT EXISTS public.hr_employees (
   id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  tenant_id       uuid NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
+  tenant_id       uuid REFERENCES public.tenants(id) ON DELETE CASCADE,
   full_name       text NOT NULL,
   employee_code   text,
   department      text,
@@ -200,7 +200,10 @@ CREATE TABLE IF NOT EXISTS public.hr_employees (
   updated_at      timestamptz NOT NULL DEFAULT now()
 );
 
+-- Add tenant_id if it was missing from an earlier version of the table
+ALTER TABLE public.hr_employees ADD COLUMN IF NOT EXISTS tenant_id uuid REFERENCES public.tenants(id) ON DELETE CASCADE;
+
 ALTER TABLE public.hr_employees ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "hr_employees_all" ON public.hr_employees;
 CREATE POLICY "hr_employees_all" ON public.hr_employees
-  FOR ALL USING (tenant_id IN (SELECT public.get_user_tenant_ids()));
+  FOR ALL USING (tenant_id IS NULL OR tenant_id IN (SELECT public.get_user_tenant_ids()));
