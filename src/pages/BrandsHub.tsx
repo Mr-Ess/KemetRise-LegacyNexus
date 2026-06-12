@@ -9,7 +9,7 @@ import {
   Paperclip, ScrollText, ShieldCheck, Shield, Bot, Layers, Network, List, Play,
   RefreshCw, Copy, GitBranch, TrendingUp, Award, Activity, ChevronDown, ChevronUp,
   Code as CodeIcon, Webhook, Book, Zap, Chrome, Download, Check,
-  Share2, Gift, BarChart3, RotateCcw, Tag,
+  Share2, Gift, BarChart3, RotateCcw, Tag, CalendarDays,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -335,10 +335,9 @@ function EntityTab({ items, loading, create, update, remove, title, columns, fie
   const [legalDocs, setLegalDocs] = useState<AFile[]>([]);
   const [financialDocs, setFinancialDocs] = useState<AFile[]>([]);
   const [marketingPlans, setMarketingPlans] = useState<{id:string;title:string;description:string;attachments:{id:string;name:string;label:string}[]}[]>([]);
+  const emptyScheduleFn = () => ({ workingDays: ["Mon","Tue","Wed","Thu","Fri"] as string[], openTime: "09:00", closeTime: "17:00", scheduleShifts: [] as {id:string;name:string;start:string;end:string;days:string[]}[], holidays: [] as {id:string;name:string;date:string;recurring:boolean;note:string}[] });
+  const [schedule, setSchedule] = useState(emptyScheduleFn());
   const [q, setQ] = useState("");
-
-  const setDoc    = (key: keyof ReturnType<typeof emptyDocs>)    => (v: AFile[])       => setDocs(p => ({ ...p, [key]: v }));
-  const setPeople2 = (key: keyof ReturnType<typeof emptyPeople>) => (v: PersonEntry[]) => setPeople(p => ({ ...p, [key]: v }));
 
   const filtered = useMemo(() => {
     let list = activeBrandId
@@ -366,6 +365,7 @@ function EntityTab({ items, loading, create, update, remove, title, columns, fie
     setLegalDocs([]);
     setFinancialDocs([]);
     setMarketingPlans([]);
+    setSchedule(emptyScheduleFn());
     setOpen(true);
   };
   const openEdit = (row: any) => {
@@ -423,6 +423,7 @@ function EntityTab({ items, loading, create, update, remove, title, columns, fie
       legalDocs:        legalDocs.filter(d => d.name),
       financialDocs:    financialDocs.filter(d => d.name),
       marketingPlans:   marketingPlans.filter(m => m.title.trim()),
+      schedule,
     };
     if (!payload.name && !payload.agent_name) { toast.error("Name is required"); return; }
     if (editId) await update(editId, payload);
@@ -636,6 +637,70 @@ function EntityTab({ items, loading, create, update, remove, title, columns, fie
               ))}
               <Button type="button" variant="ghost" size="sm" onClick={() => setSocialAccounts(p => [...p, { id: crypto.randomUUID(), platform: "", url: "" }])} className="h-6 text-[11px] gap-1 text-muted-foreground hover:text-foreground"><Plus className="w-3 h-3"/>Add Account</Button>
             </div>
+
+
+            {/* Schedule & Working Hours — Branches only */}
+            {title === "Branches" && (<>
+            <div className="flex items-center gap-2 pb-1.5 border-b border-border mb-3 mt-5"><CalendarDays className="w-3.5 h-3.5 text-primary"/><span className="font-display text-[11px] tracking-wider text-primary uppercase">Schedule & Working Hours</span></div>
+            <div className="mb-3">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2">Working Days</p>
+              <div className="flex flex-wrap gap-1.5">
+                {["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].map(day => (
+                  <button key={day} type="button" onClick={() => setSchedule(p => ({ ...p, workingDays: p.workingDays.includes(day) ? p.workingDays.filter(d => d !== day) : [...p.workingDays, day] }))}
+                    className={`px-2.5 py-1 rounded text-[11px] font-display transition-colors ${schedule.workingDays.includes(day) ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground border border-border"}`}>{day}</button>
+                ))}
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3 mb-3">
+              <div><Label className="text-xs">Opens At</Label><Input type="time" value={schedule.openTime} onChange={e => setSchedule(p => ({...p, openTime: e.target.value}))} className="mt-1 bg-secondary border-border text-xs"/></div>
+              <div><Label className="text-xs">Closes At</Label><Input type="time" value={schedule.closeTime} onChange={e => setSchedule(p => ({...p, closeTime: e.target.value}))} className="mt-1 bg-secondary border-border text-xs"/></div>
+            </div>
+            <div className="mb-3">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Shifts</p>
+                <Button type="button" variant="ghost" size="sm" onClick={() => setSchedule(p => ({ ...p, scheduleShifts: [...p.scheduleShifts, { id: crypto.randomUUID(), name: "", start: "09:00", end: "17:00", days: [] }] }))} className="h-6 text-[11px] gap-1 text-muted-foreground hover:text-foreground"><Plus className="w-3 h-3"/>Add Shift</Button>
+              </div>
+              {schedule.scheduleShifts.map((sh, i) => (
+                <div key={sh.id} className="p-2.5 bg-secondary/50 rounded border border-border mb-2">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Input value={sh.name} onChange={e => setSchedule(p => ({ ...p, scheduleShifts: p.scheduleShifts.map((s, si) => si === i ? { ...s, name: e.target.value } : s) }))} placeholder="Shift name…" className="flex-1 h-7 text-xs bg-secondary border-border"/>
+                    <Input type="time" value={sh.start} onChange={e => setSchedule(p => ({ ...p, scheduleShifts: p.scheduleShifts.map((s, si) => si === i ? { ...s, start: e.target.value } : s) }))} className="w-24 h-7 text-xs bg-secondary border-border"/>
+                    <span className="text-muted-foreground text-xs">→</span>
+                    <Input type="time" value={sh.end} onChange={e => setSchedule(p => ({ ...p, scheduleShifts: p.scheduleShifts.map((s, si) => si === i ? { ...s, end: e.target.value } : s) }))} className="w-24 h-7 text-xs bg-secondary border-border"/>
+                    <button type="button" onClick={() => setSchedule(p => ({ ...p, scheduleShifts: p.scheduleShifts.filter((_, si) => si !== i) }))} className="text-destructive p-0.5 hover:bg-destructive/10 rounded shrink-0"><X className="w-3 h-3"/></button>
+                  </div>
+                  <div className="flex flex-wrap gap-1">
+                    {["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].map(day => (
+                      <button key={day} type="button" onClick={() => setSchedule(p => ({ ...p, scheduleShifts: p.scheduleShifts.map((s, si) => si === i ? { ...s, days: s.days.includes(day) ? s.days.filter(d => d !== day) : [...s.days, day] } : s) }))}
+                        className={`px-1.5 py-0.5 rounded text-[10px] font-display transition-colors ${sh.days.includes(day) ? "bg-primary/80 text-primary-foreground" : "bg-secondary text-muted-foreground border border-border"}`}>{day}</button>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="mb-3">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Holidays & Closures</p>
+                <Button type="button" variant="ghost" size="sm" onClick={() => setSchedule(p => ({ ...p, holidays: [...p.holidays, { id: crypto.randomUUID(), name: "", date: "", recurring: false, note: "" }] }))} className="h-6 text-[11px] gap-1 text-muted-foreground hover:text-foreground"><Plus className="w-3 h-3"/>Add Holiday</Button>
+              </div>
+              {schedule.holidays.map((h, i) => (
+                <div key={h.id} className="p-2.5 bg-secondary/50 rounded border border-border mb-2">
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <Input value={h.name} onChange={e => setSchedule(p => ({ ...p, holidays: p.holidays.map((hx, hi) => hi === i ? { ...hx, name: e.target.value } : hx) }))} placeholder="Holiday name…" className="flex-1 h-7 text-xs bg-secondary border-border"/>
+                    <Input type="date" value={h.date} onChange={e => setSchedule(p => ({ ...p, holidays: p.holidays.map((hx, hi) => hi === i ? { ...hx, date: e.target.value } : hx) }))} className="w-36 h-7 text-xs bg-secondary border-border"/>
+                    <button type="button" onClick={() => setSchedule(p => ({ ...p, holidays: p.holidays.filter((_, hi) => hi !== i) }))} className="text-destructive p-0.5 hover:bg-destructive/10 rounded shrink-0"><X className="w-3 h-3"/></button>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <label className="flex items-center gap-1.5 cursor-pointer shrink-0">
+                      <input type="checkbox" checked={h.recurring} onChange={e => setSchedule(p => ({ ...p, holidays: p.holidays.map((hx, hi) => hi === i ? { ...hx, recurring: e.target.checked } : hx) }))} className="w-3 h-3 accent-primary"/>
+                      <span className="text-[10px] text-muted-foreground">Yearly recurring</span>
+                    </label>
+                    <Input value={h.note} onChange={e => setSchedule(p => ({ ...p, holidays: p.holidays.map((hx, hi) => hi === i ? { ...hx, note: e.target.value } : hx) }))} placeholder="Note…" className="flex-1 h-7 text-xs bg-secondary border-border"/>
+                  </div>
+                </div>
+              ))}
+            </div>
+            </>)}
 
             {/* Legal Documents */}
             <div className="flex items-center gap-2 pb-1.5 border-b border-border mb-3 mt-5"><FileText className="w-3.5 h-3.5 text-primary"/><span className="font-display text-[11px] tracking-wider text-primary uppercase">Legal Documents</span></div>
