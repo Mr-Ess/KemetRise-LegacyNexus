@@ -102,7 +102,7 @@ CREATE POLICY "edu_attendance_all"  ON public.edu_attendance
 CREATE TABLE IF NOT EXISTS public.hr_qr_sessions (
   id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id   uuid NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
-  token       text NOT NULL UNIQUE DEFAULT encode(gen_random_bytes(24), 'hex'),
+  token       text NOT NULL UNIQUE DEFAULT replace(gen_random_uuid()::text, '-', '') || replace(gen_random_uuid()::text, '-', ''),
   label       text,
   expires_at  timestamptz NOT NULL DEFAULT (now() + interval '10 minutes'),
   scans_count integer NOT NULL DEFAULT 0,
