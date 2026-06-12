@@ -676,6 +676,9 @@ function TypesAndCategoriesPanel({ onTypesChange }: { onTypesChange: () => void 
   const [newMainCat, setNewMainCat] = useState<Record<string, string>>({});
   const [newSubCat, setNewSubCat] = useState<Record<string, string>>({});
   const [subParent, setSubParent] = useState<Record<string, string>>({});
+  // inline rename
+  const [editingCat, setEditingCat] = useState<string | null>(null); // "builtin_<typeCode>_<name>" or cat.id
+  const [editingCatVal, setEditingCatVal] = useState("");
   const db = supabase as any;
 
   const load = async () => {
@@ -730,6 +733,25 @@ function TypesAndCategoriesPanel({ onTypesChange }: { onTypesChange: () => void 
     await db.from("mp_listing_types").update({ default_categories: updated }).eq("id", t.id);
     setNewMainCat((p) => ({ ...p, [typeCode]: "" })); load();
     toast.success("Category added");
+  };
+  const startEditCat = (key: string, currentName: string) => {
+    setEditingCat(key);
+    setEditingCatVal(currentName);
+  };
+  const saveEditBuiltIn = async (typeCode: string, oldName: string) => {
+    const newName = editingCatVal.trim();
+    if (!newName) return setEditingCat(null);
+    const t = types.find((ty) => ty.code === typeCode);
+    if (!t) return;
+    const updated = (t.default_categories || []).map((c) => c === oldName ? newName : c);
+    await db.from("mp_listing_types").update({ default_categories: updated }).eq("id", t.id);
+    setEditingCat(null); load(); toast.success("Category renamed");
+  };
+  const saveEditDbCat = async (id: string) => {
+    const newName = editingCatVal.trim();
+    if (!newName) return setEditingCat(null);
+    await db.from("mp_categories").update({ name: newName }).eq("id", id);
+    setEditingCat(null); load(); toast.success("Category renamed");
   };
 
   return (
@@ -802,25 +824,72 @@ function TypesAndCategoriesPanel({ onTypesChange }: { onTypesChange: () => void 
                   ) : allMainCats.map((cat) => {
                     const dbCat = customCats.find((c) => c.id === cat.id);
                     const subs = dbCat ? categories.filter((c) => c.parent_id === dbCat.id) : [];
+                    const editKey = cat.isBuiltIn ? `builtin_${t.code}_${cat.name}` : cat.id;
+                    const isEditing = editingCat === editKey;
                     return (
                       <div key={cat.id} className="rounded-lg border border-border/40 overflow-hidden">
                         <div className="flex items-center gap-2 px-2.5 py-1.5 bg-secondary/20">
                           <FolderPlus className="w-3 h-3 text-muted-foreground shrink-0" />
-                          <span className="text-xs flex-1">{cat.name}</span>
-                          {cat.isBuiltIn
-                            ? <Badge className="text-[8px] px-1 py-0 bg-secondary/50 text-muted-foreground border-border/50">default</Badge>
-                            : null}
-                          <button
-                            onClick={() => cat.isBuiltIn ? deleteBuiltIn(t.code, cat.name) : deleteCat(cat.id)}
-                            className="p-0.5 text-red-400 hover:text-red-300"
-                          ><Trash2 className="w-3 h-3" /></button>
+                          {isEditing ? (
+                            <>
+                              <input
+                                autoFocus
+                                className="text-xs flex-1 bg-background border border-border rounded px-1.5 py-0.5 outline-none focus:ring-1 focus:ring-primary"
+                                value={editingCatVal}
+                                onChange={(e) => setEditingCatVal(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") cat.isBuiltIn ? saveEditBuiltIn(t.code, cat.name) : saveEditDbCat(cat.id);
+                                  if (e.key === "Escape") setEditingCat(null);
+                                }}
+                              />
+                              <button onClick={() => cat.isBuiltIn ? saveEditBuiltIn(t.code, cat.name) : saveEditDbCat(cat.id)} className="p-0.5 text-emerald-400 hover:text-emerald-300"><Check className="w-3 h-3" /></button>
+                              <button onClick={() => setEditingCat(null)} className="p-0.5 text-muted-foreground hover:text-foreground"><X className="w-3 h-3" /></button>
+                            </>
+                          ) : (
+                            <>
+                              <span className="text-xs flex-1">{cat.name}</span>
+                              {cat.isBuiltIn
+                                ? <Badge className="text-[8px] px-1 py-0 bg-secondary/50 text-muted-foreground border-border/50">default</Badge>
+                                : null}
+                              <button onClick={() => startEditCat(editKey, cat.name)} className="p-0.5 text-muted-foreground hover:text-foreground"><Pencil className="w-3 h-3" /></button>
+                              <button
+                                onClick={() => cat.isBuiltIn ? deleteBuiltIn(t.code, cat.name) : deleteCat(cat.id)}
+                                className="p-0.5 text-red-400 hover:text-red-300"
+                              ><Trash2 className="w-3 h-3" /></button>
+                            </>
+                          )}
                         </div>
-                        {subs.map((sub) => (
-                          <div key={sub.id} className="flex items-center gap-2 pl-7 pr-2.5 py-1 border-t border-border/20 bg-secondary/5">
-                            <span className="text-[10px] text-muted-foreground flex-1">└ {sub.name}</span>
-                            <button onClick={() => deleteCat(sub.id)} className="p-0.5 text-red-400 hover:text-red-300"><Trash2 className="w-3 h-3" /></button>
-                          </div>
-                        ))}
+                        {subs.map((sub) => {
+                          const subEditKey = sub.id;
+                          const isSubEditing = editingCat === subEditKey;
+                          return (
+                            <div key={sub.id} className="flex items-center gap-2 pl-7 pr-2.5 py-1 border-t border-border/20 bg-secondary/5">
+                              {isSubEditing ? (
+                                <>
+                                  <span className="text-[10px] text-muted-foreground shrink-0">└</span>
+                                  <input
+                                    autoFocus
+                                    className="text-xs flex-1 bg-background border border-border rounded px-1.5 py-0.5 outline-none focus:ring-1 focus:ring-primary"
+                                    value={editingCatVal}
+                                    onChange={(e) => setEditingCatVal(e.target.value)}
+                                    onKeyDown={(e) => {
+                                      if (e.key === "Enter") saveEditDbCat(sub.id);
+                                      if (e.key === "Escape") setEditingCat(null);
+                                    }}
+                                  />
+                                  <button onClick={() => saveEditDbCat(sub.id)} className="p-0.5 text-emerald-400 hover:text-emerald-300"><Check className="w-3 h-3" /></button>
+                                  <button onClick={() => setEditingCat(null)} className="p-0.5 text-muted-foreground hover:text-foreground"><X className="w-3 h-3" /></button>
+                                </>
+                              ) : (
+                                <>
+                                  <span className="text-[10px] text-muted-foreground flex-1">└ {sub.name}</span>
+                                  <button onClick={() => startEditCat(subEditKey, sub.name)} className="p-0.5 text-muted-foreground hover:text-foreground"><Pencil className="w-3 h-3" /></button>
+                                  <button onClick={() => deleteCat(sub.id)} className="p-0.5 text-red-400 hover:text-red-300"><Trash2 className="w-3 h-3" /></button>
+                                </>
+                              )}
+                            </div>
+                          );
+                        })}
                       </div>
                     );
                   })}
