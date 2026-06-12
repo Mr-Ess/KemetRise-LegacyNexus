@@ -12,11 +12,20 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { deleteTenant } from "@/services/erp/tenantService";
 import { toast } from "sonner";
-import { Settings2, Zap, LayoutDashboard, DollarSign, ShoppingCart, Users, Activity, PlusCircle, Building2, CheckCircle, Circle, GraduationCap, Globe, Trash2 } from "lucide-react";
+import { Settings2, Zap, LayoutDashboard, DollarSign, ShoppingCart, Users, Activity, PlusCircle, Building2, CheckCircle, Circle, GraduationCap, Globe, Trash2, BookOpen, Target, Truck, Warehouse, FolderKanban, Banknote, Laptop, Wrench, ShieldCheck } from "lucide-react";
 import FinanceEngine from "./modules/FinanceEngine";
 import CommerceStore from "./modules/CommerceStore";
 import HRSystem from "./modules/HRSystem";
 import EducationModule from "./modules/EducationModule";
+import AccountingModule from "./modules/AccountingModule";
+import CRMModule from "./modules/CRMModule";
+import ProcurementModule from "./modules/ProcurementModule";
+import InventoryModule from "./modules/InventoryModule";
+import ProjectsModule from "./modules/ProjectsModule";
+import PayrollModule from "./modules/PayrollModule";
+import AssetsModule from "./modules/AssetsModule";
+import MaintenanceModule from "./modules/MaintenanceModule";
+import QualityModule from "./modules/QualityModule";
 import SectorManager from "./SectorManager";
 import TenantSetupModal from "./TenantSetupModal";
 
@@ -155,15 +164,26 @@ export default function SectorCockpit() {
 
         {/* ── MAIN TABS ── */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid grid-cols-7 w-full">
-            <TabsTrigger value="overview"  className="gap-1 text-xs sm:text-sm"><LayoutDashboard className="h-3.5 w-3.5 shrink-0"/><span className="hidden sm:inline">Overview</span></TabsTrigger>
-            <TabsTrigger value="finance"   className="gap-1 text-xs sm:text-sm"><DollarSign className="h-3.5 w-3.5 shrink-0"/><span className="hidden sm:inline">Finance</span></TabsTrigger>
-            <TabsTrigger value="commerce"  className="gap-1 text-xs sm:text-sm"><ShoppingCart className="h-3.5 w-3.5 shrink-0"/><span className="hidden sm:inline">Commerce</span></TabsTrigger>
-            <TabsTrigger value="hr"        className="gap-1 text-xs sm:text-sm"><Users className="h-3.5 w-3.5 shrink-0"/><span className="hidden sm:inline">HR</span></TabsTrigger>
-            <TabsTrigger value="education" className="gap-1 text-xs sm:text-sm"><GraduationCap className="h-3.5 w-3.5 shrink-0"/><span className="hidden sm:inline">Education</span></TabsTrigger>
-            <TabsTrigger value="workflows" className="gap-1 text-xs sm:text-sm"><Settings2 className="h-3.5 w-3.5 shrink-0"/><span className="hidden sm:inline">Workflows</span></TabsTrigger>
-            <TabsTrigger value="sectors"   className="gap-1 text-xs sm:text-sm"><Globe className="h-3.5 w-3.5 shrink-0"/><span className="hidden sm:inline">Sectors</span></TabsTrigger>
-          </TabsList>
+          <div className="overflow-x-auto pb-1">
+            <TabsList className="flex w-max gap-0.5 min-w-full">
+              <TabsTrigger value="overview"     className="gap-1 text-xs shrink-0"><LayoutDashboard className="h-3.5 w-3.5 shrink-0"/><span className="hidden sm:inline">Overview</span></TabsTrigger>
+              <TabsTrigger value="accounting"   className="gap-1 text-xs shrink-0"><BookOpen className="h-3.5 w-3.5 shrink-0"/><span className="hidden sm:inline">Accounting</span></TabsTrigger>
+              <TabsTrigger value="finance"      className="gap-1 text-xs shrink-0"><DollarSign className="h-3.5 w-3.5 shrink-0"/><span className="hidden sm:inline">Finance</span></TabsTrigger>
+              <TabsTrigger value="payroll"      className="gap-1 text-xs shrink-0"><Banknote className="h-3.5 w-3.5 shrink-0"/><span className="hidden sm:inline">Payroll</span></TabsTrigger>
+              <TabsTrigger value="hr"           className="gap-1 text-xs shrink-0"><Users className="h-3.5 w-3.5 shrink-0"/><span className="hidden sm:inline">HR</span></TabsTrigger>
+              <TabsTrigger value="crm"          className="gap-1 text-xs shrink-0"><Target className="h-3.5 w-3.5 shrink-0"/><span className="hidden sm:inline">CRM</span></TabsTrigger>
+              <TabsTrigger value="commerce"     className="gap-1 text-xs shrink-0"><ShoppingCart className="h-3.5 w-3.5 shrink-0"/><span className="hidden sm:inline">Commerce</span></TabsTrigger>
+              <TabsTrigger value="inventory"    className="gap-1 text-xs shrink-0"><Warehouse className="h-3.5 w-3.5 shrink-0"/><span className="hidden sm:inline">Inventory</span></TabsTrigger>
+              <TabsTrigger value="procurement"  className="gap-1 text-xs shrink-0"><Truck className="h-3.5 w-3.5 shrink-0"/><span className="hidden sm:inline">Procurement</span></TabsTrigger>
+              <TabsTrigger value="projects"     className="gap-1 text-xs shrink-0"><FolderKanban className="h-3.5 w-3.5 shrink-0"/><span className="hidden sm:inline">Projects</span></TabsTrigger>
+              <TabsTrigger value="assets"       className="gap-1 text-xs shrink-0"><Laptop className="h-3.5 w-3.5 shrink-0"/><span className="hidden sm:inline">Assets</span></TabsTrigger>
+              <TabsTrigger value="maintenance"  className="gap-1 text-xs shrink-0"><Wrench className="h-3.5 w-3.5 shrink-0"/><span className="hidden sm:inline">Maintenance</span></TabsTrigger>
+              <TabsTrigger value="quality"      className="gap-1 text-xs shrink-0"><ShieldCheck className="h-3.5 w-3.5 shrink-0"/><span className="hidden sm:inline">Quality</span></TabsTrigger>
+              <TabsTrigger value="education"    className="gap-1 text-xs shrink-0"><GraduationCap className="h-3.5 w-3.5 shrink-0"/><span className="hidden sm:inline">Education</span></TabsTrigger>
+              <TabsTrigger value="workflows"    className="gap-1 text-xs shrink-0"><Settings2 className="h-3.5 w-3.5 shrink-0"/><span className="hidden sm:inline">Workflows</span></TabsTrigger>
+              <TabsTrigger value="sectors"      className="gap-1 text-xs shrink-0"><Globe className="h-3.5 w-3.5 shrink-0"/><span className="hidden sm:inline">Sectors</span></TabsTrigger>
+            </TabsList>
+          </div>
 
           <TabsContent value="overview" className="mt-4">
             {isLoading ? <SectorFallback /> : !activeTenant ? (
@@ -174,12 +194,21 @@ export default function SectorCockpit() {
               <MultiSectorOverview sectors={activeSectors.filter(s => s.code !== 'MULTI')} onSectorSelect={v => setSectorCode(v as SectorCode)} />
             )}
           </TabsContent>
-          <TabsContent value="finance"   className="mt-4"><FinanceEngine /></TabsContent>
-          <TabsContent value="commerce"  className="mt-4"><CommerceStore /></TabsContent>
-          <TabsContent value="hr"        className="mt-4"><HRSystem /></TabsContent>
-          <TabsContent value="education" className="mt-4"><EducationModule /></TabsContent>
-          <TabsContent value="workflows" className="mt-4"><WorkflowRegistryPanel horizontal={horizontalWorkflows} vertical={verticalWorkflows} /></TabsContent>
-          <TabsContent value="sectors"   className="mt-4"><SectorManager /></TabsContent>
+          <TabsContent value="accounting"  className="mt-4"><AccountingModule /></TabsContent>
+          <TabsContent value="finance"     className="mt-4"><FinanceEngine /></TabsContent>
+          <TabsContent value="payroll"     className="mt-4"><PayrollModule /></TabsContent>
+          <TabsContent value="hr"          className="mt-4"><HRSystem /></TabsContent>
+          <TabsContent value="crm"         className="mt-4"><CRMModule /></TabsContent>
+          <TabsContent value="commerce"    className="mt-4"><CommerceStore /></TabsContent>
+          <TabsContent value="inventory"   className="mt-4"><InventoryModule /></TabsContent>
+          <TabsContent value="procurement" className="mt-4"><ProcurementModule /></TabsContent>
+          <TabsContent value="projects"    className="mt-4"><ProjectsModule /></TabsContent>
+          <TabsContent value="assets"      className="mt-4"><AssetsModule /></TabsContent>
+          <TabsContent value="maintenance" className="mt-4"><MaintenanceModule /></TabsContent>
+          <TabsContent value="quality"     className="mt-4"><QualityModule /></TabsContent>
+          <TabsContent value="education"   className="mt-4"><EducationModule /></TabsContent>
+          <TabsContent value="workflows"   className="mt-4"><WorkflowRegistryPanel horizontal={horizontalWorkflows} vertical={verticalWorkflows} /></TabsContent>
+          <TabsContent value="sectors"     className="mt-4"><SectorManager /></TabsContent>
         </Tabs>
       </div>
       {showSetup && <TenantSetupModal onClose={() => setShowSetup(false)} />}
