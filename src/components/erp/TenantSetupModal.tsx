@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createTenant, SECTOR_META, type SectorCode, type CreateTenantDto } from "@/services/erp/tenantService";
+import { listSectors, type SectorEntry } from "@/services/erp/sectorRegistryService";
 import { useERP } from "@/context/ERPContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -48,7 +49,30 @@ export default function TenantSetupModal({ onClose }: Props) {
     setForm(f => ({ ...f, name: v, slug: slugify(v) }));
   };
 
-  const sectorMeta = SECTOR_META[form.sector_code];
+  // Load sectors dynamically from the registry (falls back to SECTOR_META if empty)
+  const { data: registrySectors = [] } = useQuery<SectorEntry[]>({
+    queryKey: ['sector-registry'],
+    queryFn: listSectors,
+  });
+
+  const sectorList: { code: string; icon: string; label: string; color: string; description: string }[] =
+    registrySectors.filter(s => s.is_active && s.code !== 'MULTI').length > 0
+      ? registrySectors
+          .filter(s => s.is_active && s.code !== 'MULTI')
+          .map(s => ({ code: s.code, icon: s.icon, label: s.label, color: s.color, description: s.description ?? '' }))
+      : (Object.entries(SECTOR_META) as [SectorCode, typeof SECTOR_META[SectorCode]][])
+          .filter(([code]) => code !== 'MULTI')
+          .map(([code, m]) => ({ code, icon: m.icon, label: m.label, color: m.color, description: m.description }));
+
+  // Resolve display meta for the currently selected sector (works for both built-in & custom)
+  const sectorMeta = (() => {
+    const found = sectorList.find(s => s.code === form.sector_code);
+    if (found) return found;
+    // fallback to SECTOR_META for known codes
+    const builtIn = SECTOR_META[form.sector_code as SectorCode];
+    if (builtIn) return builtIn;
+    return { icon: '🏢', label: form.sector_code, color: '#6366f1', description: '' };
+  })();
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
@@ -78,27 +102,25 @@ export default function TenantSetupModal({ onClose }: Props) {
             Business Sector
           </Label>
           <div className="grid grid-cols-2 gap-2">
-            {(Object.entries(SECTOR_META) as [SectorCode, typeof SECTOR_META[SectorCode]][])
-              .filter(([code]) => code !== 'MULTI' && code !== 'RET-01')
-              .map(([code, m]) => (
-                <button
-                  key={code}
-                  type="button"
-                  onClick={() => setForm(f => ({ ...f, sector_code: code, primary_color: m.color }))}
-                  className={`flex items-center gap-2 rounded-xl border p-3 text-left text-sm transition-all ${
-                    form.sector_code === code
-                      ? 'border-2 shadow-sm'
-                      : 'hover:bg-muted/50 border-border'
-                  }`}
-                  style={form.sector_code === code ? { borderColor: m.color } : {}}
-                >
-                  <span className="text-xl">{m.icon}</span>
-                  <div>
-                    <p className="font-medium leading-tight">{m.label}</p>
-                    <p className="text-xs text-muted-foreground">{code}</p>
-                  </div>
-                </button>
-              ))}
+            {sectorList.map(s => (
+              <button
+                key={s.code}
+                type="button"
+                onClick={() => setForm(f => ({ ...f, sector_code: s.code, primary_color: s.color }))}
+                className={`flex items-center gap-2 rounded-xl border p-3 text-left text-sm transition-all ${
+                  form.sector_code === s.code
+                    ? 'border-2 shadow-sm'
+                    : 'hover:bg-muted/50 border-border'
+                }`}
+                style={form.sector_code === s.code ? { borderColor: s.color } : {}}
+              >
+                <span className="text-xl">{s.icon}</span>
+                <div>
+                  <p className="font-medium leading-tight">{s.label}</p>
+                  <p className="text-xs text-muted-foreground">{s.code}</p>
+                </div>
+              </button>
+            ))}
           </div>
         </div>
 
