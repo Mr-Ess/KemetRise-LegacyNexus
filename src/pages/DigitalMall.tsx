@@ -451,8 +451,41 @@ function MallManagerDrawer({ onClose, currentUserId }: { onClose: () => void; cu
     load();
   };
   const approveApp = async (id: string, approved: boolean) => {
-    await db.from("mall_store_applications").update({ status: approved ? "approved" : "rejected", reviewed_at: new Date().toISOString() }).eq("id", id);
-    load(); toast.success(`Application ${approved ? "approved" : "rejected"}`);
+    // Update application status
+    const { error: updErr } = await db
+      .from("mall_store_applications")
+      .update({ status: approved ? "approved" : "rejected", reviewed_at: new Date().toISOString() })
+      .eq("id", id);
+    if (updErr) { toast.error(updErr.message); return; }
+
+    // If approved → create a store in mall_stores
+    if (approved) {
+      const app = applications.find((a) => a.id === id);
+      if (app) {
+        const slug = (app.store_name as string)
+          .toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "") + "-" + Date.now();
+        const { error: storeErr } = await db.from("mall_stores").insert({
+          name: app.store_name,
+          name_ar: "",
+          slug,
+          description: app.description || "",
+          owner_name: app.contact_name || "",
+          contact_email: app.contact_email || null,
+          contact_phone: app.contact_phone || null,
+          website_url: app.website_url || null,
+          floor_id: app.floor_id || null,
+          owner_user_id: app.applicant_user_id || null,
+          cover_color: "violet",
+          status: "active",
+          is_active: true,
+          is_new: true,
+          is_featured: false,
+          is_verified: false,
+        });
+        if (storeErr) { toast.error("Application approved but store creation failed: " + storeErr.message); load(); return; }
+      }
+    }
+    load(); toast.success(`Application ${approved ? "approved — store created!" : "rejected"}`);
   };
   const deleteProduct = async (id: string) => {
     await db.from("mall_products").delete().eq("id", id);
@@ -714,6 +747,11 @@ function MallManagerDrawer({ onClose, currentUserId }: { onClose: () => void; cu
                           <button onClick={() => approveApp(a.id, true)} className="p-1.5 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400" title="Approve"><CheckCircle2 className="w-3.5 h-3.5" /></button>
                           <button onClick={() => approveApp(a.id, false)} className="p-1.5 rounded-lg bg-red-500/20 hover:bg-red-500/30 text-red-400" title="Reject"><XCircle className="w-3.5 h-3.5" /></button>
                         </div>
+                      )}
+                      {a.status === "approved" && (
+                        <button onClick={() => approveApp(a.id, true)} className="shrink-0 px-2 py-1 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 text-[10px] font-medium flex items-center gap-1" title="Create store (re-approve)">
+                          <Store className="w-3 h-3" />Create Store
+                        </button>
                       )}
                     </div>
                   ))}
