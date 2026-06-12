@@ -25,6 +25,7 @@ const IPWhitelist = lazy(() => import("./pages/IPWhitelist"));
 const SSO = lazy(() => import("./pages/SSO"));
 const WhiteLabel = lazy(() => import("./pages/WhiteLabel"));
 const Marketplace = lazy(() => import("./pages/Marketplace"));
+const DigitalMall = lazy(() => import("./pages/DigitalMall"));
 const Landing = lazy(() => import("./pages/Landing"));
 const Blog = lazy(() => import("./pages/Blog"));
 const Referrals = lazy(() => import("./pages/Referrals"));
@@ -157,6 +158,7 @@ const App = () => (
                 <Route path="/security/sso" element={<Protected><SSO /></Protected>} />
                 <Route path="/white-label" element={<Navigate to="/api-docs" replace />} />
                 <Route path="/marketplace" element={<Protected><Marketplace /></Protected>} />
+                <Route path="/digital-mall" element={<Protected><DigitalMall /></Protected>} />
                 <Route path="/referrals" element={<Protected><Referrals /></Protected>} />
                 <Route path="/extension" element={<Navigate to="/api-docs" replace />} />
                 <Route path="/landing" element={<Landing />} />
