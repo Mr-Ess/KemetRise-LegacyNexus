@@ -4,6 +4,8 @@
 -- Finance Tax Rules, Commerce product_type columns
 -- ═══════════════════════════════════════════════════════════════════════════
 
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
 -- ─── 1. DYNAMIC SECTOR REGISTRY ───────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS public.erp_sector_registry (
   code        text PRIMARY KEY,
