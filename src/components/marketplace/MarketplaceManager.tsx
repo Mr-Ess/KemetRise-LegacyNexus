@@ -5,7 +5,7 @@ import {
   Layers, ChevronDown, ChevronRight, Copy, EyeOff, Eye, GripVertical,
   LayoutDashboard, BarChart2, Store, Search,
 } from "lucide-react";
-import { seedMarketplaceDefaults } from "./marketplaceSeed";
+import { seedMarketplaceDefaults, MARKETPLACE_SEED_TYPES } from "./marketplaceSeed";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
@@ -711,7 +711,10 @@ function TypesAndCategoriesPanel({ onTypesChange }: { onTypesChange: () => void 
     await seedMarketplaceDefaults(db);
     const { data: t } = await db.from("mp_listing_types").select("*").order("sort_order").order("label");
     const { data: c } = await db.from("mp_categories").select("*").order("sort_order").order("name");
-    setTypes(t || []); setCategories(c || []);
+    const types: MpListingType[] = t?.length
+      ? t
+      : MARKETPLACE_SEED_TYPES.map((s) => ({ ...s, id: `fallback-${s.code}` })) as MpListingType[];
+    setTypes(types); setCategories(c || []);
   };
   useEffect(() => { load(); }, []);
 
@@ -1028,7 +1031,10 @@ export default function ManagementPanel({
   const loadMeta = async () => {
     const { data: t } = await db.from("mp_listing_types").select("*").order("sort_order").order("label");
     const { data: c } = await db.from("mp_categories").select("*").order("sort_order").order("name");
-    setAllTypes(t || []); setAllCategories(c || []);
+    const types: MpListingType[] = t?.length
+      ? t
+      : MARKETPLACE_SEED_TYPES.map((s) => ({ ...s, id: `fallback-${s.code}` })) as MpListingType[];
+    setAllTypes(types); setAllCategories(c || []);
   };
 
   useEffect(() => {
