@@ -8,6 +8,7 @@ import {
   SlidersHorizontal, Truck, Plus, Pencil, Trash2, Settings,
 } from "lucide-react";
 import ManagementPanel, { DeleteConfirmDialog, COLOR_PALETTE, type MpCategory, type MpListingType } from "@/components/marketplace/MarketplaceManager";
+import { seedMarketplaceDefaults } from "@/components/marketplace/marketplaceSeed";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
@@ -598,19 +599,9 @@ export default function Marketplace() {
   };
 
   const loadTypes = async () => {
-    const { data, error } = await (db as any).from("mp_listing_types").select("*").eq("is_active", true).order("sort_order,label");
-    let types: MpListingType[] = data || [];
-    // Auto-seed defaults if table is empty or doesn't exist yet
-    if (!error && types.length === 0) {
-      const defaults = [
-        { code:"digital",      label:"Digital Products",  label_ar:"منتجات رقمية",  icon:"💾", color:"violet",  sort_order:1, is_active:true, is_built_in:true, default_categories:["Software","Templates","E-books","Online Courses","Plugins","UI Kits","Fonts","Audio","Video","Graphics"] },
-        { code:"physical",     label:"Physical Products", label_ar:"منتجات ملموسة", icon:"📦", color:"emerald", sort_order:2, is_active:true, is_built_in:true, default_categories:["Electronics","Fashion","Furniture","Food & Beverage","Handcraft","Books","Sports","Tools","Accessories","Art"] },
-        { code:"service",      label:"Services",          label_ar:"خدمات",          icon:"🛠️", color:"amber",   sort_order:3, is_active:true, is_built_in:true, default_categories:["Design","Development","Marketing","Writing & Translation","Consulting","Legal","Finance","Coaching","Photography","Videography"] },
-        { code:"subscription", label:"Subscriptions",     label_ar:"اشتراكات",       icon:"♾️", color:"pink",    sort_order:4, is_active:true, is_built_in:true, default_categories:["SaaS Tools","Media Streaming","Education","Fitness","Business","Entertainment","News & Data","Cloud Storage"] },
-      ];
-      const { data: seeded } = await (db as any).from("mp_listing_types").upsert(defaults, { onConflict: "code" }).select();
-      types = seeded || [];
-    }
+    await seedMarketplaceDefaults(db as any);
+    const { data } = await (db as any).from("mp_listing_types").select("*").eq("is_active", true).order("sort_order,label");
+    const types: MpListingType[] = data || [];
     setListingTypes(types);
     setTypeConfigMap(buildTypeConfig(types));
   };

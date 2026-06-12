@@ -4,6 +4,7 @@ import {
   PackagePlus, FolderPlus, ClipboardList, CheckCircle2, XCircle,
   Layers, ChevronDown, ChevronRight, Copy, EyeOff, Eye, GripVertical,
 } from "lucide-react";
+import { seedMarketplaceDefaults } from "./marketplaceSeed";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
@@ -116,6 +117,7 @@ interface ListingForm {
   packages: Array<{ name: string; price_cents: string; features: string[] }>;
   max_users: string; storage_gb: string; trial_days: string;
   billing_cycle: string; features: string[];
+  platform: string; region_lock: string;
 }
 
 const EMPTY_FORM: ListingForm = {
@@ -128,6 +130,7 @@ const EMPTY_FORM: ListingForm = {
   delivery_days: "", revisions: "",
   packages: [{ name: "Basic", price_cents: "0", features: [""] }],
   max_users: "", storage_gb: "", trial_days: "", billing_cycle: "monthly", features: [""],
+  platform: "", region_lock: "",
 };
 
 function PriceBadge({ price_cents, pricing_model }: { price_cents: number; pricing_model: PricingModel }) {
@@ -198,6 +201,8 @@ export function AddEditListingDialog({
         trial_days: String(listing.meta?.trial_days ?? ""),
         billing_cycle: listing.meta?.billing_cycle || "monthly",
         features: listing.meta?.features?.length ? listing.meta.features : [""],
+        platform: listing.meta?.platform || "",
+        region_lock: listing.meta?.region_lock || "",
       });
     } else {
       setForm({ ...EMPTY_FORM, listing_type: allTypes[0]?.code || "digital" });
@@ -244,6 +249,10 @@ export function AddEditListingDialog({
       if (form.trial_days) m.trial_days = parseInt(form.trial_days);
       if (form.billing_cycle) m.billing_cycle = form.billing_cycle;
       m.features = form.features.filter((f) => f.trim());
+    } else if (form.listing_type === "virtual") {
+      if (form.platform) m.platform = form.platform;
+      if (form.region_lock) m.region_lock = form.region_lock;
+      if (form.version) m.version = form.version;
     }
     return m;
   };
@@ -525,7 +534,23 @@ export function AddEditListingDialog({
                 </div>
               </div>
             )}
-            {!["digital","physical","service","subscription"].includes(form.listing_type) && (
+            {form.listing_type === "virtual" && (
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-xs">Platform / Game</Label>
+                  <Input className="mt-1 h-9" value={form.platform} onChange={(e) => set("platform", e.target.value)} placeholder="e.g. Steam, Roblox, PSN, PC" />
+                </div>
+                <div>
+                  <Label className="text-xs">Version / Type</Label>
+                  <Input className="mt-1 h-9" value={form.version} onChange={(e) => set("version", e.target.value)} placeholder="e.g. Key, Account, NFT" />
+                </div>
+                <div className="col-span-2">
+                  <Label className="text-xs">Region Lock</Label>
+                  <Input className="mt-1 h-9" value={form.region_lock} onChange={(e) => set("region_lock", e.target.value)} placeholder="e.g. Global, US only, EU, MENA" />
+                </div>
+              </div>
+            )}
+            {!["digital","physical","service","subscription","virtual"].includes(form.listing_type) && (
               <p className="text-xs text-muted-foreground bg-secondary/20 rounded-lg p-3">
                 This is a custom listing type. Add any relevant information in the description fields above.
               </p>
@@ -682,21 +707,10 @@ function TypesAndCategoriesPanel({ onTypesChange }: { onTypesChange: () => void 
   const db = supabase as any;
 
   const load = async () => {
-    const { data: t, error: tErr } = await db.from("mp_listing_types").select("*").order("sort_order,label");
-    let loadedTypes: MpListingType[] = t || [];
-    // Auto-seed the 4 built-in types if table is empty
-    if (!tErr && loadedTypes.length === 0) {
-      const defaults = [
-        { code:"digital",      label:"Digital Products",  label_ar:"منتجات رقمية",  icon:"💾", color:"violet",  sort_order:1, is_active:true, is_built_in:true, default_categories:["Software","Templates","E-books","Online Courses","Plugins","UI Kits","Fonts","Audio","Video","Graphics"] },
-        { code:"physical",     label:"Physical Products", label_ar:"منتجات ملموسة", icon:"📦", color:"emerald", sort_order:2, is_active:true, is_built_in:true, default_categories:["Electronics","Fashion","Furniture","Food & Beverage","Handcraft","Books","Sports","Tools","Accessories","Art"] },
-        { code:"service",      label:"Services",          label_ar:"خدمات",          icon:"🛠️", color:"amber",   sort_order:3, is_active:true, is_built_in:true, default_categories:["Design","Development","Marketing","Writing & Translation","Consulting","Legal","Finance","Coaching","Photography","Videography"] },
-        { code:"subscription", label:"Subscriptions",     label_ar:"اشتراكات",       icon:"♾️", color:"pink",    sort_order:4, is_active:true, is_built_in:true, default_categories:["SaaS Tools","Media Streaming","Education","Fitness","Business","Entertainment","News & Data","Cloud Storage"] },
-      ];
-      const { data: seeded } = await db.from("mp_listing_types").upsert(defaults, { onConflict: "code" }).select();
-      loadedTypes = seeded || [];
-    }
+    await seedMarketplaceDefaults(db);
+    const { data: t } = await db.from("mp_listing_types").select("*").order("sort_order,label");
     const { data: c } = await db.from("mp_categories").select("*").order("sort_order,name");
-    setTypes(loadedTypes); setCategories(c || []);
+    setTypes(t || []); setCategories(c || []);
   };
   useEffect(() => { load(); }, []);
 
