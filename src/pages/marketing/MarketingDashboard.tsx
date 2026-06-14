@@ -51,7 +51,7 @@ export default function MarketingDashboard() {
     (async () => {
       setLoading(true);
       const [{ data: camps }, { data: leadData }] = await Promise.all([
-        db.from("marketing_campaigns").select("*").eq("owner_user_id", user.id).order("created_at", { ascending: false }).limit(8),
+        db.from("marketing_campaigns").select("*").eq("created_by", user.id).order("created_at", { ascending: false }).limit(8),
         db.from("marketing_leads").select("status").eq("assigned_to", user.id),
       ]);
       setCampaigns(camps || []);

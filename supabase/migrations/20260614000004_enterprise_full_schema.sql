@@ -250,6 +250,21 @@ CREATE TABLE IF NOT EXISTS marketing_campaigns (
   updated_at       TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+-- Patch: if marketing_campaigns already existed, add new columns
+ALTER TABLE marketing_campaigns ADD COLUMN IF NOT EXISTS name TEXT;
+ALTER TABLE marketing_campaigns ADD COLUMN IF NOT EXISTS name_ar TEXT;
+ALTER TABLE marketing_campaigns ADD COLUMN IF NOT EXISTS type TEXT DEFAULT 'digital';
+ALTER TABLE marketing_campaigns ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'draft';
+ALTER TABLE marketing_campaigns ADD COLUMN IF NOT EXISTS budget_cents BIGINT DEFAULT 0;
+ALTER TABLE marketing_campaigns ADD COLUMN IF NOT EXISTS spent_cents BIGINT DEFAULT 0;
+ALTER TABLE marketing_campaigns ADD COLUMN IF NOT EXISTS impressions INTEGER DEFAULT 0;
+ALTER TABLE marketing_campaigns ADD COLUMN IF NOT EXISTS clicks INTEGER DEFAULT 0;
+ALTER TABLE marketing_campaigns ADD COLUMN IF NOT EXISTS conversions INTEGER DEFAULT 0;
+ALTER TABLE marketing_campaigns ADD COLUMN IF NOT EXISTS channels JSONB DEFAULT '[]';
+ALTER TABLE marketing_campaigns ADD COLUMN IF NOT EXISTS target_audience JSONB DEFAULT '{}';
+ALTER TABLE marketing_campaigns ADD COLUMN IF NOT EXISTS created_by UUID REFERENCES auth.users(id);
+ALTER TABLE marketing_campaigns ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT now();
+
 CREATE TABLE IF NOT EXISTS marketing_leads (
   id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   campaign_id      UUID REFERENCES marketing_campaigns(id),
@@ -363,6 +378,14 @@ CREATE TABLE IF NOT EXISTS chat_messages (
   metadata     JSONB NOT NULL DEFAULT '{}',
   created_at   TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- Patch: if chat_messages already existed with old schema (no session_id), add new columns
+ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS session_id UUID REFERENCES chat_sessions(id) ON DELETE CASCADE;
+ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS tokens_used INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS model_used TEXT;
+ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS latency_ms INTEGER;
+ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS is_liked BOOLEAN;
+ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS metadata JSONB NOT NULL DEFAULT '{}';
 
 CREATE INDEX IF NOT EXISTS chat_sessions_user_idx    ON chat_sessions(user_id);
 CREATE INDEX IF NOT EXISTS chat_messages_session_idx ON chat_messages(session_id);

@@ -15,7 +15,7 @@ import {
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 
-interface WalletData { available_balance: number; pending_balance: number; total_earned: number; total_fees_paid: number; is_frozen: boolean; }
+interface WalletData { balance_cents: number; pending_cents: number; total_earned_cents: number; total_fees_cents: number; is_frozen: boolean; }
 interface OrderItem { id: string; created_at: string; total_amount: number; status: string; buyer_name?: string; }
 
 export default function VendorDashboard() {
@@ -35,7 +35,7 @@ export default function VendorDashboard() {
     (async () => {
       setLoading(true);
       const [{ data: w }, { count: pc }] = await Promise.all([
-        db.from("vendor_wallets").select("*").eq("vendor_user_id", user.id).single(),
+        db.from("vendor_wallets").select("*").eq("user_id", user.id).single(),
         db.from("public_products").select("*", { count: "exact", head: true }).eq("vendor_user_id", user.id),
       ]);
       setWallet(w);
@@ -45,9 +45,9 @@ export default function VendorDashboard() {
   }, [user]);
 
   const kpis = [
-    { label: R ? "الرصيد المتاح" : "Available Balance",    value: `$${wallet?.available_balance?.toFixed(2) ?? "0.00"}`, icon: Wallet,    color: "text-green-400",  bg: "bg-green-500/10" },
-    { label: R ? "في الانتظار"   : "Pending Balance",      value: `$${wallet?.pending_balance?.toFixed(2) ?? "0.00"}`,  icon: Clock,     color: "text-yellow-400", bg: "bg-yellow-500/10" },
-    { label: R ? "إجمالي المكاسب": "Total Earned",         value: `$${wallet?.total_earned?.toFixed(2) ?? "0.00"}`,     icon: TrendingUp,color: "text-orange-400", bg: "bg-orange-500/10" },
+    { label: R ? "الرصيد المتاح" : "Available Balance",    value: `$${((wallet?.balance_cents ?? 0) / 100).toFixed(2)}`, icon: Wallet,    color: "text-green-400",  bg: "bg-green-500/10" },
+    { label: R ? "في الانتظار"   : "Pending Balance",      value: `$${((wallet?.pending_cents ?? 0) / 100).toFixed(2)}`,  icon: Clock,     color: "text-yellow-400", bg: "bg-yellow-500/10" },
+    { label: R ? "إجمالي المكاسب": "Total Earned",         value: `$${((wallet?.total_earned_cents ?? 0) / 100).toFixed(2)}`, icon: TrendingUp,color: "text-orange-400", bg: "bg-orange-500/10" },
     { label: R ? "عدد المنتجات"   : "Products Listed",     value: productCount,                                          icon: Package,   color: "text-indigo-400", bg: "bg-indigo-500/10" },
   ];
 
@@ -126,19 +126,19 @@ export default function VendorDashboard() {
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
               <div>
-                <p className="text-xl font-display font-black text-green-400">${wallet?.available_balance?.toFixed(2) ?? "0.00"}</p>
+                <p className="text-xl font-display font-black text-green-400">${((wallet?.balance_cents ?? 0) / 100).toFixed(2)}</p>
                 <p className="text-[10px] text-muted-foreground mt-0.5">{R ? "متاح للسحب" : "Available"}</p>
               </div>
               <div>
-                <p className="text-xl font-display font-black text-yellow-400">${wallet?.pending_balance?.toFixed(2) ?? "0.00"}</p>
+                <p className="text-xl font-display font-black text-yellow-400">${((wallet?.pending_cents ?? 0) / 100).toFixed(2)}</p>
                 <p className="text-[10px] text-muted-foreground mt-0.5">{R ? "قيد المعالجة" : "Pending"}</p>
               </div>
               <div>
-                <p className="text-xl font-display font-black text-orange-400">${wallet?.total_earned?.toFixed(2) ?? "0.00"}</p>
+                <p className="text-xl font-display font-black text-orange-400">${((wallet?.total_earned_cents ?? 0) / 100).toFixed(2)}</p>
                 <p className="text-[10px] text-muted-foreground mt-0.5">{R ? "إجمالي الإيرادات" : "Total Earned"}</p>
               </div>
               <div>
-                <p className="text-xl font-display font-black text-red-400">${wallet?.total_fees_paid?.toFixed(2) ?? "0.00"}</p>
+                <p className="text-xl font-display font-black text-red-400">${((wallet?.total_fees_cents ?? 0) / 100).toFixed(2)}</p>
                 <p className="text-[10px] text-muted-foreground mt-0.5">{R ? "رسوم المنصة (10%)" : "Platform Fees (10%)"}</p>
               </div>
             </div>
