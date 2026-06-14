@@ -6,8 +6,8 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   Globe, Menu, X, Languages, ArrowRight,
   Sun, Moon, ChevronDown, Layers, ShoppingBag,
-  MessageSquare, BarChart3, Building2,
-  Phone, Mail, MapPin, LogOut,
+  MessageSquare, BarChart3, Building2, Briefcase, Users, Newspaper,
+  Phone, Mail, MapPin, LogOut, LayoutDashboard, Crown, Award,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -25,16 +25,36 @@ function useTheme() {
 }
 
 const NAV_ITEMS = [
-  { ar: "الرئيسية",    en: "Home",      href: "/",         icon: Globe },
-  { ar: "من نحن",     en: "About",      href: "/about",    icon: Building2 },
-  { ar: "خدماتنا",    en: "Services",   href: "/services", icon: Layers },
-  { ar: "المنتجات",   en: "Products",   href: "/products", icon: ShoppingBag },
-  { ar: "السوق",      en: "Marketplace", href: "/marketplace", icon: ShoppingBag },
-  { ar: "المول الرقمي",en: "Digital Mall",href: "/digital-mall",icon: Building2 },
-  { ar: "الأسعار",    en: "Pricing",    href: "/pricing", icon: BarChart3 },
-  { ar: "المدونة",    en: "Blog",       href: "/blog",     icon: MessageSquare },
-  { ar: "تواصل معنا", en: "Contact",    href: "/contact",  icon: Phone },
+  { ar: "الرئيسية",     en: "Home",        href: "/",            icon: Globe },
+  { ar: "خدماتنا",     en: "Services",    href: "/services",    icon: Layers },
+  { ar: "المنتجات",    en: "Products",    href: "/products",    icon: ShoppingBag },
+  { ar: "السوق",       en: "Marketplace", href: "/marketplace", icon: ShoppingBag },
+  { ar: "المول الرقمي",en: "Digital Mall", href: "/digital-mall",icon: Building2 },
+  { ar: "الأسعار",     en: "Pricing",     href: "/pricing",     icon: BarChart3 },
+  { ar: "تواصل معنا",  en: "Contact",     href: "/contact",     icon: Phone },
 ];
+
+/* About sub-pages — used in dropdown */
+const ABOUT_ITEMS = [
+  { ar: "من نحن",        en: "About Us",      href: "/about",     icon: Building2,  descAr: "رؤيتنا وفريقنا ومسيرتنا",            descEn: "Our vision, team and journey" },
+  { ar: "أعمالنا السابقة",en: "Portfolio",     href: "/portfolio", icon: Award,      descAr: "قصص نجاح حقيقية في كل القطاعات",      descEn: "Real success stories across sectors" },
+  { ar: "شركاؤنا",       en: "Partners",      href: "/partners",  icon: Users,      descAr: "شركاؤنا التقنيون وبرنامج الشراكة",    descEn: "Tech partners & partner program" },
+  { ar: "آخر أخبارنا",   en: "News & Blog",   href: "/news",      icon: Newspaper,  descAr: "آخر التحديثات والمقالات",             descEn: "Latest updates & articles" },
+];
+
+/* All portal definitions — used in multi-portal dropdown */
+const ALL_PORTALS: { role: string; ar: string; en: string; href: string; color: string; icon: string }[] = [
+  { role: "superadmin", ar: "الإدارة العليا",   en: "Super Admin",      href: "/admin",     color: "text-red-400",    icon: "🛡️" },
+  { role: "admin",      ar: "الإدارة",          en: "Admin Portal",     href: "/admin",     color: "text-primary",   icon: "⚙️" },
+  { role: "partner",    ar: "الشريك",           en: "Partner Portal",   href: "/partner",   color: "text-indigo-400",icon: "🤝" },
+  { role: "agent",      ar: "الوكيل",           en: "Agent Portal",     href: "/agent",     color: "text-emerald-400",icon: "🧑‍💼" },
+  { role: "vendor",     ar: "البائع",           en: "Vendor Portal",    href: "/vendor",    color: "text-orange-400",icon: "🏪" },
+  { role: "provider",   ar: "المزوّد",          en: "Provider Portal",  href: "/provider",  color: "text-yellow-400",icon: "🔧" },
+  { role: "marketing",  ar: "التسويق",          en: "Marketing Portal", href: "/marketing", color: "text-pink-400",  icon: "📣" },
+  { role: "user",       ar: "بوابة المستخدم",    en: "User Portal",      href: "/portal",    color: "text-blue-400",  icon: "👤" },
+];
+/* Roles that can also access the central dashboard */
+const DASHBOARD_ROLES = new Set(["superadmin", "admin", "partner", "agent", "vendor", "provider", "marketing"]);
 
 const PORTAL_LINKS = [
   { ar: "الإدارة",    en: "Admin Portal",     href: "/admin",     color: "text-primary" },
@@ -65,8 +85,10 @@ export default function PublicLayout({ children }: { children: ReactNode }) {
   const { theme, toggle } = useTheme();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [portalOpen, setPortalOpen] = useState(false);
+  const [aboutOpen, setAboutOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [userRole, setUserRole] = useState<string | null>(null);
+  const [userRoles, setUserRoles] = useState<string[]>([]);
   const R = i18n.language === "ar";
 
   useEffect(() => {
@@ -77,17 +99,26 @@ export default function PublicLayout({ children }: { children: ReactNode }) {
 
   // Fetch user role when logged in
   useEffect(() => {
-    if (!user) { setUserRole(null); return; }
+    if (!user) { setUserRole(null); setUserRoles([]); return; }
     (supabase as any)
       .from("user_profiles")
-      .select("role")
+      .select("role, extra_roles")
       .eq("id", user.id)
       .single()
-      .then(({ data }: any) => setUserRole(data?.role ?? "user"))
-      .catch(() => setUserRole("user"));
+      .then(({ data }: any) => {
+        const primary = data?.role ?? "user";
+        setUserRole(primary);
+        // extra_roles is an optional text[] column; fall back gracefully
+        const extras: string[] = Array.isArray(data?.extra_roles) ? data.extra_roles : [];
+        const combined = Array.from(new Set([primary, ...extras]));
+        setUserRoles(combined);
+      })
+      .catch(() => { setUserRole("user"); setUserRoles(["user"]); });
   }, [user]);
 
   const portalLink = userRole ? ROLE_PORTAL[userRole] ?? ROLE_PORTAL.user : null;
+  /* Portals this user can access */
+  const accessiblePortals = ALL_PORTALS.filter((p) => userRoles.includes(p.role));
   const dashHref = portalLink?.href ?? "/dashboard";
 
   const isActive = (href: string) =>
@@ -118,31 +149,71 @@ export default function PublicLayout({ children }: { children: ReactNode }) {
                 {R ? n.ar : n.en}
               </button>
             ))}
-            {/* Portals dropdown — only for logged-in users */}
+
+            {/* ── About Dropdown ───────────────────────────────────── */}
+            <div className="relative" onMouseEnter={() => setAboutOpen(true)} onMouseLeave={() => setAboutOpen(false)}>
+              <button className={cn(
+                "flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg transition-all",
+                ['/about','/portfolio','/partners','/news'].some(p => location.pathname.startsWith(p))
+                  ? "text-primary bg-primary/10"
+                  : "text-muted-foreground hover:text-foreground hover:bg-secondary/50"
+              )}>
+                {R ? "من نحن" : "About"} <ChevronDown className={cn("w-3 h-3 transition-transform", aboutOpen && "rotate-180")} />
+              </button>
+              {aboutOpen && (
+                <div className="absolute top-full left-0 mt-1 w-64 bg-background/98 backdrop-blur-xl border border-border rounded-xl shadow-xl overflow-hidden z-50">
+                  {ABOUT_ITEMS.map((item) => (
+                    <button key={item.href}
+                      onClick={() => { navigate(item.href); setAboutOpen(false); }}
+                      className="w-full flex items-start gap-3 px-4 py-3 hover:bg-secondary/50 transition-colors text-left group">
+                      <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0 group-hover:bg-primary/20 transition-colors mt-0.5">
+                        <item.icon className="w-4 h-4 text-primary" />
+                      </div>
+                      <div>
+                        <p className="text-xs font-semibold text-foreground group-hover:text-primary transition-colors">{R ? item.ar : item.en}</p>
+                        <p className="text-[10px] text-muted-foreground mt-0.5">{R ? item.descAr : item.descEn}</p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* ── Portals Dropdown — only for logged-in users ───────── */}
             {user && portalLink && (
               <div className="relative" onMouseEnter={() => setPortalOpen(true)} onMouseLeave={() => setPortalOpen(false)}>
                 <button className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-secondary/50 rounded-lg transition-all">
-                  {R ? "البوابات" : "Portals"} <ChevronDown className={cn("w-3 h-3 transition-transform", portalOpen && "rotate-180")} />
+                  {R ? "بوابتي" : "My Portals"} <ChevronDown className={cn("w-3 h-3 transition-transform", portalOpen && "rotate-180")} />
                 </button>
                 {portalOpen && (
-                  <div className="absolute top-full left-0 mt-1 w-52 bg-background/98 backdrop-blur-xl border border-border rounded-xl shadow-xl overflow-hidden">
-                    {/* My portal */}
-                    <button onClick={() => { navigate(portalLink.href); setPortalOpen(false); }}
-                      className="w-full flex items-center gap-2 px-4 py-2.5 text-xs hover:bg-secondary/50 transition-colors text-left">
-                      <div className={cn("w-1.5 h-1.5 rounded-full bg-current", portalLink.color)} />
-                      <span className={portalLink.color}>{R ? portalLink.ar : portalLink.en}</span>
-                    </button>
-                    {/* Central dashboard */}
-                    <button onClick={() => { navigate("/dashboard"); setPortalOpen(false); }}
-                      className="w-full flex items-center gap-2 px-4 py-2.5 text-xs hover:bg-secondary/50 transition-colors text-left border-t border-border/50">
-                      <div className="w-1.5 h-1.5 rounded-full bg-current text-primary" />
-                      <span className="text-primary">{R ? "لوحة التحكم المركزية" : "Central Dashboard"}</span>
-                    </button>
-                    {/* AI Chat always available */}
+                  <div className="absolute top-full left-0 mt-1 w-60 bg-background/98 backdrop-blur-xl border border-border rounded-xl shadow-xl overflow-hidden z-50">
+                    {/* Accessible portals based on role(s) */}
+                    {accessiblePortals.length > 0 ? accessiblePortals.map((p) => (
+                      <button key={p.href + p.role} onClick={() => { navigate(p.href); setPortalOpen(false); }}
+                        className="w-full flex items-center gap-2 px-4 py-2.5 text-xs hover:bg-secondary/50 transition-colors text-left">
+                        <span className="text-sm shrink-0">{p.icon}</span>
+                        <span className={p.color}>{R ? p.ar : p.en}</span>
+                      </button>
+                    )) : (
+                      <button onClick={() => { navigate("/portal"); setPortalOpen(false); }}
+                        className="w-full flex items-center gap-2 px-4 py-2.5 text-xs hover:bg-secondary/50 transition-colors text-left">
+                        <span className="text-sm">👤</span>
+                        <span className="text-blue-400">{R ? "بوابة المستخدم" : "User Portal"}</span>
+                      </button>
+                    )}
+                    {/* Central Dashboard for staff roles */}
+                    {userRole && DASHBOARD_ROLES.has(userRole) && (
+                      <button onClick={() => { navigate("/dashboard"); setPortalOpen(false); }}
+                        className="w-full flex items-center gap-2 px-4 py-2.5 text-xs hover:bg-secondary/50 transition-colors text-left border-t border-border/50">
+                        <span className="text-sm">🖥️</span>
+                        <span className="text-primary">{R ? "لوحة التحكم المركزية" : "Central Dashboard"}</span>
+                      </button>
+                    )}
+                    {/* AI Chat always */}
                     <button onClick={() => { navigate("/chat"); setPortalOpen(false); }}
-                      className="w-full flex items-center gap-2 px-4 py-2.5 text-xs hover:bg-secondary/50 transition-colors text-left">
-                      <div className="w-1.5 h-1.5 rounded-full bg-current text-cyan-400" />
-                      <span className="text-cyan-400">{R ? "AI Chat" : "AI Chat"}</span>
+                      className="w-full flex items-center gap-2 px-4 py-2.5 text-xs hover:bg-secondary/50 transition-colors text-left border-t border-border/50">
+                      <span className="text-sm">🤖</span>
+                      <span className="text-cyan-400">AI Chat</span>
                     </button>
                   </div>
                 )}
@@ -184,18 +255,48 @@ export default function PublicLayout({ children }: { children: ReactNode }) {
         {/* Mobile menu */}
         {mobileOpen && (
           <div className="lg:hidden border-t border-border bg-background/98 backdrop-blur-xl py-4 px-4">
-            <div className="grid grid-cols-2 gap-1.5 mb-3">
-              {[...NAV_ITEMS, ...PORTAL_LINKS.slice(0, 4)].map(n => (
-                <button key={n.href} onClick={() => { navigate(n.href); setMobileOpen(false); }}
-                  className={cn("flex items-center gap-2 py-2.5 px-3 text-xs rounded-xl transition-all", "hover:bg-secondary/50 text-muted-foreground hover:text-foreground")}>
-                  {"icon" in n && <n.icon className="w-3.5 h-3.5" />}
-                  {R ? n.ar : n.en}
-                </button>
-              ))}
+            <div className="mb-2">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-widest px-2 mb-1.5">{R ? "التنقل" : "Navigation"}</p>
+              <div className="grid grid-cols-2 gap-1.5">
+                {NAV_ITEMS.map(n => (
+                  <button key={n.href} onClick={() => { navigate(n.href); setMobileOpen(false); }}
+                    className="flex items-center gap-2 py-2.5 px-3 text-xs rounded-xl hover:bg-secondary/50 text-muted-foreground hover:text-foreground transition-all">
+                    <n.icon className="w-3.5 h-3.5" />{R ? n.ar : n.en}
+                  </button>
+                ))}
+              </div>
             </div>
+            <div className="border-t border-border/50 pt-2 mt-1 mb-2">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-widest px-2 mb-1.5">{R ? "من نحن" : "About"}</p>
+              <div className="grid grid-cols-2 gap-1.5">
+                {ABOUT_ITEMS.map(n => (
+                  <button key={n.href} onClick={() => { navigate(n.href); setMobileOpen(false); }}
+                    className="flex items-center gap-2 py-2.5 px-3 text-xs rounded-xl hover:bg-secondary/50 text-muted-foreground hover:text-foreground transition-all">
+                    <n.icon className="w-3.5 h-3.5" />{R ? n.ar : n.en}
+                  </button>
+                ))}
+              </div>
+            </div>
+            {user && (
+              <div className="border-t border-border/50 pt-2 mb-2">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-widest px-2 mb-1.5">{R ? "بوابتي" : "My Portals"}</p>
+                <div className="grid grid-cols-2 gap-1.5">
+                  {(accessiblePortals.length > 0 ? accessiblePortals : [{ role: "user", ar: "بوابة المستخدم", en: "User Portal", href: "/portal", color: "text-blue-400", icon: "👤" }]).map((p) => (
+                    <button key={p.href + p.role} onClick={() => { navigate(p.href); setMobileOpen(false); }}
+                      className="flex items-center gap-2 py-2.5 px-3 text-xs rounded-xl hover:bg-secondary/50 transition-all">
+                      <span className="text-sm">{p.icon}</span><span className={p.color}>{R ? p.ar : p.en}</span>
+                    </button>
+                  ))}
+                  <button onClick={() => { navigate("/chat"); setMobileOpen(false); }}
+                    className="flex items-center gap-2 py-2.5 px-3 text-xs rounded-xl hover:bg-secondary/50 transition-all">
+                    <span className="text-sm">🤖</span><span className="text-cyan-400">AI Chat</span>
+                  </button>
+                </div>
+              </div>
+            )}
             <div className="border-t border-border pt-3 flex gap-2">
               {user ? (
-                <Button size="sm" onClick={() => { navigate("/portal"); setMobileOpen(false); }} className="flex-1 text-xs">{R ? "لوحة التحكم" : "Dashboard"}</Button>
+                <Button size="sm" onClick={() => { navigate(dashHref); setMobileOpen(false); }} className="flex-1 text-xs">{R ? "لوحة التحكم" : "Dashboard"}</Button>
               ) : (
                 <>
                   <Button variant="outline" size="sm" onClick={() => { navigate("/auth"); setMobileOpen(false); }} className="flex-1 text-xs">{R ? "دخول" : "Sign In"}</Button>
@@ -238,10 +339,11 @@ export default function PublicLayout({ children }: { children: ReactNode }) {
                 { l: "API", h: "/api-docs" },
               ]},
               { title: R ? "الشركة" : "Company", links: [
-                { l: R ? "من نحن" : "About Us", h: "/about" },
-                { l: R ? "المدونة" : "Blog", h: "/blog" },
-                { l: R ? "اتصل بنا" : "Contact", h: "/contact" },
-                { l: R ? "الشركاء" : "Partners", h: "/auth?tab=signup" },
+                { l: R ? "من نحن" : "About Us",          h: "/about" },
+                { l: R ? "أعمالنا السابقة" : "Portfolio", h: "/portfolio" },
+                { l: R ? "شركاؤنا" : "Partners",          h: "/partners" },
+                { l: R ? "آخر أخبارنا" : "News",          h: "/news" },
+                { l: R ? "اتصل بنا" : "Contact",          h: "/contact" },
               ]},
               { title: R ? "البوابات" : "Portals", links: PORTAL_LINKS.map(p => ({ l: R ? p.ar : p.en, h: p.href })) },
             ].map(col => (

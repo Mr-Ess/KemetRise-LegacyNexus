@@ -92,6 +92,9 @@ const PublicAbout       = lazy(() => import("./pages/public/PublicAbout"));
 const PublicContact     = lazy(() => import("./pages/public/PublicContact"));
 const PublicServices    = lazy(() => import("./pages/public/PublicServices"));
 const PublicProducts    = lazy(() => import("./pages/public/PublicProducts"));
+const PublicPortfolio   = lazy(() => import("./pages/public/PublicPortfolio"));
+const PublicPartners    = lazy(() => import("./pages/public/PublicPartners"));
+const PublicNews        = lazy(() => import("./pages/public/PublicNews"));
 const VendorProducts    = lazy(() => import("./pages/vendor/VendorProducts"));
 const AdminUsers        = lazy(() => import("./pages/admin/AdminUsers"));
 const AdminAnalytics    = lazy(() => import("./pages/admin/AdminAnalytics"));
@@ -162,6 +165,10 @@ const App = () => (
                 <Route path="/contact" element={<PublicContact />} />
                 <Route path="/services" element={<PublicServices />} />
                 <Route path="/products" element={<PublicProducts />} />
+                <Route path="/portfolio" element={<PublicPortfolio />} />
+                <Route path="/partners" element={<PublicPartners />} />
+                <Route path="/news" element={<PublicNews />} />
+                <Route path="/news/:slug" element={<PublicNews />} />
                 <Route path="/erp" element={<Protected><ERPProvider><ERPCockpit /></ERPProvider></Protected>} />
                 <Route path="/cockpit" element={<Protected><ExecutiveCockpit /></Protected>} />
                 <Route path="/brands" element={<Protected><BrandsHub /></Protected>} />
