@@ -24,7 +24,26 @@ export default function Auth() {
   const [otp, setOtp] = useState("");
   const [pendingSecret, setPendingSecret] = useState("");
 
-  useEffect(() => { if (user && !needs2fa) nav("/", { replace: true }); }, [user, nav, needs2fa]);
+  // Role-based redirect after login
+  const redirectByRole = async (userId: string) => {
+    try {
+      const { data } = await supabase
+        .from("user_profiles" as any)
+        .select("role")
+        .eq("id", userId)
+        .single();
+      const role = (data as any)?.role ?? "user";
+      if (role === "admin")    return nav("/", { replace: true });
+      if (role === "provider") return nav("/provider", { replace: true });
+      return nav("/portal", { replace: true });
+    } catch {
+      nav("/", { replace: true });
+    }
+  };
+
+  useEffect(() => {
+    if (user && !needs2fa) redirectByRole(user.id);
+  }, [user, needs2fa]);
 
   const signIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -49,7 +68,7 @@ export default function Auth() {
       setPendingSecret(tfa.secret);
       setNeeds2fa(true);
     } else {
-      nav("/");
+      await redirectByRole(data.user!.id);
     }
   };
 
@@ -57,8 +76,9 @@ export default function Auth() {
     const totp = new OTPAuth.TOTP({ issuer: "KemetRise", label: email, secret: OTPAuth.Secret.fromBase32(pendingSecret) });
     const delta = totp.validate({ token: otp, window: 1 });
     if (delta === null) { toast.error("كود خاطئ"); return; }
+    const { data: { user: u } } = await supabase.auth.getUser();
     setNeeds2fa(false);
-    nav("/");
+    if (u) await redirectByRole(u.id); else nav("/");
   };
 
   const cancel2fa = async () => {

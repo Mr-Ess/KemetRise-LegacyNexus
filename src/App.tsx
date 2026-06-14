@@ -76,6 +76,13 @@ const FinanceAnalytics = lazy(() => import("./pages/FinanceAnalytics.tsx"));
 const ERPCockpit = lazy(() => import("./pages/ERPCockpit.tsx"));
 import { ERPProvider } from "@/context/ERPContext";
 import { CartProvider } from "@/context/CartContext";
+import { UserRoleProvider } from "@/context/UserRoleContext";
+
+// Portal pages
+const ProviderDashboard = lazy(() => import("./pages/provider/ProviderDashboard"));
+const UserDashboard     = lazy(() => import("./pages/portal/UserDashboard"));
+const UserOrders        = lazy(() => import("./pages/portal/UserOrders"));
+const FinancialHub      = lazy(() => import("./pages/FinancialHub"));
 
 const AffiliatedAgents = lazy(() => import("./pages/AffiliatedAgents.tsx"));
 const NotificationRules = lazy(() => import("./pages/NotificationRules.tsx"));
@@ -108,7 +115,7 @@ const PageFallback = () => (
 );
 
 const Protected = ({ children }: { children: React.ReactNode }) => (
-  <ProtectedRoute><CartProvider><BrandsProvider><OnboardingTour /><CommandPalette />{children}<AIAssistant /></BrandsProvider></CartProvider></ProtectedRoute>
+  <ProtectedRoute><UserRoleProvider><CartProvider><BrandsProvider><OnboardingTour /><CommandPalette />{children}<AIAssistant /></BrandsProvider></CartProvider></UserRoleProvider></ProtectedRoute>
 );
 
 const App = () => (
@@ -177,6 +184,18 @@ const App = () => (
                 <Route path="/import-export"      element={<Navigate to="/operations" replace />} />
                 <Route path="/clients" element={<Navigate to="/customers" replace />} />
                 <Route path="/finance-analytics" element={<Protected><FinanceAnalytics /></Protected>} />
+                {/* ── Provider Portal ── */}
+                <Route path="/provider" element={<Protected><ProviderDashboard /></Protected>} />
+                {/* ── User Portal ── */}
+                <Route path="/portal" element={<Protected><UserDashboard /></Protected>} />
+                <Route path="/portal/orders" element={<Protected><UserOrders /></Protected>} />
+                <Route path="/portal/wishlist" element={<Protected><UserDashboard /></Protected>} />
+                <Route path="/portal/invoices" element={<Protected><UserDashboard /></Protected>} />
+                <Route path="/portal/reviews" element={<Protected><UserDashboard /></Protected>} />
+                <Route path="/portal/profile" element={<Protected><Settings /></Protected>} />
+                {/* ── Admin Finance Hub ── */}
+                <Route path="/admin/finance" element={<Protected><FinancialHub /></Protected>} />
+                <Route path="/admin" element={<Protected><Index /></Protected>} />
                 <Route path="/heirs" element={<Navigate to="/digital-inheritance" replace />} />
                 <Route path="/affiliated-agents" element={<Navigate to="/affiliates" replace />} />
                 <Route path="/notification-rules" element={<Navigate to="/notifications" replace />} />
