@@ -75,6 +75,7 @@ const ImportExport = lazy(() => import("./pages/ImportExport.tsx"));
 const FinanceAnalytics = lazy(() => import("./pages/FinanceAnalytics.tsx"));
 const ERPCockpit = lazy(() => import("./pages/ERPCockpit.tsx"));
 import { ERPProvider } from "@/context/ERPContext";
+import { CartProvider } from "@/context/CartContext";
 
 const AffiliatedAgents = lazy(() => import("./pages/AffiliatedAgents.tsx"));
 const NotificationRules = lazy(() => import("./pages/NotificationRules.tsx"));
@@ -107,7 +108,7 @@ const PageFallback = () => (
 );
 
 const Protected = ({ children }: { children: React.ReactNode }) => (
-  <ProtectedRoute><BrandsProvider><OnboardingTour /><CommandPalette />{children}<AIAssistant /></BrandsProvider></ProtectedRoute>
+  <ProtectedRoute><CartProvider><BrandsProvider><OnboardingTour /><CommandPalette />{children}<AIAssistant /></BrandsProvider></CartProvider></ProtectedRoute>
 );
 
 const App = () => (

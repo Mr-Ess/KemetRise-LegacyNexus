@@ -3,7 +3,7 @@ import {
   Plus, Trash2, Pencil, X, Check, RefreshCw, Settings,
   PackagePlus, FolderPlus, ClipboardList, CheckCircle2, XCircle,
   Layers, ChevronDown, ChevronRight, Copy, EyeOff, Eye, GripVertical,
-  LayoutDashboard, BarChart2, Store, Search,
+  LayoutDashboard, BarChart2, Store, Search, ShoppingBag,
 } from "lucide-react";
 import { seedMarketplaceDefaults, MARKETPLACE_SEED_TYPES } from "./marketplaceSeed";
 import { Button } from "@/components/ui/button";
@@ -998,12 +998,13 @@ export default function ManagementPanel({
   onCategoryChange: () => void;
   onClose?: () => void;
 }) {
-  const [tab, setTab] = useState<"overview" | "listings" | "all" | "types" | "requests" | "analytics">("overview");
+  const [tab, setTab] = useState<"overview" | "listings" | "all" | "types" | "requests" | "analytics" | "orders">("overview");
   const [myListings, setMyListings] = useState<Listing[]>([]);
   const [allMarketListings, setAllMarketListings] = useState<Listing[]>([]);
   const [allTypes, setAllTypes] = useState<MpListingType[]>([]);
   const [allCategories, setAllCategories] = useState<MpCategory[]>([]);
   const [requests, setRequests] = useState<any[]>([]);
+  const [orders, setOrders] = useState<any[]>([]);
   const [loadingL, setLoadingL] = useState(false);
   const [loadingAll, setLoadingAll] = useState(false);
   const [showAddEdit, setShowAddEdit] = useState(false);
@@ -1011,6 +1012,8 @@ export default function ManagementPanel({
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [allSearch, setAllSearch] = useState("");
   const [allTypeFilter, setAllTypeFilter] = useState("all");
+  const [orderStatusFilter, setOrderStatusFilter] = useState<string>("all");
+  const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
   const db = supabase as any;
 
   const loadMyListings = async () => {
@@ -1028,6 +1031,37 @@ export default function ManagementPanel({
     const { data } = await db.from("mp_listing_requests").select("*").order("created_at", { ascending: false });
     setRequests(data || []);
   };
+  const loadOrders = async () => {
+    if (!currentUserId) return;
+    try {
+      // Get this seller's listing IDs
+      const { data: sellerListings } = await db
+        .from("mp_listings")
+        .select("id")
+        .eq("publisher_user_id", currentUserId);
+      if (!sellerListings?.length) { setOrders([]); return; }
+
+      const listingIds = sellerListings.map((l: any) => l.id);
+
+      // Find order IDs that contain at least one of the seller's listings
+      const { data: orderItemRows } = await db
+        .from("mp_order_items")
+        .select("order_id")
+        .in("listing_id", listingIds);
+      if (!orderItemRows?.length) { setOrders([]); return; }
+
+      const orderIds = [...new Set(orderItemRows.map((oi: any) => oi.order_id))];
+
+      // Fetch full orders with their items
+      const { data: orderRows } = await db
+        .from("mp_orders")
+        .select("*, items:mp_order_items(*)")
+        .in("id", orderIds)
+        .order("created_at", { ascending: false });
+
+      setOrders(orderRows || []);
+    } catch { setOrders([]); }
+  };
   const loadMeta = async () => {
     const { data: t } = await db.from("mp_listing_types").select("*").order("sort_order").order("label");
     const { data: c } = await db.from("mp_categories").select("*").order("sort_order").order("name");
@@ -1038,7 +1072,7 @@ export default function ManagementPanel({
   };
 
   useEffect(() => {
-    loadMyListings(); loadRequests(); loadMeta(); loadAllListings();
+    loadMyListings(); loadRequests(); loadMeta(); loadAllListings(); loadOrders();
   }, [currentUserId]);
 
   const deleteListing = async (id: string) => {
@@ -1066,6 +1100,13 @@ export default function ManagementPanel({
   };
   const handleSaved = () => { loadMyListings(); loadAllListings(); onListingChange(); };
   const handleTypesChange = () => { loadMeta(); onCategoryChange(); };
+  const updateOrderStatus = async (orderId: string, status: string) => {
+    try {
+      await db.from("mp_orders").update({ status }).eq("id", orderId);
+      loadOrders();
+      toast.success("Order status updated to " + status);
+    } catch { toast.error("Failed to update status"); }
+  };
 
   const pendingCount = requests.filter((r) => r.status === "pending").length;
   const typeMap: Record<string, MpListingType> = Object.fromEntries(allTypes.map((t) => [t.code, t]));
@@ -1105,6 +1146,7 @@ export default function ManagementPanel({
   const NAV = [
     { id: "overview",  label: "Overview",          Icon: LayoutDashboard, count: 0                     },
     { id: "listings",  label: "My Listings",        Icon: PackagePlus,     count: myListings.length      },
+    { id: "orders",    label: "Orders",             Icon: ShoppingBag,     count: orders.length          },
     { id: "all",       label: "All Listings",       Icon: Store,           count: allMarketListings.length},
     { id: "types",     label: "Types & Categories", Icon: Layers,          count: allTypes.length        },
     { id: "requests",  label: "Requests",           Icon: ClipboardList,   count: pendingCount           },
@@ -1230,6 +1272,7 @@ export default function ManagementPanel({
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                     {[
                       { label: "New Listing",        Icon: PackagePlus,     onClick: () => { setEditTarget(null); setShowAddEdit(true); }, cls: "border-primary/30 bg-primary/10 text-primary hover:bg-primary/20"         },
+                      { label: "My Orders",          Icon: ShoppingBag,     onClick: () => setTab("orders"),    cls: "border-blue-500/30 bg-blue-500/10 text-blue-400 hover:bg-blue-500/20"            },
                       { label: "All Listings",       Icon: Store,           onClick: () => setTab("all"),       cls: "border-violet-500/30 bg-violet-500/10 text-violet-400 hover:bg-violet-500/20"  },
                       { label: "Types & Categories", Icon: Layers,          onClick: () => setTab("types"),     cls: "border-blue-500/30 bg-blue-500/10 text-blue-400 hover:bg-blue-500/20"          },
                       { label: "Requests",           Icon: ClipboardList,   onClick: () => setTab("requests"),  cls: "border-amber-500/30 bg-amber-500/10 text-amber-400 hover:bg-amber-500/20"      },
@@ -1341,6 +1384,194 @@ export default function ManagementPanel({
                 </div>
               )
             )}
+
+            {/* ══ ORDERS (SELLER DASHBOARD) ════════════════════════════ */}
+            {tab === "orders" && (() => {
+              const STATUS_FILTERS = [
+                { id: "all", label: "All", color: "" },
+                { id: "pending", label: "Pending", color: "text-amber-400" },
+                { id: "processing", label: "Processing", color: "text-blue-400" },
+                { id: "completed", label: "Completed", color: "text-emerald-400" },
+                { id: "cancelled", label: "Cancelled", color: "text-red-400" },
+                { id: "refunded", label: "Refunded", color: "text-rose-400" },
+              ];
+              const STATUS_BADGE: Record<string, string> = {
+                pending:    "bg-amber-500/20 text-amber-400 border-amber-500/40",
+                processing: "bg-blue-500/20 text-blue-400 border-blue-500/40",
+                completed:  "bg-emerald-500/20 text-emerald-400 border-emerald-500/40",
+                cancelled:  "bg-red-500/20 text-red-400 border-red-500/40",
+                refunded:   "bg-rose-500/20 text-rose-400 border-rose-500/40",
+                failed:     "bg-red-500/20 text-red-400 border-red-500/40",
+              };
+              const NEXT_STATUS: Record<string, string[]> = {
+                pending:    ["processing", "completed", "cancelled"],
+                processing: ["completed", "cancelled"],
+                completed:  ["refunded"],
+                cancelled:  [],
+                refunded:   [],
+                failed:     ["pending"],
+              };
+              const filtered = orderStatusFilter === "all"
+                ? orders
+                : orders.filter((o: any) => o.status === orderStatusFilter);
+              const totalRevenue = filtered
+                .filter((o: any) => o.status === "completed")
+                .reduce((s: number, o: any) => s + (o.total_cents || 0), 0);
+              const currency = filtered[0]?.currency || "USD";
+
+              return (
+                <div className="space-y-4">
+                  {/* Revenue KPIs */}
+                  <div className="grid grid-cols-3 gap-3">
+                    <Card className="p-3 bg-secondary/10 text-center">
+                      <p className="text-xl font-bold text-primary">{filtered.length}</p>
+                      <p className="text-[10px] text-muted-foreground mt-0.5">Orders</p>
+                    </Card>
+                    <Card className="p-3 bg-secondary/10 text-center">
+                      <p className="text-xl font-bold text-emerald-400">
+                        {totalRevenue === 0 ? "—" : `${(totalRevenue / 100).toFixed(0)} ${currency}`}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground mt-0.5">Revenue</p>
+                    </Card>
+                    <Card className="p-3 bg-secondary/10 text-center">
+                      <p className="text-xl font-bold text-amber-400">
+                        {orders.filter((o: any) => o.status === "pending").length}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground mt-0.5">Pending</p>
+                    </Card>
+                  </div>
+
+                  {/* Status filter tabs */}
+                  <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5">
+                    {STATUS_FILTERS.map(f => (
+                      <button
+                        key={f.id}
+                        onClick={() => setOrderStatusFilter(f.id)}
+                        className={`shrink-0 text-xs px-3 py-1 rounded-full border transition-all whitespace-nowrap ${
+                          orderStatusFilter === f.id
+                            ? "bg-primary text-primary-foreground border-primary"
+                            : "border-border/50 text-muted-foreground hover:border-border hover:text-foreground"
+                        }`}
+                      >
+                        {f.label}
+                        {f.id !== "all" && (
+                          <span className="ml-1 opacity-70">
+                            ({orders.filter((o: any) => o.status === f.id).length})
+                          </span>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Orders list */}
+                  {filtered.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-12 text-center">
+                      <ShoppingBag className="w-10 h-10 mb-3 text-muted-foreground/20" />
+                      <p className="text-sm text-muted-foreground">No orders found</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {filtered.map((order: any) => {
+                        const isExpanded = expandedOrder === order.id;
+                        const items: any[] = order.items || [];
+                        const nextStatuses = NEXT_STATUS[order.status] || [];
+                        return (
+                          <div key={order.id} className="border border-border/50 rounded-xl overflow-hidden">
+                            {/* Order header row */}
+                            <div
+                              className="flex items-center gap-3 p-3 hover:bg-secondary/10 transition-colors cursor-pointer"
+                              onClick={() => setExpandedOrder(isExpanded ? null : order.id)}
+                            >
+                              <ChevronRight className={`w-3.5 h-3.5 text-muted-foreground shrink-0 transition-transform ${isExpanded ? "rotate-90" : ""}`} />
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span className="text-xs font-bold font-mono">{order.order_number}</span>
+                                  <Badge className={`text-[9px] px-1.5 py-0 ${STATUS_BADGE[order.status] || "bg-secondary text-muted-foreground"}`}>
+                                    {order.status}
+                                  </Badge>
+                                  {!order.invoice_sent && (
+                                    <Badge className="text-[9px] px-1.5 py-0 bg-secondary/50 text-muted-foreground border-border/40">
+                                      📧 Invoice pending
+                                    </Badge>
+                                  )}
+                                </div>
+                                <div className="flex items-center gap-3 mt-0.5">
+                                  <span className="text-[10px] text-muted-foreground truncate max-w-32">{order.buyer_name}</span>
+                                  <span className="text-[10px] text-muted-foreground truncate">{order.buyer_email}</span>
+                                </div>
+                              </div>
+                              <div className="shrink-0 text-right">
+                                <p className="text-xs font-bold text-primary">
+                                  {order.total_cents === 0 ? "Free" : `${(order.total_cents / 100).toFixed(2)} ${order.currency}`}
+                                </p>
+                                <p className="text-[10px] text-muted-foreground">{new Date(order.created_at).toLocaleDateString()}</p>
+                              </div>
+                            </div>
+
+                            {/* Expanded details */}
+                            {isExpanded && (
+                              <div className="border-t border-border/40 bg-secondary/5 p-4 space-y-4">
+                                {/* Items */}
+                                {items.length > 0 && (
+                                  <div>
+                                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Items</p>
+                                    <div className="space-y-1.5">
+                                      {items.map((item: any) => (
+                                        <div key={item.id} className="flex items-center justify-between text-xs bg-background/50 rounded-lg px-3 py-2">
+                                          <span className="text-muted-foreground">{item.listing_name}</span>
+                                          <div className="flex items-center gap-3 shrink-0 ml-2">
+                                            <span className="text-muted-foreground">×{item.quantity}</span>
+                                            <span className="font-medium">{(item.total_price / 100).toFixed(2)} {item.currency}</span>
+                                          </div>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+
+                                {/* Buyer info + Payment */}
+                                <div className="grid grid-cols-2 gap-3 text-xs">
+                                  <div>
+                                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Buyer</p>
+                                    <p className="font-medium">{order.buyer_name}</p>
+                                    <p className="text-muted-foreground">{order.buyer_email}</p>
+                                    {order.buyer_phone && <p className="text-muted-foreground">{order.buyer_phone}</p>}
+                                    {order.buyer_address && <p className="text-muted-foreground">{order.buyer_address}</p>}
+                                  </div>
+                                  <div>
+                                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Payment</p>
+                                    <p className="font-medium capitalize">{order.payment_method?.replace(/_/g, " ")}</p>
+                                    {order.notes && <p className="text-muted-foreground mt-1 italic">"{order.notes}"</p>}
+                                  </div>
+                                </div>
+
+                                {/* Status actions */}
+                                {nextStatuses.length > 0 && (
+                                  <div>
+                                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Update Status</p>
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                      {nextStatuses.map((ns) => (
+                                        <button
+                                          key={ns}
+                                          onClick={() => updateOrderStatus(order.id, ns)}
+                                          className={`text-xs px-3 py-1.5 rounded-lg border font-medium transition-all ${STATUS_BADGE[ns]} hover:opacity-80`}
+                                        >
+                                          Mark as {ns}
+                                        </button>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
 
             {/* ══ ALL LISTINGS ══════════════════════════════════════════ */}
             {tab === "all" && (

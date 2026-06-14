@@ -6,7 +6,11 @@ import {
   ShoppingCart, Clock, RefreshCw, X, ChevronRight,
   Monitor, Box, Wrench, Repeat, Tag, Users,
   SlidersHorizontal, Truck, Plus, Pencil, Trash2, Settings,
+  ExternalLink, PackagePlus,
 } from "lucide-react";
+import CartDrawer from "@/components/marketplace/CartDrawer";
+import CheckoutWizard from "@/components/marketplace/CheckoutWizard";
+import { useCart } from "@/context/CartContext";
 import ManagementPanel, { DeleteConfirmDialog, COLOR_PALETTE, type MpCategory, type MpListingType } from "@/components/marketplace/MarketplaceManager";
 import { seedMarketplaceDefaults, MARKETPLACE_SEED_TYPES } from "@/components/marketplace/marketplaceSeed";
 import { Button } from "@/components/ui/button";
@@ -335,12 +339,14 @@ function SubscriptionCard({ item, cfg, onDetails, onWishlist, wishlisted }: {
   );
 }
 
+/* CheckoutDialog removed — replaced by CartDrawer + CheckoutWizard */
+
 /* ═══════════════════════════════════════════════════════════════════════════
    LISTING DETAIL DIALOG
 ═══════════════════════════════════════════════════════════════════════════ */
-function ListingDetailDialog({ item, cfg, open, onClose, onPurchase, isPurchased, onWishlist, wishlisted }: {
+function ListingDetailDialog({ item, cfg, open, onClose, onAddToCart, isPurchased, isInCart, onWishlist, wishlisted }: {
   item: Listing | null; cfg: TypeCfg; open: boolean; onClose: () => void;
-  onPurchase: (i: Listing) => void; isPurchased: boolean;
+  onAddToCart: (i: Listing) => void; isPurchased: boolean; isInCart: boolean;
   onWishlist: (id: string) => void; wishlisted: boolean;
 }) {
   if (!item) return null;
@@ -386,6 +392,7 @@ function ListingDetailDialog({ item, cfg, open, onClose, onPurchase, isPurchased
             {item.meta.version && <div className="bg-secondary/20 rounded-lg p-3"><p className="text-[10px] text-muted-foreground">Version</p><p className="text-sm font-medium">{item.meta.version}</p></div>}
             {item.meta.license_type && <div className="bg-secondary/20 rounded-lg p-3"><p className="text-[10px] text-muted-foreground">License</p><p className="text-sm font-medium">{item.meta.license_type}</p></div>}
             {item.meta.compatibility && <div className="bg-secondary/20 rounded-lg p-3 col-span-2"><p className="text-[10px] text-muted-foreground">Compatibility</p><p className="text-sm font-medium">{item.meta.compatibility}</p></div>}
+            {item.meta.demo_url && <div className="bg-secondary/20 rounded-lg p-3 col-span-2"><p className="text-[10px] text-muted-foreground">Demo</p><a href={item.meta.demo_url} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-primary hover:underline flex items-center gap-1 truncate"><ExternalLink className="w-3 h-3 shrink-0" />{item.meta.demo_url}</a></div>}
           </div>
         )}
         {item.listing_type === "physical" && Object.keys(item.meta || {}).length > 0 && (
@@ -455,12 +462,18 @@ function ListingDetailDialog({ item, cfg, open, onClose, onPurchase, isPurchased
               <Heart className={`w-3.5 h-3.5 ${wishlisted ? "fill-rose-400 text-rose-400" : ""}`} />
               {wishlisted ? "Saved" : "Save"}
             </Button>
-            <Button size="sm" className="gap-1 text-xs" disabled={isPurchased} onClick={() => onPurchase(item)}>
+            <Button
+              size="sm" className="gap-1 text-xs"
+              disabled={isPurchased}
+              variant={isInCart && !isPurchased ? "outline" : "default"}
+              onClick={() => !isPurchased && onAddToCart(item)}
+            >
               {isPurchased ? <><Check className="w-3 h-3" />Owned</>
+               : isInCart ? <><ShoppingCart className="w-3 h-3" />In Cart</>
                : item.pricing_model === "free" || item.price_cents === 0 ? <><Download className="w-3 h-3" />Get Free</>
-               : item.listing_type === "service" ? <><Wrench className="w-3 h-3" />Order Now</>
-               : item.listing_type === "subscription" ? <><Repeat className="w-3 h-3" />Subscribe</>
-               : <><ShoppingCart className="w-3 h-3" />Purchase — {price}</>}
+               : item.listing_type === "service" ? <><PackagePlus className="w-3 h-3" />Add to Cart</>
+               : item.listing_type === "subscription" ? <><Repeat className="w-3 h-3" />Add to Cart</>
+               : <><ShoppingCart className="w-3 h-3" />Add to Cart</>}
             </Button>
           </div>
         </div>
@@ -585,7 +598,10 @@ export default function Marketplace() {
   const [sortBy, setSortBy] = useState("featured");
   const [viewGrid, setViewGrid] = useState(true);
   const [detailItem, setDetailItem] = useState<Listing | null>(null);
+  const [cartOpen, setCartOpen] = useState(false);
+  const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [showRequest, setShowRequest] = useState(false);
+  const { addToCart, cartCount, isInCart, refresh: refreshCart } = useCart();
 
   // Management mode
   const [isManageMode, setIsManageMode] = useState(false);
@@ -639,14 +655,15 @@ export default function Marketplace() {
     setActiveSubCategory("All");
   };
 
-  const handlePurchase = async (item: Listing) => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return toast.error("Please sign in to purchase");
-    try {
-      await db.from("mp_purchases").insert({ listing_id: item.id, user_id: user.id, amount_cents: item.price_cents });
-      setPurchased((prev) => [...prev, item.id]);
-      toast.success(`${item.name} added to your library!`);
-    } catch { toast.error("Purchase failed"); }
+  const handleAddToCart = (item: Listing) => {
+    setDetailItem(null);
+    addToCart(item);
+  };
+
+  const handleOrderComplete = () => {
+    // Refresh purchased list after order is placed
+    load();
+    refreshCart();
   };
 
   const handleWishlist = async (id: string) => {
@@ -787,6 +804,19 @@ export default function Marketplace() {
             <Button size="sm" className="gap-1.5 text-xs h-8" onClick={() => setShowRequest(true)}>
               <Sparkles className="w-3.5 h-3.5" />Request Listing
             </Button>
+            {/* Cart button */}
+            <button
+              onClick={() => setCartOpen(true)}
+              className="relative p-2 rounded-lg border border-border/50 hover:border-primary/50 hover:bg-primary/5 transition-all"
+              title="Shopping Cart"
+            >
+              <ShoppingCart className="w-4 h-4" />
+              {cartCount > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 w-4.5 h-4.5 min-w-[18px] text-[9px] font-bold bg-primary text-primary-foreground rounded-full flex items-center justify-center px-1">
+                  {cartCount}
+                </span>
+              )}
+            </button>
           </div>
         </div>
       </header>
@@ -980,13 +1010,26 @@ export default function Marketplace() {
         )}
       </div>
 
-      {/* ══ DIALOGS ══════════════════════════════════════════════════════════ */}
+      {/* ══ DIALOGS & DRAWERS ════════════════════════════════════════════ */}
       <ListingDetailDialog
         item={detailItem} cfg={detailItem ? (typeConfigMap[detailItem.listing_type] || FALLBACK_CFG) : FALLBACK_CFG} open={!!detailItem} onClose={() => setDetailItem(null)}
-        onPurchase={handlePurchase}
+        onAddToCart={handleAddToCart}
         isPurchased={detailItem ? purchased.includes(detailItem.id) : false}
+        isInCart={detailItem ? isInCart(detailItem.id) : false}
         onWishlist={handleWishlist}
         wishlisted={detailItem ? wishlist.includes(detailItem.id) : false}
+      />
+      <CartDrawer
+        open={cartOpen}
+        onClose={() => setCartOpen(false)}
+        onCheckout={() => setCheckoutOpen(true)}
+        typeConfigMap={typeConfigMap}
+      />
+      <CheckoutWizard
+        open={checkoutOpen}
+        onClose={() => setCheckoutOpen(false)}
+        typeConfigMap={typeConfigMap}
+        onOrderComplete={handleOrderComplete}
       />
       <RequestListingDialog open={showRequest} onClose={() => setShowRequest(false)} listingTypes={listingTypes} />
       <DeleteConfirmDialog
