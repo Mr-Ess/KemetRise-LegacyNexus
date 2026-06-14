@@ -11,6 +11,7 @@ import SystemAnalyticsCard from "@/components/dashboard/SystemAnalyticsCard";
 import ApiIntegrationStatus from "@/components/dashboard/ApiIntegrationStatus";
 import MarketingAnalyticsCard from "@/components/dashboard/MarketingAnalyticsCard";
 import ExecutiveCockpit from "@/components/ExecutiveCockpit";
+import UserPortalAccess from "@/components/dashboard/UserPortalAccess";
 
 const dashboardFilters = ["All", "Brands", "Customers", "Projects", "Affiliates", "Branches", "Success Partners"] as const;
 const statusFilters = ["All", "Active", "Inactive", "Maintenance"] as const;
@@ -64,6 +65,11 @@ const Index = () => {
             {/* Row 7 - Executive Cockpit (Real-time 19-dept monitor) */}
             <div className="grid grid-cols-1 gap-3">
               <ExecutiveCockpit />
+            </div>
+
+            {/* Row 8 - User Portal Access Manager */}
+            <div className="grid grid-cols-1 gap-3">
+              <UserPortalAccess />
             </div>
           </div>
         </main>
