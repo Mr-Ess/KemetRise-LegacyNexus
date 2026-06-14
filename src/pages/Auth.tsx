@@ -33,11 +33,15 @@ export default function Auth() {
         .eq("id", userId)
         .single();
       const role = (data as any)?.role ?? "user";
-      if (role === "admin")    return nav("/", { replace: true });
-      if (role === "provider") return nav("/provider", { replace: true });
+      if (role === "superadmin" || role === "admin") return nav("/admin",     { replace: true });
+      if (role === "partner")   return nav("/partner",    { replace: true });
+      if (role === "agent")     return nav("/agent",      { replace: true });
+      if (role === "vendor")    return nav("/vendor",     { replace: true });
+      if (role === "provider")  return nav("/vendor",     { replace: true });
+      if (role === "marketing") return nav("/marketing",  { replace: true });
       return nav("/portal", { replace: true });
     } catch {
-      nav("/", { replace: true });
+      nav("/portal", { replace: true });
     }
   };
 

@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useState, ReactNode, useCallback 
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 
-export type UserRole = "admin" | "provider" | "user";
+export type UserRole = "admin" | "superadmin" | "provider" | "partner" | "agent" | "vendor" | "marketing" | "user";
 
 export interface UserProfile {
   id: string;
@@ -144,8 +144,8 @@ export function UserRoleProvider({ children }: { children: ReactNode }) {
   return (
     <RoleContext.Provider value={{
       profile, providerProfile, role,
-      isAdmin: role === "admin",
-      isProvider: role === "provider",
+      isAdmin: role === "admin" || role === "superadmin",
+      isProvider: role === "provider" || role === "vendor",
       isUser: role === "user",
       loading,
       updateProfile, updateProviderProfile,

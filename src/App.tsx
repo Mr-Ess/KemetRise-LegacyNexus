@@ -74,9 +74,24 @@ const ImportExport = lazy(() => import("./pages/ImportExport.tsx"));
 
 const FinanceAnalytics = lazy(() => import("./pages/FinanceAnalytics.tsx"));
 const ERPCockpit = lazy(() => import("./pages/ERPCockpit.tsx"));
+// Enterprise portal pages
+const AdminDashboard    = lazy(() => import("./pages/admin/AdminDashboard"));
+const SectorFactory     = lazy(() => import("./pages/admin/SectorFactory"));
+const PartnerDashboard  = lazy(() => import("./pages/partner/PartnerDashboard"));
+const AgentDashboard    = lazy(() => import("./pages/agent/AgentDashboard"));
+const VendorDashboard   = lazy(() => import("./pages/vendor/VendorDashboard"));
+const VendorWallet      = lazy(() => import("./pages/vendor/VendorWallet"));
+const MarketingDashboard= lazy(() => import("./pages/marketing/MarketingDashboard"));
+const LeadsPipeline     = lazy(() => import("./pages/marketing/LeadsPipeline"));
+const ChatApp           = lazy(() => import("./pages/chat/ChatApp"));
+const HRAttendance      = lazy(() => import("./pages/erp/HRAttendance"));
+const ERPLedger         = lazy(() => import("./pages/erp/ERPLedger"));
+const PublicLanding     = lazy(() => import("./pages/public/PublicLanding"));
+
 import { ERPProvider } from "@/context/ERPContext";
 import { CartProvider } from "@/context/CartContext";
 import { UserRoleProvider } from "@/context/UserRoleContext";
+import { TenantProvider } from "@/context/TenantContext";
 
 // Portal pages
 const ProviderDashboard = lazy(() => import("./pages/provider/ProviderDashboard"));
@@ -115,7 +130,7 @@ const PageFallback = () => (
 );
 
 const Protected = ({ children }: { children: React.ReactNode }) => (
-  <ProtectedRoute><UserRoleProvider><CartProvider><BrandsProvider><OnboardingTour /><CommandPalette />{children}<AIAssistant /></BrandsProvider></CartProvider></UserRoleProvider></ProtectedRoute>
+  <ProtectedRoute><UserRoleProvider><TenantProvider><CartProvider><BrandsProvider><OnboardingTour /><CommandPalette />{children}<AIAssistant /></BrandsProvider></CartProvider></TenantProvider></UserRoleProvider></ProtectedRoute>
 );
 
 const App = () => (
@@ -132,7 +147,7 @@ const App = () => (
                 <Route path="/reset-password" element={<ResetPassword />} />
                 <Route path="/accept-invite/:token" element={<AcceptInvite />} />
                 <Route path="/b/:id" element={<PublicBrand />} />
-                <Route path="/" element={<Protected><Index /></Protected>} />
+                <Route path="/" element={<PublicLanding />} />
                 <Route path="/erp" element={<Protected><ERPProvider><ERPCockpit /></ERPProvider></Protected>} />
                 <Route path="/brands" element={<Protected><BrandsHub /></Protected>} />
                 <Route path="/brands/add" element={<Navigate to="/brands" replace />} />
@@ -175,7 +190,7 @@ const App = () => (
                 <Route path="/materials"          element={<Navigate to="/operations" replace />} />
                 <Route path="/inventory"          element={<Navigate to="/operations" replace />} />
                 <Route path="/crm-interactions"   element={<Navigate to="/operations" replace />} />
-                <Route path="/marketing"          element={<Navigate to="/operations" replace />} />
+                <Route path="/marketing-old"       element={<Navigate to="/marketing" replace />} />
                 <Route path="/logistics"          element={<Navigate to="/operations" replace />} />
                 <Route path="/legal-vault"        element={<Navigate to="/operations" replace />} />
                 <Route path="/assets"             element={<Navigate to="/operations" replace />} />
@@ -195,7 +210,28 @@ const App = () => (
                 <Route path="/portal/profile" element={<Protected><Settings /></Protected>} />
                 {/* ── Admin Finance Hub ── */}
                 <Route path="/admin/finance" element={<Protected><FinancialHub /></Protected>} />
-                <Route path="/admin" element={<Protected><Index /></Protected>} />
+                {/* ── Admin Portal ── */}
+                <Route path="/admin" element={<Protected><AdminDashboard /></Protected>} />
+                <Route path="/admin/sectors" element={<Protected><SectorFactory /></Protected>} />
+                {/* ── Partner Portal ── */}
+                <Route path="/partner" element={<Protected><PartnerDashboard /></Protected>} />
+                <Route path="/partner/*" element={<Protected><PartnerDashboard /></Protected>} />
+                {/* ── Agent Portal ── */}
+                <Route path="/agent" element={<Protected><AgentDashboard /></Protected>} />
+                <Route path="/agent/*" element={<Protected><AgentDashboard /></Protected>} />
+                {/* ── Vendor Portal ── */}
+                <Route path="/vendor" element={<Protected><VendorDashboard /></Protected>} />
+                <Route path="/vendor/wallet" element={<Protected><VendorWallet /></Protected>} />
+                <Route path="/vendor/*" element={<Protected><VendorDashboard /></Protected>} />
+                {/* ── Marketing Portal ── */}
+                <Route path="/marketing/leads" element={<Protected><LeadsPipeline /></Protected>} />
+                <Route path="/marketing" element={<Protected><MarketingDashboard /></Protected>} />
+                <Route path="/marketing/*" element={<Protected><MarketingDashboard /></Protected>} />
+                {/* ── Chat Portal ── */}
+                <Route path="/chat" element={<Protected><ChatApp /></Protected>} />
+                {/* ── ERP / HR ── */}
+                <Route path="/erp/hr" element={<Protected><HRAttendance /></Protected>} />
+                <Route path="/erp/ledger" element={<Protected><ERPLedger /></Protected>} />
                 <Route path="/heirs" element={<Navigate to="/digital-inheritance" replace />} />
                 <Route path="/affiliated-agents" element={<Navigate to="/affiliates" replace />} />
                 <Route path="/notification-rules" element={<Navigate to="/notifications" replace />} />
