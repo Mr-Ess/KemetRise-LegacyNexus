@@ -12,6 +12,7 @@ import ApiIntegrationStatus from "@/components/dashboard/ApiIntegrationStatus";
 import MarketingAnalyticsCard from "@/components/dashboard/MarketingAnalyticsCard";
 import ExecutiveCockpit from "@/components/ExecutiveCockpit";
 import UserPortalAccess from "@/components/dashboard/UserPortalAccess";
+import SystemUsers from "@/components/dashboard/SystemUsers";
 
 const dashboardFilters = ["All", "Brands", "Customers", "Projects", "Affiliates", "Branches", "Success Partners"] as const;
 const statusFilters = ["All", "Active", "Inactive", "Maintenance"] as const;
@@ -70,6 +71,11 @@ const Index = () => {
             {/* Row 8 - User Portal Access Manager */}
             <div className="grid grid-cols-1 gap-3">
               <UserPortalAccess />
+            </div>
+
+            {/* Row 9 - System Users (all registered accounts with roles & permissions) */}
+            <div className="grid grid-cols-1 gap-3">
+              <SystemUsers />
             </div>
           </div>
         </main>

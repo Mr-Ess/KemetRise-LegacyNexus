@@ -30,12 +30,19 @@ export default function PartnerDashboard() {
     (async () => {
       setLoading(true);
       try {
-        const [{ count: brands }, { data: orders }] = await Promise.all([
+        const [{ count: brands }, { count: staff }, { data: orders }] = await Promise.all([
           db.from("brands").select("*", { count: "exact", head: true }).eq("owner_id", user.id),
-          db.from("mp_orders").select("total_cents,status").eq("status","completed").limit(500),
+          db.from("user_profiles").select("*", { count: "exact", head: true }).eq("partner_user_id", user.id),
+          db.from("mp_orders").select("total_cents,status").eq("partner_user_id", user.id).eq("status","completed").limit(500),
         ]);
         const rev = (orders || []).reduce((s: number, o: any) => s + (o.total_cents || 0), 0);
-        setStats({ brands: brands || 0, staff: 0, revenue: rev, growth: 12.5 });
+        // growth: compare this month vs last month
+        const now = new Date();
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+        const { count: newBrands } = await db.from("brands").select("*", { count: "exact", head: true })
+          .eq("owner_id", user.id).gte("created_at", startOfMonth);
+        const growth = brands ? Math.round(((newBrands || 0) / brands) * 100) : 0;
+        setStats({ brands: brands || 0, staff: staff || 0, revenue: rev, growth });
       } catch {}
       setLoading(false);
     })();

@@ -59,11 +59,14 @@ export default function AdminDashboard() {
         db.from("user_profiles").select("id,full_name,role,created_at").order("created_at",{ascending:false}).limit(8),
       ]);
       const revenue = (orders || []).reduce((s: number, o: any) => s + (o.total_cents || 0), 0);
+      const pendingCount = (requests || []).length;
+      const health: "good" | "warning" | "critical" =
+        pendingCount > 20 ? "critical" : pendingCount > 5 ? "warning" : "good";
       setStats({
         totalUsers: totalUsers || 0, totalPartners: totalPartners || 0,
         totalVendors: totalVendors || 0, totalAgents: totalAgents || 0,
-        totalRevenue: revenue, pendingApprovals: (requests || []).length,
-        activeOrders: (orders || []).length, systemHealth: "good",
+        totalRevenue: revenue, pendingApprovals: pendingCount,
+        activeOrders: (orders || []).length, systemHealth: health,
       });
       setPendingRequests(requests || []);
       setRecentUsers(recent || []);

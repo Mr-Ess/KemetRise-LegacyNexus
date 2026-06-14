@@ -34,12 +34,22 @@ export default function VendorDashboard() {
     if (!user) return;
     (async () => {
       setLoading(true);
-      const [{ data: w }, { count: pc }] = await Promise.all([
+      const [{ data: w }, { count: pc }, { data: orders }] = await Promise.all([
         db.from("vendor_wallets").select("*").eq("user_id", user.id).single(),
         db.from("public_products").select("*", { count: "exact", head: true }).eq("vendor_user_id", user.id),
+        db.from("mp_orders")
+          .select("id,created_at,total_cents,status,buyer_name")
+          .eq("seller_user_id", user.id)
+          .order("created_at", { ascending: false })
+          .limit(8),
       ]);
       setWallet(w);
       setProductCount(pc || 0);
+      setRecentOrders((orders || []).map((o: any) => ({
+        id: o.id, created_at: o.created_at,
+        total_amount: (o.total_cents || 0) / 100,
+        status: o.status, buyer_name: o.buyer_name,
+      })));
       setLoading(false);
     })();
   }, [user]);
@@ -145,7 +155,7 @@ export default function VendorDashboard() {
           </CardContent>
         </Card>
 
-        {/* Recent orders placeholder */}
+        {/* Recent Orders — live from DB */}
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between mb-4">
@@ -153,10 +163,37 @@ export default function VendorDashboard() {
                 <ShoppingBag className="w-4 h-4 text-orange-400" />
                 {R ? "الطلبات الأخيرة" : "Recent Orders"}
               </h3>
+              <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => navigate("/vendor/products")}>
+                {R ? "كل الطلبات" : "All Orders"}
+              </Button>
             </div>
-            <div className="text-center py-8 text-muted-foreground text-sm">
-              {R ? "سيتم عرض الطلبات هنا بعد تفعيل نظام المتجر بالكامل" : "Orders will appear here after the store system is fully activated"}
-            </div>
+            {loading ? (
+              <div className="space-y-2">{[...Array(4)].map((_,i)=><div key={i} className="h-10 rounded-lg bg-secondary/20 animate-pulse" />)}</div>
+            ) : recentOrders.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground text-sm">
+                {R ? "لا توجد طلبات حتى الآن" : "No orders yet — share your products to get started"}
+              </div>
+            ) : (
+              <div className="space-y-1.5">
+                {recentOrders.map(o => {
+                  const cfg = statusConfig[o.status] || statusConfig.pending;
+                  const Icon = cfg.icon;
+                  return (
+                    <div key={o.id} className="flex items-center gap-3 py-2 px-3 rounded-lg border border-border/30 hover:bg-secondary/20 transition-colors">
+                      <Icon className={cn("w-3.5 h-3.5 shrink-0", cfg.color)} />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-medium truncate">{o.buyer_name || "—"}</p>
+                        <p className="text-[10px] text-muted-foreground">{format(new Date(o.created_at), "dd MMM yyyy")}</p>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <p className="text-xs font-bold text-foreground">${o.total_amount.toFixed(2)}</p>
+                        <p className={cn("text-[9px] capitalize", cfg.color)}>{o.status}</p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

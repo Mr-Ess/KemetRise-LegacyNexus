@@ -55,10 +55,11 @@ export default function ProviderDashboard() {
         .eq("seller_id", profile!.id)
         .eq("status", "active");
 
-      // Orders stats from mp_orders where items have seller_id
+      // Orders stats scoped to this provider's listings
       const { data: orders } = await db
         .from("mp_orders")
         .select("id, total_cents, status, created_at, buyer_name, buyer_email, order_number")
+        .eq("seller_user_id", profile!.id)
         .order("created_at", { ascending: false })
         .limit(10);
 
