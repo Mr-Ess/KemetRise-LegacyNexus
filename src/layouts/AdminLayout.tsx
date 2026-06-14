@@ -173,6 +173,14 @@ export default function AdminLayout({ children }: Props) {
           </div>
           <div className="flex items-center gap-2">
             <button
+              onClick={() => navigate("/")}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-secondary/50 text-muted-foreground hover:text-foreground transition-colors text-xs"
+              title={isRTL ? "العودة للموقع" : "Back to Site"}
+            >
+              <Globe className="w-3.5 h-3.5" />
+              {isRTL ? "الموقع" : "Site"}
+            </button>
+            <button
               onClick={() => i18n.changeLanguage(isRTL ? "en" : "ar")}
               className="p-2 rounded-lg hover:bg-secondary/50 text-muted-foreground hover:text-foreground transition-colors"
               title="Toggle Language"

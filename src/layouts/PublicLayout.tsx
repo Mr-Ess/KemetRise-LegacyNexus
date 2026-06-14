@@ -2,11 +2,12 @@ import { ReactNode, useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 import {
   Globe, Menu, X, Languages, ArrowRight,
   Sun, Moon, ChevronDown, Layers, ShoppingBag,
   MessageSquare, BarChart3, Building2,
-  Phone, Mail, MapPin,
+  Phone, Mail, MapPin, LogOut,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -45,15 +46,27 @@ const PORTAL_LINKS = [
   { ar: "AI Chat",    en: "AI Chat",          href: "/chat",      color: "text-cyan-400" },
 ];
 
+const ROLE_PORTAL: Record<string, { ar: string; en: string; href: string; color: string }> = {
+  superadmin: { ar: "الإدارة",    en: "Admin Portal",     href: "/admin",     color: "text-primary" },
+  admin:      { ar: "الإدارة",    en: "Admin Portal",     href: "/admin",     color: "text-primary" },
+  partner:    { ar: "الشريك",     en: "Partner Portal",   href: "/partner",   color: "text-indigo-400" },
+  agent:      { ar: "الوكيل",     en: "Agent Portal",     href: "/agent",     color: "text-emerald-400" },
+  vendor:     { ar: "البائع",     en: "Vendor Portal",    href: "/vendor",    color: "text-orange-400" },
+  provider:   { ar: "البائع",     en: "Vendor Portal",    href: "/vendor",    color: "text-orange-400" },
+  marketing:  { ar: "التسويق",    en: "Marketing Portal", href: "/marketing", color: "text-pink-400" },
+  user:       { ar: "المستخدم",   en: "User Portal",      href: "/portal",    color: "text-blue-400" },
+};
+
 export default function PublicLayout({ children }: { children: ReactNode }) {
   const { i18n } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const { theme, toggle } = useTheme();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [portalOpen, setPortalOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [userRole, setUserRole] = useState<string | null>(null);
   const R = i18n.language === "ar";
 
   useEffect(() => {
@@ -61,6 +74,21 @@ export default function PublicLayout({ children }: { children: ReactNode }) {
     window.addEventListener("scroll", onScroll);
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
+
+  // Fetch user role when logged in
+  useEffect(() => {
+    if (!user) { setUserRole(null); return; }
+    (supabase as any)
+      .from("user_profiles")
+      .select("role")
+      .eq("id", user.id)
+      .single()
+      .then(({ data }: any) => setUserRole(data?.role ?? "user"))
+      .catch(() => setUserRole("user"));
+  }, [user]);
+
+  const portalLink = userRole ? ROLE_PORTAL[userRole] ?? ROLE_PORTAL.user : null;
+  const dashHref = portalLink?.href ?? "/dashboard";
 
   const isActive = (href: string) =>
     href === "/" ? location.pathname === "/" : location.pathname.startsWith(href.split("#")[0]) && href.split("#")[0] !== "/";
@@ -90,23 +118,36 @@ export default function PublicLayout({ children }: { children: ReactNode }) {
                 {R ? n.ar : n.en}
               </button>
             ))}
-            {/* Portals dropdown */}
-            <div className="relative" onMouseEnter={() => setPortalOpen(true)} onMouseLeave={() => setPortalOpen(false)}>
-              <button className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-secondary/50 rounded-lg transition-all">
-                {R ? "البوابات" : "Portals"} <ChevronDown className={cn("w-3 h-3 transition-transform", portalOpen && "rotate-180")} />
-              </button>
-              {portalOpen && (
-                <div className="absolute top-full left-0 mt-1 w-48 bg-background/98 backdrop-blur-xl border border-border rounded-xl shadow-xl overflow-hidden">
-                  {PORTAL_LINKS.map(p => (
-                    <button key={p.href} onClick={() => { navigate(p.href); setPortalOpen(false); }}
+            {/* Portals dropdown — only for logged-in users */}
+            {user && portalLink && (
+              <div className="relative" onMouseEnter={() => setPortalOpen(true)} onMouseLeave={() => setPortalOpen(false)}>
+                <button className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-secondary/50 rounded-lg transition-all">
+                  {R ? "البوابات" : "Portals"} <ChevronDown className={cn("w-3 h-3 transition-transform", portalOpen && "rotate-180")} />
+                </button>
+                {portalOpen && (
+                  <div className="absolute top-full left-0 mt-1 w-52 bg-background/98 backdrop-blur-xl border border-border rounded-xl shadow-xl overflow-hidden">
+                    {/* My portal */}
+                    <button onClick={() => { navigate(portalLink.href); setPortalOpen(false); }}
                       className="w-full flex items-center gap-2 px-4 py-2.5 text-xs hover:bg-secondary/50 transition-colors text-left">
-                      <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: "currentColor" }} />
-                      <span className={p.color}>{R ? p.ar : p.en}</span>
+                      <div className={cn("w-1.5 h-1.5 rounded-full bg-current", portalLink.color)} />
+                      <span className={portalLink.color}>{R ? portalLink.ar : portalLink.en}</span>
                     </button>
-                  ))}
-                </div>
-              )}
-            </div>
+                    {/* Central dashboard */}
+                    <button onClick={() => { navigate("/dashboard"); setPortalOpen(false); }}
+                      className="w-full flex items-center gap-2 px-4 py-2.5 text-xs hover:bg-secondary/50 transition-colors text-left border-t border-border/50">
+                      <div className="w-1.5 h-1.5 rounded-full bg-current text-primary" />
+                      <span className="text-primary">{R ? "لوحة التحكم المركزية" : "Central Dashboard"}</span>
+                    </button>
+                    {/* AI Chat always available */}
+                    <button onClick={() => { navigate("/chat"); setPortalOpen(false); }}
+                      className="w-full flex items-center gap-2 px-4 py-2.5 text-xs hover:bg-secondary/50 transition-colors text-left">
+                      <div className="w-1.5 h-1.5 rounded-full bg-current text-cyan-400" />
+                      <span className="text-cyan-400">{R ? "AI Chat" : "AI Chat"}</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
           </nav>
 
           {/* Right actions */}
@@ -119,9 +160,15 @@ export default function PublicLayout({ children }: { children: ReactNode }) {
               <Languages className="w-4 h-4" />
             </button>
             {user ? (
-              <Button size="sm" onClick={() => navigate("/portal")} className="gap-1.5 text-xs h-8 px-4 hidden sm:flex gold-glow">
-                {R ? "لوحة التحكم" : "Dashboard"} <ArrowRight className="w-3 h-3" />
-              </Button>
+              <div className="hidden sm:flex items-center gap-1.5">
+                <Button size="sm" onClick={() => navigate(dashHref)} className="gap-1.5 text-xs h-8 px-4 gold-glow">
+                  {R ? (portalLink ? portalLink.ar : "لوحة التحكم") : (portalLink ? portalLink.en : "Dashboard")} <ArrowRight className="w-3 h-3" />
+                </Button>
+                <button onClick={signOut} title={R ? "تسجيل خروج" : "Sign out"}
+                  className="p-2 rounded-lg hover:bg-red-500/10 text-muted-foreground hover:text-red-400 transition-colors">
+                  <LogOut className="w-4 h-4" />
+                </button>
+              </div>
             ) : (
               <>
                 <Button variant="ghost" size="sm" onClick={() => navigate("/auth")} className="text-xs h-8 px-3 hidden sm:flex">{R ? "دخول" : "Sign In"}</Button>

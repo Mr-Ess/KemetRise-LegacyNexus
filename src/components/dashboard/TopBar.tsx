@@ -281,7 +281,11 @@ const TopBar = () => {
             <PresenceIndicator />
             <LanguageSwitcher />
             <ThemeToggle />
-            <button onClick={signOut} title="Sign out" className="p-1.5 rounded-md hover:bg-secondary transition-colors">
+            <button onClick={() => navigate("/")} title="Back to site" className="p-1.5 rounded-md hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground">
+              <Bell className="w-3.5 h-3.5 hidden" />
+              <span className="text-[10px] font-medium px-1">Site</span>
+            </button>
+            <button onClick={signOut} title="Sign out" className="p-1.5 rounded-md hover:bg-red-500/10 hover:text-red-400 transition-colors">
               <LogOut className="w-3.5 h-3.5 text-muted-foreground" />
             </button>
           </div>

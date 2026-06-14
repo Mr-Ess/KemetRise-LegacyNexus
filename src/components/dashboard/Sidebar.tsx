@@ -29,7 +29,7 @@ const Sidebar = ({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => 
   };
 
   const navSections: NavSection[] = [
-    { icon: LayoutDashboard, label: t("dashboard"), path: "/" },
+    { icon: LayoutDashboard, label: t("dashboard"), path: "/dashboard" },
     { icon: Cpu, label: "ERP Cockpit", path: "/erp" },
     { icon: Crown, label: t("brands_hub"), path: "/brands" },
     { icon: Lock, label: t("digital_inheritance"), path: "/digital-inheritance" },

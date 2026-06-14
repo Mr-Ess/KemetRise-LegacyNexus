@@ -17,19 +17,41 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, s) => {
-      setSession(s);
-      setUser(s?.user ?? null);
-    });
-    supabase.auth.getSession().then(({ data: { session: s } }) => {
+    let initialDone = false;
+
+    const finishInitial = (s: Session | null) => {
+      if (initialDone) return;
+      initialDone = true;
       setSession(s);
       setUser(s?.user ?? null);
       setLoading(false);
+    };
+
+    // getSession() is the most reliable way to get the initial session
+    supabase.auth.getSession()
+      .then(({ data: { session: s } }) => finishInitial(s))
+      .catch(() => finishInitial(null));
+
+    // onAuthStateChange handles subsequent changes (sign in, sign out, token refresh)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, s) => {
+      if (!initialDone) {
+        finishInitial(s);
+      } else {
+        setSession(s);
+        setUser(s?.user ?? null);
+      }
     });
-    return () => subscription.unsubscribe();
+
+    // Absolute fallback: 8 seconds max wait
+    const timer = setTimeout(() => finishInitial(null), 8000);
+
+    return () => { clearTimeout(timer); subscription.unsubscribe(); };
   }, []);
 
-  const signOut = async () => { await supabase.auth.signOut(); };
+  const signOut = async () => {
+    await supabase.auth.signOut();
+    window.location.href = "/";
+  };
 
   return <Ctx.Provider value={{ user, session, loading, signOut }}>{children}</Ctx.Provider>;
 };

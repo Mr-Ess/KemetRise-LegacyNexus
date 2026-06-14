@@ -157,6 +157,7 @@ const App = () => (
                 <Route path="/accept-invite/:token" element={<AcceptInvite />} />
                 <Route path="/b/:id" element={<PublicBrand />} />
                 <Route path="/" element={<PublicLanding />} />
+                <Route path="/dashboard" element={<Protected><Index /></Protected>} />
                 <Route path="/about" element={<PublicAbout />} />
                 <Route path="/contact" element={<PublicContact />} />
                 <Route path="/services" element={<PublicServices />} />

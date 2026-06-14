@@ -26,6 +26,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -578,18 +579,34 @@ function ListingRow({ item, cfg, onDetails, onWishlist, wishlisted }: {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
+   MOCK DATA — shown when DB has no listings yet
+═══════════════════════════════════════════════════════════════════════════ */
+const MOCK_LISTINGS: Listing[] = [
+  { id: "m1", listing_type: "digital", name: "Enterprise ERP Suite", description: "Full ERP system — HR, finance, inventory, CRM in one platform.", long_description: "Complete enterprise resource planning solution covering all business departments.", category: "Software", tags: ["erp","enterprise"], price_cents: 99900, currency: "USD", pricing_model: "annual", publisher_name: "KemetRise", rating: 4.9, reviews_count: 128, sales_count: 340, is_featured: true, is_new: false, is_verified: true, meta: { version: "3.0", license_type: "Commercial" }, created_at: "2026-01-01" },
+  { id: "m2", listing_type: "subscription", name: "AI Agent Pack", description: "10 custom AI brand agents — ANUBIS, ISIS, HORUS & more.", long_description: "Deploy intelligent AI agents that represent your brand 24/7.", category: "AI", tags: ["ai","agents"], price_cents: 4900, currency: "USD", pricing_model: "monthly", publisher_name: "KemetRise AI", rating: 4.8, reviews_count: 89, sales_count: 210, is_featured: true, is_new: true, is_verified: true, meta: { agents: 10, models: "GPT-4o, Claude" }, created_at: "2026-02-01" },
+  { id: "m3", listing_type: "service", name: "Business Setup Consulting", description: "End-to-end business setup, legal structure & digital presence.", long_description: "Expert consultants guide you through company formation, branding, and digital launch.", category: "Consulting", tags: ["consulting","setup"], price_cents: 49900, currency: "USD", pricing_model: "one_time", publisher_name: "KemetRise Pro", rating: 4.7, reviews_count: 56, sales_count: 95, is_featured: false, is_new: false, is_verified: true, meta: {}, created_at: "2026-03-01" },
+  { id: "m4", listing_type: "digital", name: "HR & Attendance Module", description: "Biometric QR attendance, payroll, leave management.", long_description: "Automate all HR operations with QR-based check-in/out, payroll processing and leave tracking.", category: "HR", tags: ["hr","payroll"], price_cents: 29900, currency: "USD", pricing_model: "annual", publisher_name: "KemetRise", rating: 4.6, reviews_count: 42, sales_count: 178, is_featured: false, is_new: false, is_verified: true, meta: { version: "2.1" }, created_at: "2026-01-15" },
+  { id: "m5", listing_type: "subscription", name: "Marketing Suite", description: "CRM + campaigns + lead pipeline + analytics dashboard.", long_description: "Full marketing automation platform to manage campaigns, track leads and analyse performance.", category: "Marketing", tags: ["crm","campaigns"], price_cents: 1900, currency: "USD", pricing_model: "monthly", publisher_name: "KemetRise Marketing", rating: 4.5, reviews_count: 71, sales_count: 290, is_featured: true, is_new: false, is_verified: true, meta: {}, created_at: "2026-02-15" },
+  { id: "m6", listing_type: "digital", name: "API Access Token", description: "Unlimited REST API access for developers and integrations.", long_description: "Full API access with webhooks, sandbox environment and developer portal.", category: "Tech", tags: ["api","developer"], price_cents: 9900, currency: "USD", pricing_model: "annual", publisher_name: "KemetRise Dev", rating: 4.4, reviews_count: 33, sales_count: 520, is_featured: false, is_new: true, is_verified: true, meta: { version: "v2" }, created_at: "2026-03-10" },
+  { id: "m7", listing_type: "service", name: "Brand Identity Design", description: "Logo, colour palette, typography, brand guidelines.", long_description: "Professional brand identity package delivered in 7 days.", category: "Design", tags: ["brand","logo"], price_cents: 19900, currency: "USD", pricing_model: "one_time", publisher_name: "KemetRise Studio", rating: 4.8, reviews_count: 19, sales_count: 67, is_featured: false, is_new: true, is_verified: true, meta: {}, created_at: "2026-04-01" },
+  { id: "m8", listing_type: "subscription", name: "Sector Activation Bundle", description: "Activate any 5 business sectors in your dashboard.", long_description: "Unlock sectors like Hospitality, Healthcare, Retail, Education and more.", category: "Platform", tags: ["sectors","platform"], price_cents: 0, currency: "USD", pricing_model: "free", publisher_name: "KemetRise", rating: 4.3, reviews_count: 88, sales_count: 1200, is_featured: false, is_new: false, is_verified: true, meta: {}, created_at: "2026-01-05" },
+];
+
+/* ═══════════════════════════════════════════════════════════════════════════
    MAIN PAGE
 ═══════════════════════════════════════════════════════════════════════════ */
 export default function Marketplace() {
   const navigate = useNavigate();
   const db = supabase as any;
-  // Auth state for guest-friendly UX
-  const [currentUser, setCurrentUser] = useState<any>(null);
+  // Auth state — use the app-level hook (already resolved by the time we navigate here)
+  const { user: currentUser } = useAuth();
+  const [userRole, setUserRole] = useState<string>("user");
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => setCurrentUser(user));
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_, s) => setCurrentUser(s?.user ?? null));
-    return () => subscription.unsubscribe();
-  }, []);
+    if (!currentUser) { setUserRole("user"); return; }
+    db.from("user_profiles").select("role").eq("id", currentUser.id).single()
+      .then(({ data }: any) => setUserRole(data?.role ?? "user"))
+      .catch(() => {});
+  }, [currentUser?.id]);
 
   const [listings, setListings] = useState<Listing[]>([]);
   const [listingTypes, setListingTypes] = useState<MpListingType[]>([]);
@@ -612,7 +629,7 @@ export default function Marketplace() {
 
   // Management mode
   const [isManageMode, setIsManageMode] = useState(false);
-  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const currentUserId = currentUser?.id ?? null;
   const [mpCategories, setMpCategories] = useState<MpCategory[]>([]);
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
@@ -637,23 +654,31 @@ export default function Marketplace() {
     setLoading(true);
     try {
       const { data } = await db.from("mp_listings").select("*").eq("is_active", true);
-      setListings(data || []);
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const { data: pur } = await db.from("mp_purchases").select("listing_id").eq("user_id", user.id);
-        setPurchased((pur || []).map((p: any) => p.listing_id));
-        const { data: wl } = await db.from("mp_wishlist").select("listing_id").eq("user_id", user.id);
-        setWishlist((wl || []).map((w: any) => w.listing_id));
-      }
-    } catch { /* tables may not exist yet */ }
-    finally { setLoading(false); }
+      setListings(data?.length ? data : MOCK_LISTINGS);
+    } catch {
+      setListings(MOCK_LISTINGS);
+    } finally { setLoading(false); }
   };
+
+  // Fetch per-user data whenever auth user changes
+  useEffect(() => {
+    if (!currentUser) { setPurchased([]); setWishlist([]); return; }
+    (async () => {
+      try {
+        const [{ data: pur }, { data: wl }] = await Promise.all([
+          db.from("mp_purchases").select("listing_id").eq("user_id", currentUser.id),
+          db.from("mp_wishlist").select("listing_id").eq("user_id", currentUser.id),
+        ]);
+        setPurchased((pur || []).map((p: any) => p.listing_id));
+        setWishlist((wl || []).map((w: any) => w.listing_id));
+      } catch { /* non-fatal */ }
+    })();
+  }, [currentUser?.id]);
 
   useEffect(() => {
     load();
     loadCategories();
     loadTypes();
-    supabase.auth.getUser().then(({ data: { user } }) => setCurrentUserId(user?.id ?? null));
   }, []);
 
   const handleTypeChange = (type: "all" | ListingType) => {
@@ -675,14 +700,13 @@ export default function Marketplace() {
   };
 
   const handleWishlist = async (id: string) => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { navigate("/auth?tab=signin&redirect=/marketplace"); return; }
+    if (!currentUser) { navigate("/auth?tab=signin&redirect=/marketplace"); return; }
     const isWished = wishlist.includes(id);
     if (isWished) {
-      await db.from("mp_wishlist").delete().eq("listing_id", id).eq("user_id", user.id);
+      await db.from("mp_wishlist").delete().eq("listing_id", id).eq("user_id", currentUser.id);
       setWishlist((prev) => prev.filter((w) => w !== id));
     } else {
-      await db.from("mp_wishlist").insert({ listing_id: id, user_id: user.id });
+      await db.from("mp_wishlist").insert({ listing_id: id, user_id: currentUser.id });
       setWishlist((prev) => [...prev, id]);
     }
   };
@@ -804,7 +828,7 @@ export default function Marketplace() {
             </Button>
             <Button
               size="sm" variant={isManageMode ? "default" : "outline"}
-              className={`gap-1.5 text-xs h-8 ml-1`}
+              className={`gap-1.5 text-xs h-8 ml-1 ${!currentUser || !["admin","superadmin","vendor","provider"].includes(userRole) ? "hidden" : ""}`}
               onClick={() => setIsManageMode(!isManageMode)}
             >
               <Settings className="w-3.5 h-3.5" />Manage

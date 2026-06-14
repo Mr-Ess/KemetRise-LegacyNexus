@@ -22,6 +22,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import {
   seedMallDefaults, SEED_FLOORS, MALL_FLOOR_COLORS, FALLBACK_FLOOR_CFG,
@@ -1225,13 +1226,25 @@ function MallManagerDrawer({ onClose, currentUserId }: { onClose: () => void; cu
 ═══════════════════════════════════════════════════════════════════════════ */
 export default function DigitalMall() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const db = supabase as any;
+
+  const MOCK_STORES: MallStore[] = [
+    { id: "ms1", floor_id: "f1", name: "TechZone Egypt", slug: "techzone", description: "Latest electronics, phones, laptops & accessories.", long_description: "Egypt's premier electronics destination — from flagship phones to home automation.", owner_name: "Ahmed Khalil", owner_user_id: null, contact_email: "info@techzone.eg", contact_phone: "+20 10 0000 1111", website_url: null, logo_url: null, banner_url: null, cover_color: "blue", tags: ["electronics","tech"], rating: 4.8, reviews_count: 234, sales_count: 1870, products_count: 45, followers_count: 892, is_active: true, is_featured: true, is_verified: true, is_new: false, status: "active", meta: {}, created_at: "2026-01-10" },
+    { id: "ms2", floor_id: "f2", name: "FashionHub", slug: "fashionhub", description: "Trendy clothing, shoes & accessories for all occasions.", long_description: "Discover the latest fashion trends from local and international designers.", owner_name: "Sara Mohamed", owner_user_id: null, contact_email: "hello@fashionhub.co", contact_phone: "+20 12 0000 2222", website_url: null, logo_url: null, banner_url: null, cover_color: "pink", tags: ["fashion","clothes"], rating: 4.6, reviews_count: 189, sales_count: 2340, products_count: 120, followers_count: 1204, is_active: true, is_featured: true, is_verified: true, is_new: false, status: "active", meta: {}, created_at: "2026-01-15" },
+    { id: "ms3", floor_id: "f3", name: "FoodCorner", slug: "foodcorner", description: "Fresh groceries, snacks, beverages & organic products.", long_description: "Premium quality food products delivered to your door.", owner_name: "Omar Hassan", owner_user_id: null, contact_email: "orders@foodcorner.eg", contact_phone: null, website_url: null, logo_url: null, banner_url: null, cover_color: "emerald", tags: ["food","organic"], rating: 4.5, reviews_count: 98, sales_count: 760, products_count: 82, followers_count: 430, is_active: true, is_featured: false, is_verified: true, is_new: true, status: "active", meta: {}, created_at: "2026-02-01" },
+    { id: "ms4", floor_id: "f1", name: "GadgetWorld", slug: "gadgetworld", description: "Smart gadgets, wearables, gaming & PC peripherals.", long_description: "Find the coolest tech gadgets at competitive prices.", owner_name: "Karim Nasser", owner_user_id: null, contact_email: null, contact_phone: "+20 11 0000 3333", website_url: null, logo_url: null, banner_url: null, cover_color: "violet", tags: ["gadgets","gaming"], rating: 4.7, reviews_count: 156, sales_count: 1120, products_count: 63, followers_count: 671, is_active: true, is_featured: false, is_verified: true, is_new: false, status: "active", meta: {}, created_at: "2026-01-20" },
+    { id: "ms5", floor_id: "f4", name: "HomeStyle", slug: "homestyle", description: "Furniture, décor, kitchen essentials & home improvement.", long_description: "Transform your living space with our curated home collection.", owner_name: "Nour Ibrahim", owner_user_id: null, contact_email: "support@homestyle.eg", contact_phone: null, website_url: null, logo_url: null, banner_url: null, cover_color: "amber", tags: ["furniture","home"], rating: 4.4, reviews_count: 72, sales_count: 480, products_count: 97, followers_count: 320, is_active: true, is_featured: false, is_verified: false, is_new: true, status: "active", meta: {}, created_at: "2026-02-15" },
+    { id: "ms6", floor_id: "f5", name: "BeautyBox", slug: "beautybox", description: "Skincare, cosmetics, perfumes & wellness products.", long_description: "Premium beauty products from trusted global and local brands.", owner_name: "Aya Sayed", owner_user_id: null, contact_email: "hello@beautybox.eg", contact_phone: "+20 10 0000 4444", website_url: null, logo_url: null, banner_url: null, cover_color: "rose", tags: ["beauty","skincare"], rating: 4.9, reviews_count: 301, sales_count: 2890, products_count: 144, followers_count: 1560, is_active: true, is_featured: true, is_verified: true, is_new: false, status: "active", meta: {}, created_at: "2026-01-05" },
+    { id: "ms7", floor_id: "f6", name: "BookNest", slug: "booknest", description: "Arabic & English books, e-books, courses & stationery.", long_description: "Your one-stop shop for knowledge — thousands of titles in stock.", owner_name: "Hassan Ali", owner_user_id: null, contact_email: null, contact_phone: null, website_url: null, logo_url: null, banner_url: null, cover_color: "blue", tags: ["books","education"], rating: 4.6, reviews_count: 88, sales_count: 640, products_count: 280, followers_count: 390, is_active: true, is_featured: false, is_verified: true, is_new: false, status: "active", meta: {}, created_at: "2026-03-01" },
+    { id: "ms8", floor_id: "f1", name: "KemetRise Store", slug: "kemetrise", description: "Official KemetRise software, licences & digital products.", long_description: "Get official KemetRise enterprise products, licences and support plans.", owner_name: "KemetRise Team", owner_user_id: null, contact_email: "store@kemetrise.com", contact_phone: null, website_url: "https://kemetrise.com", logo_url: null, banner_url: null, cover_color: "amber", tags: ["software","erp"], rating: 5.0, reviews_count: 47, sales_count: 320, products_count: 18, followers_count: 890, is_active: true, is_featured: true, is_verified: true, is_new: false, status: "active", meta: {}, created_at: "2026-01-01" },
+  ];
 
   const [floors, setFloors] = useState<MallFloor[]>([]);
   const [stores, setStores] = useState<MallStore[]>([]);
   const [products, setProducts] = useState<MallProduct[]>([]);
   const [followed, setFollowed] = useState<string[]>([]);
-  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [userRole, setUserRole] = useState<string>("user");
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [activeFloor, setActiveFloor] = useState("all");
@@ -1244,29 +1257,42 @@ export default function DigitalMall() {
 
   const load = async () => {
     setLoading(true);
-    await seedMallDefaults(db);
-    const [{ data: f }, { data: s }, { data: p }] = await Promise.all([
-      db.from("mall_floors").select("*").eq("is_active", true).order("sort_order"),
-      db.from("mall_stores").select("*").eq("is_active", true).order("created_at", { ascending: false }),
-      db.from("mall_products").select("*").eq("is_active", true).order("created_at", { ascending: false }),
-    ]);
-    setFloors(f?.length ? f : SEED_FLOORS.map((s, i) => ({ ...s, id: `seed-${i}` })) as any);
-    setStores(s || []);
-    setProducts(p || []);
-
-    const { data: { user } } = await supabase.auth.getUser();
-    setCurrentUserId(user?.id ?? null);
-    if (user) {
-      const { data: fol } = await db.from("mall_store_followers").select("store_id").eq("user_id", user.id);
-      setFollowed((fol || []).map((x: any) => x.store_id));
+    try {
+      await seedMallDefaults(db);
+      const [{ data: f, error: fe }, { data: s, error: se }, { data: p }] = await Promise.all([
+        db.from("mall_floors").select("*").eq("is_active", true).order("sort_order"),
+        db.from("mall_stores").select("*").eq("is_active", true).order("created_at", { ascending: false }),
+        db.from("mall_products").select("*").eq("is_active", true).order("created_at", { ascending: false }),
+      ]);
+      setFloors((!fe && f?.length) ? f : SEED_FLOORS.map((s, i) => ({ ...s, id: `seed-${i}` })) as any);
+      setStores((!se && s?.length) ? s : MOCK_STORES);
+      setProducts(p || []);
+    } catch {
+      setFloors(SEED_FLOORS.map((s, i) => ({ ...s, id: `seed-${i}` })) as any);
+      setStores(MOCK_STORES);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
+
+  // Fetch per-user data (followed stores + role) whenever auth user changes
+  useEffect(() => {
+    if (!user) { setFollowed([]); setUserRole("user"); return; }
+    (async () => {
+      try {
+        const [{ data: fol }, { data: prof }] = await Promise.all([
+          db.from("mall_store_followers").select("store_id").eq("user_id", user.id),
+          db.from("user_profiles").select("role").eq("id", user.id).single(),
+        ]);
+        setFollowed((fol || []).map((x: any) => x.store_id));
+        setUserRole(prof?.role ?? "user");
+      } catch { /* non-fatal */ }
+    })();
+  }, [user?.id]);
 
   useEffect(() => { load(); }, []);
 
   const handleFollow = async (storeId: string) => {
-    const { data: { user } } = await supabase.auth.getUser();
     if (!user) { navigate("/auth?tab=signin&redirect=/digital-mall"); return; }
     const isFollowed = followed.includes(storeId);
     if (isFollowed) {
@@ -1358,18 +1384,26 @@ export default function DigitalMall() {
             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setViewGrid(!viewGrid)}>
               {viewGrid ? <List className="w-3.5 h-3.5" /> : <Grid3X3 className="w-3.5 h-3.5" />}
             </Button>
-            <Button size="sm" variant="outline" className="gap-1.5 text-xs h-8" onClick={() => setShowManager(true)}>
-              <Settings className="w-3.5 h-3.5" />Manage
-            </Button>
-            <Button size="sm" className="gap-1.5 text-xs h-8" onClick={() => setShowApply(true)}>
-              <Plus className="w-3.5 h-3.5" />Open Store
-            </Button>
+            {user?.id && ["admin","superadmin","vendor","provider"].includes(userRole) && (
+              <Button size="sm" variant="outline" className="gap-1.5 text-xs h-8" onClick={() => setShowManager(true)}>
+                <Settings className="w-3.5 h-3.5" />Manage
+              </Button>
+            )}
+            {user?.id ? (
+              <Button size="sm" className="gap-1.5 text-xs h-8" onClick={() => setShowApply(true)}>
+                <Plus className="w-3.5 h-3.5" />Open Store
+              </Button>
+            ) : (
+              <Button size="sm" className="gap-1.5 text-xs h-8" onClick={() => navigate("/auth?tab=signin&redirect=/digital-mall")}>
+                Sign In to Shop
+              </Button>
+            )}
           </div>
         </div>
       </header>
 
       {/* ══ MANAGER DRAWER ══════════════════════════════════════════════════ */}
-      {showManager && <MallManagerDrawer onClose={() => setShowManager(false)} currentUserId={currentUserId} />}
+      {showManager && <MallManagerDrawer onClose={() => setShowManager(false)} currentUserId={user?.id ?? null} />}
 
       <div className="px-4 py-4 max-w-7xl mx-auto space-y-5">
 
@@ -1402,13 +1436,13 @@ export default function DigitalMall() {
               </div>
             </div>
             <div className="flex gap-2 shrink-0">
-              {currentUserId ? (
+              {user?.id ? (
                 <Button size="sm" className="gap-1.5 text-xs" onClick={() => setShowApply(true)}>
                   <Sparkles className="w-3.5 h-3.5" />Open Your Store
                 </Button>
               ) : (
-                <Button size="sm" className="gap-1.5 text-xs" onClick={() => navigate("/auth?tab=signin&redirect=/digital-mall")}>
-                  Sign In to Shop
+                <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => navigate("/auth?tab=signin&redirect=/digital-mall")}>
+                  Sign In to Follow & Buy
                 </Button>
               )}
             </div>

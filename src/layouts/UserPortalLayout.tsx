@@ -5,7 +5,7 @@ import { useRole } from "@/context/UserRoleContext";
 import { useAuth } from "@/hooks/useAuth";
 import {
   Home, ShoppingBag, CreditCard, Bell, Settings, LogOut,
-  Heart, User, HelpCircle, FileText, Languages, Star,
+  Heart, User, HelpCircle, FileText, Languages, Star, Globe,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -68,6 +68,11 @@ export default function UserPortalLayout({ children }: Props) {
 
           {/* Right actions */}
           <div className="flex items-center gap-2">
+            <button onClick={() => navigate("/")}
+              className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-all">
+              <Globe className="w-3.5 h-3.5" />
+              {isRTL ? "الموقع" : "Site"}
+            </button>
             <button onClick={() => i18n.changeLanguage(isRTL ? "en" : "ar")}
               className="p-2 rounded-lg hover:bg-secondary/50 text-muted-foreground hover:text-foreground transition-colors">
               <Languages className="w-4 h-4" />

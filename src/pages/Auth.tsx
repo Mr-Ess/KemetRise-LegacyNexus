@@ -39,9 +39,9 @@ export default function Auth() {
       if (role === "vendor")    return nav("/vendor",     { replace: true });
       if (role === "provider")  return nav("/vendor",     { replace: true });
       if (role === "marketing") return nav("/marketing",  { replace: true });
-      return nav("/portal", { replace: true });
+      return nav("/dashboard", { replace: true });
     } catch {
-      nav("/portal", { replace: true });
+      nav("/dashboard", { replace: true });
     }
   };
 

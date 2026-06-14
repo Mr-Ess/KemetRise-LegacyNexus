@@ -33,6 +33,17 @@ export default function UserDashboard() {
   const db = supabase as any;
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Auto-redirect based on role so admins/vendors/etc. don't land here
+  useEffect(() => {
+    if (!profile) return;
+    const role = profile.role;
+    if (role === "admin" || role === "superadmin") navigate("/admin", { replace: true });
+    else if (role === "partner")   navigate("/partner",   { replace: true });
+    else if (role === "agent")     navigate("/agent",     { replace: true });
+    else if (role === "vendor" || role === "provider") navigate("/vendor", { replace: true });
+    else if (role === "marketing") navigate("/marketing", { replace: true });
+  }, [profile, navigate]);
   const isRTL = i18n.language === "ar";
   const locale = isRTL ? ar : enUS;
 

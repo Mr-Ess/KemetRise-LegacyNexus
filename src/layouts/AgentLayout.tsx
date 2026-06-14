@@ -6,7 +6,7 @@ import { useAuth } from "@/hooks/useAuth";
 import {
   LayoutDashboard, Users, MapPin, DollarSign, Ticket,
   Settings, LogOut, Menu, Bell, Languages, ChevronDown,
-  ClipboardList, Star, TrendingUp,
+  ClipboardList, Star, TrendingUp, Globe,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -81,6 +81,7 @@ export default function AgentLayout({ children }: { children: ReactNode }) {
         <header className="h-12 border-b border-border bg-background/80 backdrop-blur-md flex items-center justify-between px-4 shrink-0">
           <span className="text-xs text-muted-foreground">{R ? "مساحة الوكلاء" : "Agent Workspace"}</span>
           <div className="flex items-center gap-2">
+            <button onClick={() => navigate("/")} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-secondary/50 text-muted-foreground hover:text-foreground transition-colors text-xs"><Globe className="w-3.5 h-3.5" />{R ? "الموقع" : "Site"}</button>
             <button onClick={() => i18n.changeLanguage(R ? "en" : "ar")} className="p-2 rounded-lg hover:bg-secondary/50 text-muted-foreground hover:text-foreground transition-colors"><Languages className="w-4 h-4" /></button>
             <button className="p-2 rounded-lg hover:bg-secondary/50 text-muted-foreground hover:text-foreground transition-colors"><Bell className="w-4 h-4" /></button>
           </div>
