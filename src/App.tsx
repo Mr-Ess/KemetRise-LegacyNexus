@@ -74,6 +74,7 @@ const ImportExport = lazy(() => import("./pages/ImportExport.tsx"));
 
 const FinanceAnalytics = lazy(() => import("./pages/FinanceAnalytics.tsx"));
 const ERPCockpit = lazy(() => import("./pages/ERPCockpit.tsx"));
+const ExecutiveCockpit = lazy(() => import("./components/ExecutiveCockpit"));
 // Enterprise portal pages
 const AdminDashboard    = lazy(() => import("./pages/admin/AdminDashboard"));
 const SectorFactory     = lazy(() => import("./pages/admin/SectorFactory"));
@@ -161,6 +162,7 @@ const App = () => (
                 <Route path="/services" element={<PublicServices />} />
                 <Route path="/products" element={<PublicProducts />} />
                 <Route path="/erp" element={<Protected><ERPProvider><ERPCockpit /></ERPProvider></Protected>} />
+                <Route path="/cockpit" element={<Protected><ExecutiveCockpit /></Protected>} />
                 <Route path="/brands" element={<Protected><BrandsHub /></Protected>} />
                 <Route path="/brands/add" element={<Navigate to="/brands" replace />} />
                 <Route path="/brands/:id" element={<Navigate to="/brands" replace />} />

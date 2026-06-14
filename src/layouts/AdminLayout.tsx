@@ -19,6 +19,7 @@ const NAV_ITEMS = [
   { group: "Core", items: [
     { icon: LayoutDashboard, label: "لوحة التحكم",    labelEn: "Dashboard",         path: "/admin"                  },
     { icon: BarChart3,       label: "التحليلات",       labelEn: "Analytics",         path: "/admin/analytics"        },
+    { icon: Cpu,             label: "القيادة المركزية",labelEn: "Executive Cockpit", path: "/cockpit"                },
     { icon: Layers,          label: "القطاعات",        labelEn: "Sectors",           path: "/admin/sectors"          },
     { icon: Activity,        label: "المراقبة الآنية", labelEn: "Live Monitor",      path: "/admin/monitor"          },
     { icon: Cpu,             label: "ERP",             labelEn: "ERP Cockpit",       path: "/erp"                    },
