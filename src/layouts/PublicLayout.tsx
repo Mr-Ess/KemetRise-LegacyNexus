@@ -28,6 +28,8 @@ const NAV_ITEMS = [
   { ar: "من نحن",     en: "About",      href: "/about",    icon: Building2 },
   { ar: "خدماتنا",    en: "Services",   href: "/services", icon: Layers },
   { ar: "المنتجات",   en: "Products",   href: "/products", icon: ShoppingBag },
+  { ar: "السوق",      en: "Marketplace", href: "/marketplace", icon: ShoppingBag },
+  { ar: "المول الرقمي",en: "Digital Mall",href: "/digital-mall",icon: Building2 },
   { ar: "الأسعار",    en: "Pricing",    href: "/#pricing", icon: BarChart3 },
   { ar: "المدونة",    en: "Blog",       href: "/blog",     icon: MessageSquare },
   { ar: "تواصل معنا", en: "Contact",    href: "/contact",  icon: Phone },

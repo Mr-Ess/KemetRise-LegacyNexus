@@ -1,4 +1,4 @@
-import { useNavigate } from "react-router-dom";
+﻿import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/hooks/useAuth";
 import PublicLayout from "@/layouts/PublicLayout";
@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-/* ─── Animated Counter ───────────────────────────────────────────── */
+/* â”€â”€â”€ Animated Counter â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 function Counter({ to, suffix = "", duration = 2000 }: { to: number; suffix?: string; duration?: number }) {
   const [count, setCount] = useState(0);
   const ref = useRef<HTMLSpanElement>(null);
@@ -41,7 +41,7 @@ function Counter({ to, suffix = "", duration = 2000 }: { to: number; suffix?: st
   return <span ref={ref}>{count.toLocaleString()}{suffix}</span>;
 }
 
-/* ─── Floating Particle ─────────────────────────────────────────── */
+/* â”€â”€â”€ Floating Particle â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 const PARTICLES = Array.from({ length: 24 }, (_, i) => ({
   size: Math.random() * 3 + 1,
   x: Math.random() * 100,
@@ -51,7 +51,7 @@ const PARTICLES = Array.from({ length: 24 }, (_, i) => ({
   opacity: 0.15 + Math.random() * 0.4,
 }));
 
-/* ─── Scroll Reveal Hook ─────────────────────────────────────────── */
+/* â”€â”€â”€ Scroll Reveal Hook â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 function useReveal() {
   const ref = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(false);
@@ -64,67 +64,67 @@ function useReveal() {
 }
 
 const FEATURES = [
-  { icon: Layers,        ar: "مصنع القطاعات",     en: "Sector Factory",        desc_ar: "تفعيل قطاعات متخصصة بلمسة واحدة",    desc_en: "Activate specialized sectors instantly",       color: "from-primary/20 to-primary/5",   border: "border-primary/20",  glow: "#D4A017" },
-  { icon: Building2,     ar: "بيئات شركاء معزولة", en: "Partner Workspaces",    desc_ar: "كل شريك في بيئة عمل معزولة ومحمية", desc_en: "Every partner in an isolated workspace",       color: "from-indigo-500/20 to-indigo-500/5", border: "border-indigo-500/20", glow: "#6366F1" },
-  { icon: Bot,           ar: "وكلاء ذكاء اصطناعي", en: "AI Brand Agents",       desc_ar: "وكلاء AI مخصصون لكل علامة تجارية",  desc_en: "Custom AI agents per brand",                   color: "from-cyan-500/20 to-cyan-500/5", border: "border-cyan-500/20", glow: "#06B6D4" },
-  { icon: Wallet,        ar: "محفظة البائعين",      en: "Vendor Wallet",         desc_ar: "تسوية مالية آنية مع خصم رسوم تلقائي",desc_en: "Real-time settlement with auto fees",          color: "from-orange-500/20 to-orange-500/5", border: "border-orange-500/20", glow: "#F97316" },
-  { icon: BarChart3,     ar: "تحليلات وتقارير",     en: "Analytics & Reports",   desc_ar: "Kanban + ROI + تقارير مباشرة",       desc_en: "Kanban pipeline with ROI reporting",           color: "from-pink-500/20 to-pink-500/5", border: "border-pink-500/20", glow: "#EC4899" },
-  { icon: Shield,        ar: "أمان متعدد الطبقات",  en: "Multi-layer Security",  desc_ar: "RLS + أدوار + صلاحيات + مراجعة",    desc_en: "RLS + roles + permissions + audit",           color: "from-red-500/20 to-red-500/5",   border: "border-red-500/20",  glow: "#EF4444" },
-  { icon: Globe,         ar: "دعم ثنائي اللغة",     en: "Bilingual Support",     desc_ar: "واجهة كاملة بالعربية والإنجليزية",  desc_en: "Full Arabic & English interface",             color: "from-blue-500/20 to-blue-500/5", border: "border-blue-500/20", glow: "#3B82F6" },
-  { icon: Code2,         ar: "API مفتوحة",          en: "Open APIs",             desc_ar: "تكامل كامل مع أنظمة خارجية",        desc_en: "Full integration with external systems",      color: "from-emerald-500/20 to-emerald-500/5", border: "border-emerald-500/20", glow: "#10B981" },
+  { icon: Layers,        ar: "Ù…ØµÙ†Ø¹ Ø§Ù„Ù‚Ø·Ø§Ø¹Ø§Øª",     en: "Sector Factory",        desc_ar: "ØªÙØ¹ÙŠÙ„ Ù‚Ø·Ø§Ø¹Ø§Øª Ù…ØªØ®ØµØµØ© Ø¨Ù„Ù…Ø³Ø© ÙˆØ§Ø­Ø¯Ø©",    desc_en: "Activate specialized sectors instantly",       color: "from-primary/20 to-primary/5",   border: "border-primary/20",  glow: "#D4A017" },
+  { icon: Building2,     ar: "Ø¨ÙŠØ¦Ø§Øª Ø´Ø±ÙƒØ§Ø¡ Ù…Ø¹Ø²ÙˆÙ„Ø©", en: "Partner Workspaces",    desc_ar: "ÙƒÙ„ Ø´Ø±ÙŠÙƒ ÙÙŠ Ø¨ÙŠØ¦Ø© Ø¹Ù…Ù„ Ù…Ø¹Ø²ÙˆÙ„Ø© ÙˆÙ…Ø­Ù…ÙŠØ©", desc_en: "Every partner in an isolated workspace",       color: "from-indigo-500/20 to-indigo-500/5", border: "border-indigo-500/20", glow: "#6366F1" },
+  { icon: Bot,           ar: "ÙˆÙƒÙ„Ø§Ø¡ Ø°ÙƒØ§Ø¡ Ø§ØµØ·Ù†Ø§Ø¹ÙŠ", en: "AI Brand Agents",       desc_ar: "ÙˆÙƒÙ„Ø§Ø¡ AI Ù…Ø®ØµØµÙˆÙ† Ù„ÙƒÙ„ Ø¹Ù„Ø§Ù…Ø© ØªØ¬Ø§Ø±ÙŠØ©",  desc_en: "Custom AI agents per brand",                   color: "from-cyan-500/20 to-cyan-500/5", border: "border-cyan-500/20", glow: "#06B6D4" },
+  { icon: Wallet,        ar: "Ù…Ø­ÙØ¸Ø© Ø§Ù„Ø¨Ø§Ø¦Ø¹ÙŠÙ†",      en: "Vendor Wallet",         desc_ar: "ØªØ³ÙˆÙŠØ© Ù…Ø§Ù„ÙŠØ© Ø¢Ù†ÙŠØ© Ù…Ø¹ Ø®ØµÙ… Ø±Ø³ÙˆÙ… ØªÙ„Ù‚Ø§Ø¦ÙŠ",desc_en: "Real-time settlement with auto fees",          color: "from-orange-500/20 to-orange-500/5", border: "border-orange-500/20", glow: "#F97316" },
+  { icon: BarChart3,     ar: "ØªØ­Ù„ÙŠÙ„Ø§Øª ÙˆØªÙ‚Ø§Ø±ÙŠØ±",     en: "Analytics & Reports",   desc_ar: "Kanban + ROI + ØªÙ‚Ø§Ø±ÙŠØ± Ù…Ø¨Ø§Ø´Ø±Ø©",       desc_en: "Kanban pipeline with ROI reporting",           color: "from-pink-500/20 to-pink-500/5", border: "border-pink-500/20", glow: "#EC4899" },
+  { icon: Shield,        ar: "Ø£Ù…Ø§Ù† Ù…ØªØ¹Ø¯Ø¯ Ø§Ù„Ø·Ø¨Ù‚Ø§Øª",  en: "Multi-layer Security",  desc_ar: "RLS + Ø£Ø¯ÙˆØ§Ø± + ØµÙ„Ø§Ø­ÙŠØ§Øª + Ù…Ø±Ø§Ø¬Ø¹Ø©",    desc_en: "RLS + roles + permissions + audit",           color: "from-red-500/20 to-red-500/5",   border: "border-red-500/20",  glow: "#EF4444" },
+  { icon: Globe,         ar: "Ø¯Ø¹Ù… Ø«Ù†Ø§Ø¦ÙŠ Ø§Ù„Ù„ØºØ©",     en: "Bilingual Support",     desc_ar: "ÙˆØ§Ø¬Ù‡Ø© ÙƒØ§Ù…Ù„Ø© Ø¨Ø§Ù„Ø¹Ø±Ø¨ÙŠØ© ÙˆØ§Ù„Ø¥Ù†Ø¬Ù„ÙŠØ²ÙŠØ©",  desc_en: "Full Arabic & English interface",             color: "from-blue-500/20 to-blue-500/5", border: "border-blue-500/20", glow: "#3B82F6" },
+  { icon: Code2,         ar: "API Ù…ÙØªÙˆØ­Ø©",          en: "Open APIs",             desc_ar: "ØªÙƒØ§Ù…Ù„ ÙƒØ§Ù…Ù„ Ù…Ø¹ Ø£Ù†Ø¸Ù…Ø© Ø®Ø§Ø±Ø¬ÙŠØ©",        desc_en: "Full integration with external systems",      color: "from-emerald-500/20 to-emerald-500/5", border: "border-emerald-500/20", glow: "#10B981" },
 ];
 
 const SECTORS = [
-  { icon: Stethoscope, label: "Medical",    ar: "الطب",      color: "#EF4444", bg: "bg-red-500/10" },
-  { icon: Layers,      label: "Education",  ar: "التعليم",   color: "#8B5CF6", bg: "bg-violet-500/10" },
-  { icon: Scale,       label: "Legal",      ar: "القانون",   color: "#6366F1", bg: "bg-indigo-500/10" },
-  { icon: Briefcase,   label: "Services",   ar: "الخدمات",   color: "#EC4899", bg: "bg-pink-500/10" },
-  { icon: ShoppingCart,label: "Retail",     ar: "التجزئة",   color: "#F97316", bg: "bg-orange-500/10" },
-  { icon: TrendingUp,  label: "Financial",  ar: "المالية",   color: "#F59E0B", bg: "bg-yellow-500/10" },
-  { icon: GraduationCap,label:"Courses",    ar: "الدورات",   color: "#14B8A6", bg: "bg-teal-500/10" },
-  { icon: Building2,   label: "Tourism",    ar: "السياحة",   color: "#10B981", bg: "bg-emerald-500/10" },
-  { icon: Cpu,         label: "Tech",       ar: "التكنولوجيا",color: "#0EA5E9", bg: "bg-sky-500/10" },
-  { icon: HeartHandshake,label:"Consulting",ar: "الاستشارات",color: "#A855F7", bg: "bg-purple-500/10" },
+  { icon: Stethoscope, label: "Medical",    ar: "Ø§Ù„Ø·Ø¨",      color: "#EF4444", bg: "bg-red-500/10" },
+  { icon: Layers,      label: "Education",  ar: "Ø§Ù„ØªØ¹Ù„ÙŠÙ…",   color: "#8B5CF6", bg: "bg-violet-500/10" },
+  { icon: Scale,       label: "Legal",      ar: "Ø§Ù„Ù‚Ø§Ù†ÙˆÙ†",   color: "#6366F1", bg: "bg-indigo-500/10" },
+  { icon: Briefcase,   label: "Services",   ar: "Ø§Ù„Ø®Ø¯Ù…Ø§Øª",   color: "#EC4899", bg: "bg-pink-500/10" },
+  { icon: ShoppingCart,label: "Retail",     ar: "Ø§Ù„ØªØ¬Ø²Ø¦Ø©",   color: "#F97316", bg: "bg-orange-500/10" },
+  { icon: TrendingUp,  label: "Financial",  ar: "Ø§Ù„Ù…Ø§Ù„ÙŠØ©",   color: "#F59E0B", bg: "bg-yellow-500/10" },
+  { icon: GraduationCap,label:"Courses",    ar: "Ø§Ù„Ø¯ÙˆØ±Ø§Øª",   color: "#14B8A6", bg: "bg-teal-500/10" },
+  { icon: Building2,   label: "Tourism",    ar: "Ø§Ù„Ø³ÙŠØ§Ø­Ø©",   color: "#10B981", bg: "bg-emerald-500/10" },
+  { icon: Cpu,         label: "Tech",       ar: "Ø§Ù„ØªÙƒÙ†ÙˆÙ„ÙˆØ¬ÙŠØ§",color: "#0EA5E9", bg: "bg-sky-500/10" },
+  { icon: HeartHandshake,label:"Consulting",ar: "Ø§Ù„Ø§Ø³ØªØ´Ø§Ø±Ø§Øª",color: "#A855F7", bg: "bg-purple-500/10" },
 ];
 
 const PRICING = [
   {
-    code: "free",     name: "Free",       nameAr: "مجاني",     price: 0,
+    code: "free",     name: "Free",       nameAr: "Ù…Ø¬Ø§Ù†ÙŠ",     price: 0,
     features_en: ["Marketplace access", "5 products", "Basic analytics", "Community support"],
-    features_ar: ["وصول للسوق", "5 منتجات", "تحليلات أساسية", "دعم المجتمع"],
-    color: "border-border", badge: "", cta_en: "Start Free", cta_ar: "ابدأ مجاناً",
+    features_ar: ["ÙˆØµÙˆÙ„ Ù„Ù„Ø³ÙˆÙ‚", "5 Ù…Ù†ØªØ¬Ø§Øª", "ØªØ­Ù„ÙŠÙ„Ø§Øª Ø£Ø³Ø§Ø³ÙŠØ©", "Ø¯Ø¹Ù… Ø§Ù„Ù…Ø¬ØªÙ…Ø¹"],
+    color: "border-border", badge: "", cta_en: "Start Free", cta_ar: "Ø§Ø¨Ø¯Ø£ Ù…Ø¬Ø§Ù†Ø§Ù‹",
   },
   {
-    code: "starter",  name: "Starter",    nameAr: "مبتدئ",     price: 9.99,
+    code: "starter",  name: "Starter",    nameAr: "Ù…Ø¨ØªØ¯Ø¦",     price: 9.99,
     features_en: ["50 products", "Orders management", "Wallet & payouts", "Email support"],
-    features_ar: ["50 منتج", "إدارة الطلبات", "المحفظة والمدفوعات", "دعم بريدي"],
-    color: "border-blue-500/40", badge: "", cta_en: "Get Started", cta_ar: "ابدأ الآن",
+    features_ar: ["50 Ù…Ù†ØªØ¬", "Ø¥Ø¯Ø§Ø±Ø© Ø§Ù„Ø·Ù„Ø¨Ø§Øª", "Ø§Ù„Ù…Ø­ÙØ¸Ø© ÙˆØ§Ù„Ù…Ø¯ÙÙˆØ¹Ø§Øª", "Ø¯Ø¹Ù… Ø¨Ø±ÙŠØ¯ÙŠ"],
+    color: "border-blue-500/40", badge: "", cta_en: "Get Started", cta_ar: "Ø§Ø¨Ø¯Ø£ Ø§Ù„Ø¢Ù†",
   },
   {
-    code: "pro",      name: "Pro",        nameAr: "احترافي",   price: 29.99,
+    code: "pro",      name: "Pro",        nameAr: "Ø§Ø­ØªØ±Ø§ÙÙŠ",   price: 29.99,
     features_en: ["Unlimited products", "Partner workspace", "AI chat agents", "Analytics dashboard", "API access"],
-    features_ar: ["منتجات لا محدودة", "بيئة شريك", "وكلاء AI", "لوحة تحليلات", "API"],
-    color: "border-primary/50", badge: "Popular", cta_en: "Go Pro", cta_ar: "ترقية احترافية",
+    features_ar: ["Ù…Ù†ØªØ¬Ø§Øª Ù„Ø§ Ù…Ø­Ø¯ÙˆØ¯Ø©", "Ø¨ÙŠØ¦Ø© Ø´Ø±ÙŠÙƒ", "ÙˆÙƒÙ„Ø§Ø¡ AI", "Ù„ÙˆØ­Ø© ØªØ­Ù„ÙŠÙ„Ø§Øª", "API"],
+    color: "border-primary/50", badge: "Popular", cta_en: "Go Pro", cta_ar: "ØªØ±Ù‚ÙŠØ© Ø§Ø­ØªØ±Ø§ÙÙŠØ©",
   },
   {
-    code: "enterprise", name: "Enterprise", nameAr: "مؤسسي",   price: 99.99,
+    code: "enterprise", name: "Enterprise", nameAr: "Ù…Ø¤Ø³Ø³ÙŠ",   price: 99.99,
     features_en: ["Everything in Pro", "Custom sectors", "HR & ERP module", "Dedicated support", "White-label option", "SLA 99.9%"],
-    features_ar: ["كل ما في Pro", "قطاعات مخصصة", "وحدة HR وERP", "دعم حصري", "علامة بيضاء", "ضمان 99.9%"],
-    color: "border-purple-500/40", badge: "Best Value", cta_en: "Contact Sales", cta_ar: "تواصل للبيع",
+    features_ar: ["ÙƒÙ„ Ù…Ø§ ÙÙŠ Pro", "Ù‚Ø·Ø§Ø¹Ø§Øª Ù…Ø®ØµØµØ©", "ÙˆØ­Ø¯Ø© HR ÙˆERP", "Ø¯Ø¹Ù… Ø­ØµØ±ÙŠ", "Ø¹Ù„Ø§Ù…Ø© Ø¨ÙŠØ¶Ø§Ø¡", "Ø¶Ù…Ø§Ù† 99.9%"],
+    color: "border-purple-500/40", badge: "Best Value", cta_en: "Contact Sales", cta_ar: "ØªÙˆØ§ØµÙ„ Ù„Ù„Ø¨ÙŠØ¹",
   },
 ];
 
 const STEPS = [
-  { num: "01", icon: Rocket,        titleEn: "Create Account",    titleAr: "أنشئ حساباً",       descEn: "Sign up in 60 seconds, choose your role and sector.",          descAr: "سجّل في 60 ثانية واختر دورك وقطاعك." },
-  { num: "02", icon: Layers,        titleEn: "Configure Portal",  titleAr: "هيّئ بوابتك",       descEn: "Activate sectors, add brands, configure your workspace.",       descAr: "فعّل القطاعات وأضف براندات وهيّئ مساحة عملك." },
-  { num: "03", icon: TrendingUp,    titleEn: "Grow & Scale",       titleAr: "انمُ وتوسّع",       descEn: "Use AI agents, manage team & finances, and scale globally.",     descAr: "استخدم وكلاء الذكاء الاصطناعي وادر الفريق والمالية." },
+  { num: "01", icon: Rocket,        titleEn: "Create Account",    titleAr: "Ø£Ù†Ø´Ø¦ Ø­Ø³Ø§Ø¨Ø§Ù‹",       descEn: "Sign up in 60 seconds, choose your role and sector.",          descAr: "Ø³Ø¬Ù‘Ù„ ÙÙŠ 60 Ø«Ø§Ù†ÙŠØ© ÙˆØ§Ø®ØªØ± Ø¯ÙˆØ±Ùƒ ÙˆÙ‚Ø·Ø§Ø¹Ùƒ." },
+  { num: "02", icon: Layers,        titleEn: "Configure Portal",  titleAr: "Ù‡ÙŠÙ‘Ø¦ Ø¨ÙˆØ§Ø¨ØªÙƒ",       descEn: "Activate sectors, add brands, configure your workspace.",       descAr: "ÙØ¹Ù‘Ù„ Ø§Ù„Ù‚Ø·Ø§Ø¹Ø§Øª ÙˆØ£Ø¶Ù Ø¨Ø±Ø§Ù†Ø¯Ø§Øª ÙˆÙ‡ÙŠÙ‘Ø¦ Ù…Ø³Ø§Ø­Ø© Ø¹Ù…Ù„Ùƒ." },
+  { num: "03", icon: TrendingUp,    titleEn: "Grow & Scale",       titleAr: "Ø§Ù†Ù…Ù ÙˆØªÙˆØ³Ù‘Ø¹",       descEn: "Use AI agents, manage team & finances, and scale globally.",     descAr: "Ø§Ø³ØªØ®Ø¯Ù… ÙˆÙƒÙ„Ø§Ø¡ Ø§Ù„Ø°ÙƒØ§Ø¡ Ø§Ù„Ø§ØµØ·Ù†Ø§Ø¹ÙŠ ÙˆØ§Ø¯Ø± Ø§Ù„ÙØ±ÙŠÙ‚ ÙˆØ§Ù„Ù…Ø§Ù„ÙŠØ©." },
 ];
 
 const TESTIMONIALS = [
-  { name: "Ahmed Khaled",    nameAr: "أحمد خالد",    role: "E-commerce Director",  roleAr: "مدير التجارة الإلكترونية",  text_en: "KemetRise unified our 12 brands into one dashboard. Revenue tracking is flawless.",        text_ar: "وحّدت KemetRise 12 علامة تجارية في لوحة واحدة. تتبع الإيرادات لا تشوبه شائبة.",      avatar: "AK" },
-  { name: "Sara Al-Nour",   nameAr: "سارة النور",   role: "Startup Founder",       roleAr: "مؤسسة شركة ناشئة",         text_en: "The AI agents handle 70% of our customer queries automatically. Game changer.",            text_ar: "وكلاء الذكاء الاصطناعي يتعاملون مع 70% من استفسارات العملاء آلياً. تغيير جذري.",        avatar: "SN" },
-  { name: "Omar Fawzi",     nameAr: "عمر فوزي",     role: "Operations Manager",    roleAr: "مدير العمليات",             text_en: "HR attendance via QR codes + ERP ledger saved us 3 days per month in admin work.",          text_ar: "الحضور عبر QR ودفتر الأستاذ ERP وفّرا لنا 3 أيام شهرياً من العمل الإداري.",            avatar: "OF" },
-  { name: "Lina Rashid",    nameAr: "لينا راشد",    role: "Marketing Lead",        roleAr: "قيادة التسويق",             text_en: "The Kanban leads pipeline and campaign analytics boosted our conversion by 40%.",            text_ar: "خط أنابيب العملاء وتحليلات الحملات رفعا معدل تحويلنا بنسبة 40%.",                      avatar: "LR" },
+  { name: "Ahmed Khaled",    nameAr: "Ø£Ø­Ù…Ø¯ Ø®Ø§Ù„Ø¯",    role: "E-commerce Director",  roleAr: "Ù…Ø¯ÙŠØ± Ø§Ù„ØªØ¬Ø§Ø±Ø© Ø§Ù„Ø¥Ù„ÙƒØªØ±ÙˆÙ†ÙŠØ©",  text_en: "KemetRise unified our 12 brands into one dashboard. Revenue tracking is flawless.",        text_ar: "ÙˆØ­Ù‘Ø¯Øª KemetRise 12 Ø¹Ù„Ø§Ù…Ø© ØªØ¬Ø§Ø±ÙŠØ© ÙÙŠ Ù„ÙˆØ­Ø© ÙˆØ§Ø­Ø¯Ø©. ØªØªØ¨Ø¹ Ø§Ù„Ø¥ÙŠØ±Ø§Ø¯Ø§Øª Ù„Ø§ ØªØ´ÙˆØ¨Ù‡ Ø´Ø§Ø¦Ø¨Ø©.",      avatar: "AK" },
+  { name: "Sara Al-Nour",   nameAr: "Ø³Ø§Ø±Ø© Ø§Ù„Ù†ÙˆØ±",   role: "Startup Founder",       roleAr: "Ù…Ø¤Ø³Ø³Ø© Ø´Ø±ÙƒØ© Ù†Ø§Ø´Ø¦Ø©",         text_en: "The AI agents handle 70% of our customer queries automatically. Game changer.",            text_ar: "ÙˆÙƒÙ„Ø§Ø¡ Ø§Ù„Ø°ÙƒØ§Ø¡ Ø§Ù„Ø§ØµØ·Ù†Ø§Ø¹ÙŠ ÙŠØªØ¹Ø§Ù…Ù„ÙˆÙ† Ù…Ø¹ 70% Ù…Ù† Ø§Ø³ØªÙØ³Ø§Ø±Ø§Øª Ø§Ù„Ø¹Ù…Ù„Ø§Ø¡ Ø¢Ù„ÙŠØ§Ù‹. ØªØºÙŠÙŠØ± Ø¬Ø°Ø±ÙŠ.",        avatar: "SN" },
+  { name: "Omar Fawzi",     nameAr: "Ø¹Ù…Ø± ÙÙˆØ²ÙŠ",     role: "Operations Manager",    roleAr: "Ù…Ø¯ÙŠØ± Ø§Ù„Ø¹Ù…Ù„ÙŠØ§Øª",             text_en: "HR attendance via QR codes + ERP ledger saved us 3 days per month in admin work.",          text_ar: "Ø§Ù„Ø­Ø¶ÙˆØ± Ø¹Ø¨Ø± QR ÙˆØ¯ÙØªØ± Ø§Ù„Ø£Ø³ØªØ§Ø° ERP ÙˆÙÙ‘Ø±Ø§ Ù„Ù†Ø§ 3 Ø£ÙŠØ§Ù… Ø´Ù‡Ø±ÙŠØ§Ù‹ Ù…Ù† Ø§Ù„Ø¹Ù…Ù„ Ø§Ù„Ø¥Ø¯Ø§Ø±ÙŠ.",            avatar: "OF" },
+  { name: "Lina Rashid",    nameAr: "Ù„ÙŠÙ†Ø§ Ø±Ø§Ø´Ø¯",    role: "Marketing Lead",        roleAr: "Ù‚ÙŠØ§Ø¯Ø© Ø§Ù„ØªØ³ÙˆÙŠÙ‚",             text_en: "The Kanban leads pipeline and campaign analytics boosted our conversion by 40%.",            text_ar: "Ø®Ø· Ø£Ù†Ø§Ø¨ÙŠØ¨ Ø§Ù„Ø¹Ù…Ù„Ø§Ø¡ ÙˆØªØ­Ù„ÙŠÙ„Ø§Øª Ø§Ù„Ø­Ù…Ù„Ø§Øª Ø±ÙØ¹Ø§ Ù…Ø¹Ø¯Ù„ ØªØ­ÙˆÙŠÙ„Ù†Ø§ Ø¨Ù†Ø³Ø¨Ø© 40%.",                      avatar: "LR" },
 ];
 
 export default function PublicLanding() {
@@ -147,7 +147,7 @@ export default function PublicLanding() {
 
   return (
     <PublicLayout>
-      {/* ══ 1. HERO ══════════════════════════════════════════════════ */}
+      {/* â•â• 1. HERO â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
       <section className="relative min-h-screen flex items-center overflow-hidden">
         {/* Particle background */}
         <div className="absolute inset-0 pointer-events-none">
@@ -172,7 +172,7 @@ export default function PublicLanding() {
           <div ref={heroReveal.ref} className={cn("transition-all duration-700", heroReveal.visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8")}>
             <Badge className="mb-6 px-5 py-2 bg-primary/10 text-primary border-primary/30 text-xs font-semibold gap-2 animate-glow-pulse">
               <Sparkles className="w-3.5 h-3.5" />
-              {R ? "المنصة الموحدة متعددة المستأجرين · SaaS + ERP" : "Unified Multi-Tenant SaaS & ERP Platform"}
+              {R ? "Ø§Ù„Ù…Ù†ØµØ© Ø§Ù„Ù…ÙˆØ­Ø¯Ø© Ù…ØªØ¹Ø¯Ø¯Ø© Ø§Ù„Ù…Ø³ØªØ£Ø¬Ø±ÙŠÙ† Â· SaaS + ERP" : "Unified Multi-Tenant SaaS & ERP Platform"}
             </Badge>
           </div>
 
@@ -191,8 +191,8 @@ export default function PublicLanding() {
           <div className={cn("transition-all duration-700 delay-300 max-w-3xl mx-auto", heroReveal.visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8")}>
             <p className="text-base md:text-xl text-muted-foreground leading-relaxed mt-6 mb-10">
               {R
-                ? "ثمانية بوابات موحدة في نظام واحد — إدارة الموارد البشرية، ERP، المتجر، التسويق، الوكلاء، الشركاء، والذكاء الاصطناعي — كل شيء مترابط."
-                : "Eight unified portals in one system — HR, ERP, commerce, marketing, agents, partners & AI — all interconnected."}
+                ? "Ø«Ù…Ø§Ù†ÙŠØ© Ø¨ÙˆØ§Ø¨Ø§Øª Ù…ÙˆØ­Ø¯Ø© ÙÙŠ Ù†Ø¸Ø§Ù… ÙˆØ§Ø­Ø¯ â€” Ø¥Ø¯Ø§Ø±Ø© Ø§Ù„Ù…ÙˆØ§Ø±Ø¯ Ø§Ù„Ø¨Ø´Ø±ÙŠØ©ØŒ ERPØŒ Ø§Ù„Ù…ØªØ¬Ø±ØŒ Ø§Ù„ØªØ³ÙˆÙŠÙ‚ØŒ Ø§Ù„ÙˆÙƒÙ„Ø§Ø¡ØŒ Ø§Ù„Ø´Ø±ÙƒØ§Ø¡ØŒ ÙˆØ§Ù„Ø°ÙƒØ§Ø¡ Ø§Ù„Ø§ØµØ·Ù†Ø§Ø¹ÙŠ â€” ÙƒÙ„ Ø´ÙŠØ¡ Ù…ØªØ±Ø§Ø¨Ø·."
+                : "Eight unified portals in one system â€” HR, ERP, commerce, marketing, agents, partners & AI â€” all interconnected."}
             </p>
           </div>
 
@@ -200,17 +200,17 @@ export default function PublicLanding() {
           <div className={cn("flex flex-col sm:flex-row gap-4 justify-center transition-all duration-700 delay-500", heroReveal.visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8")}>
             {user ? (
               <Button size="lg" onClick={() => navigate("/portal")} className="gap-2 text-base px-10 gold-glow hover:gold-glow-strong transition-shadow">
-                {R ? "الدخول للوحة التحكم" : "Go to Dashboard"} <ArrowRight className="w-5 h-5" />
+                {R ? "Ø§Ù„Ø¯Ø®ÙˆÙ„ Ù„Ù„ÙˆØ­Ø© Ø§Ù„ØªØ­ÙƒÙ…" : "Go to Dashboard"} <ArrowRight className="w-5 h-5" />
               </Button>
             ) : (
               <>
                 <Button size="lg" onClick={() => navigate("/auth?tab=signup")} className="gap-2 text-base px-10 gold-glow hover:gold-glow-strong transition-all">
                   <Rocket className="w-5 h-5" />
-                  {R ? "ابدأ مجاناً الآن" : "Start Free Today"}
+                  {R ? "Ø§Ø¨Ø¯Ø£ Ù…Ø¬Ø§Ù†Ø§Ù‹ Ø§Ù„Ø¢Ù†" : "Start Free Today"}
                 </Button>
                 <Button size="lg" variant="outline" onClick={() => navigate("/about")} className="text-base px-10 gap-2 border-primary/30 hover:border-primary/60">
                   <Play className="w-4 h-4" />
-                  {R ? "اكتشف المنصة" : "Explore Platform"}
+                  {R ? "Ø§ÙƒØªØ´Ù Ø§Ù„Ù…Ù†ØµØ©" : "Explore Platform"}
                 </Button>
               </>
             )}
@@ -219,10 +219,10 @@ export default function PublicLanding() {
           {/* Stats bar */}
           <div ref={statsReveal.ref} className={cn("mt-20 grid grid-cols-2 md:grid-cols-4 gap-6 max-w-3xl mx-auto transition-all duration-700", statsReveal.visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8")}>
             {[
-              { val: 8,    suffix: "",    labelEn: "Unified Portals",    labelAr: "بوابة موحدة" },
-              { val: 10,   suffix: "+",   labelEn: "Active Sectors",     labelAr: "قطاع نشط" },
-              { val: 99,   suffix: ".9%", labelEn: "Uptime SLA",         labelAr: "ضمان الوقت" },
-              { val: 100,  suffix: "%",   labelEn: "Bilingual",          labelAr: "ثنائي اللغة" },
+              { val: 8,    suffix: "",    labelEn: "Unified Portals",    labelAr: "Ø¨ÙˆØ§Ø¨Ø© Ù…ÙˆØ­Ø¯Ø©" },
+              { val: 10,   suffix: "+",   labelEn: "Active Sectors",     labelAr: "Ù‚Ø·Ø§Ø¹ Ù†Ø´Ø·" },
+              { val: 99,   suffix: ".9%", labelEn: "Uptime SLA",         labelAr: "Ø¶Ù…Ø§Ù† Ø§Ù„ÙˆÙ‚Øª" },
+              { val: 100,  suffix: "%",   labelEn: "Bilingual",          labelAr: "Ø«Ù†Ø§Ø¦ÙŠ Ø§Ù„Ù„ØºØ©" },
             ].map(s => (
               <div key={s.labelEn} className="text-center p-4 rounded-2xl bg-secondary/30 border border-border/30 hover:border-primary/30 transition-all">
                 <p className="text-3xl font-display font-black text-primary gold-text-glow">
@@ -240,10 +240,10 @@ export default function PublicLanding() {
         </div>
       </section>
 
-      {/* ══ 2. LOGO MARQUEE ════════════════════════════════════════ */}
+      {/* â•â• 2. LOGO MARQUEE â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
       <section className="py-8 border-y border-border/30 bg-secondary/10 overflow-hidden">
         <p className="text-center text-[10px] font-bold text-muted-foreground uppercase tracking-[0.3em] mb-4">
-          {R ? "قطاعات مدعومة" : "Supported Sectors"}
+          {R ? "Ù‚Ø·Ø§Ø¹Ø§Øª Ù…Ø¯Ø¹ÙˆÙ…Ø©" : "Supported Sectors"}
         </p>
         <div className="flex gap-12 animate-marquee whitespace-nowrap" style={{ width: "max-content" }}>
           {[...SECTORS, ...SECTORS].map((s, i) => (
@@ -257,16 +257,16 @@ export default function PublicLanding() {
         </div>
       </section>
 
-      {/* ══ 3. FEATURES GRID ═══════════════════════════════════════ */}
+      {/* â•â• 3. FEATURES GRID â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
       <section className="py-24">
         <div className="max-w-6xl mx-auto px-4">
           <div ref={featuresReveal.ref} className={cn("text-center mb-16 transition-all duration-700", featuresReveal.visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8")}>
-            <Badge className="mb-4 bg-primary/10 text-primary border-primary/20 text-xs">{R ? "الميزات" : "Features"}</Badge>
+            <Badge className="mb-4 bg-primary/10 text-primary border-primary/20 text-xs">{R ? "Ø§Ù„Ù…ÙŠØ²Ø§Øª" : "Features"}</Badge>
             <h2 className="text-3xl md:text-4xl font-display font-black mb-4">
-              {R ? "كل ما تحتاجه في مكان واحد" : "Everything You Need, One Platform"}
+              {R ? "ÙƒÙ„ Ù…Ø§ ØªØ­ØªØ§Ø¬Ù‡ ÙÙŠ Ù…ÙƒØ§Ù† ÙˆØ§Ø­Ø¯" : "Everything You Need, One Platform"}
             </h2>
             <p className="text-muted-foreground max-w-xl mx-auto">
-              {R ? "ثمانية أنظمة متكاملة تعمل معاً على قاعدة بيانات موحدة مع أمان متعدد الطبقات" : "Eight integrated systems on a unified database with multi-layer security"}
+              {R ? "Ø«Ù…Ø§Ù†ÙŠØ© Ø£Ù†Ø¸Ù…Ø© Ù…ØªÙƒØ§Ù…Ù„Ø© ØªØ¹Ù…Ù„ Ù…Ø¹Ø§Ù‹ Ø¹Ù„Ù‰ Ù‚Ø§Ø¹Ø¯Ø© Ø¨ÙŠØ§Ù†Ø§Øª Ù…ÙˆØ­Ø¯Ø© Ù…Ø¹ Ø£Ù…Ø§Ù† Ù…ØªØ¹Ø¯Ø¯ Ø§Ù„Ø·Ø¨Ù‚Ø§Øª" : "Eight integrated systems on a unified database with multi-layer security"}
             </p>
           </div>
           <div className={cn("grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 transition-all duration-700 delay-200", featuresReveal.visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8")}>
@@ -288,12 +288,12 @@ export default function PublicLanding() {
         </div>
       </section>
 
-      {/* ══ 4. HOW IT WORKS ════════════════════════════════════════ */}
+      {/* â•â• 4. HOW IT WORKS â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
       <section className="py-20 bg-secondary/10 border-y border-border/30">
         <div className="max-w-4xl mx-auto px-4">
           <div className="text-center mb-14">
-            <Badge className="mb-4 bg-primary/10 text-primary border-primary/20 text-xs">{R ? "كيف يعمل" : "How It Works"}</Badge>
-            <h2 className="text-3xl font-display font-black">{R ? "ثلاث خطوات للانطلاق" : "Three Steps to Launch"}</h2>
+            <Badge className="mb-4 bg-primary/10 text-primary border-primary/20 text-xs">{R ? "ÙƒÙŠÙ ÙŠØ¹Ù…Ù„" : "How It Works"}</Badge>
+            <h2 className="text-3xl font-display font-black">{R ? "Ø«Ù„Ø§Ø« Ø®Ø·ÙˆØ§Øª Ù„Ù„Ø§Ù†Ø·Ù„Ø§Ù‚" : "Three Steps to Launch"}</h2>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative">
             <div className="hidden md:block absolute top-10 left-[20%] right-[20%] h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
@@ -313,12 +313,12 @@ export default function PublicLanding() {
         </div>
       </section>
 
-      {/* ══ 5. SECTORS GRID ═══════════════════════════════════════ */}
+      {/* â•â• 5. SECTORS GRID â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
       <section ref={sectorsReveal.ref} className="py-20">
         <div className="max-w-6xl mx-auto px-4">
           <div className={cn("text-center mb-12 transition-all duration-700", sectorsReveal.visible ? "opacity-100" : "opacity-0")}>
-            <Badge className="mb-4 bg-primary/10 text-primary border-primary/20 text-xs">{R ? "القطاعات" : "Sectors"}</Badge>
-            <h2 className="text-3xl font-display font-black">{R ? "قطاعات مخصصة لكل صناعة" : "Industry-Specific Sectors"}</h2>
+            <Badge className="mb-4 bg-primary/10 text-primary border-primary/20 text-xs">{R ? "Ø§Ù„Ù‚Ø·Ø§Ø¹Ø§Øª" : "Sectors"}</Badge>
+            <h2 className="text-3xl font-display font-black">{R ? "Ù‚Ø·Ø§Ø¹Ø§Øª Ù…Ø®ØµØµØ© Ù„ÙƒÙ„ ØµÙ†Ø§Ø¹Ø©" : "Industry-Specific Sectors"}</h2>
           </div>
           <div className={cn("grid grid-cols-2 md:grid-cols-5 gap-4 transition-all duration-700 delay-200", sectorsReveal.visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8")}>
             {SECTORS.map(s => (
@@ -333,20 +333,20 @@ export default function PublicLanding() {
         </div>
       </section>
 
-      {/* ══ 6. PRICING ═══════════════════════════════════════════ */}
+      {/* â•â• 6. PRICING â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
       <section ref={pricingReveal.ref} className="py-24 bg-secondary/10 border-y border-border/30" id="pricing">
         <div className="max-w-5xl mx-auto px-4">
           <div className={cn("text-center mb-12 transition-all duration-700", pricingReveal.visible ? "opacity-100" : "opacity-0")}>
-            <Badge className="mb-4 bg-primary/10 text-primary border-primary/20 text-xs">{R ? "الأسعار" : "Pricing"}</Badge>
-            <h2 className="text-3xl font-display font-black mb-3">{R ? "اشتراكات لكل حجم" : "Plans for Every Scale"}</h2>
-            <p className="text-muted-foreground mb-6">{R ? "ابدأ مجاناً وقم بالترقية عند الحاجة" : "Start free, upgrade when you need"}</p>
+            <Badge className="mb-4 bg-primary/10 text-primary border-primary/20 text-xs">{R ? "Ø§Ù„Ø£Ø³Ø¹Ø§Ø±" : "Pricing"}</Badge>
+            <h2 className="text-3xl font-display font-black mb-3">{R ? "Ø§Ø´ØªØ±Ø§ÙƒØ§Øª Ù„ÙƒÙ„ Ø­Ø¬Ù…" : "Plans for Every Scale"}</h2>
+            <p className="text-muted-foreground mb-6">{R ? "Ø§Ø¨Ø¯Ø£ Ù…Ø¬Ø§Ù†Ø§Ù‹ ÙˆÙ‚Ù… Ø¨Ø§Ù„ØªØ±Ù‚ÙŠØ© Ø¹Ù†Ø¯ Ø§Ù„Ø­Ø§Ø¬Ø©" : "Start free, upgrade when you need"}</p>
             {/* Monthly / Annual toggle */}
             <div className="inline-flex items-center gap-1 p-1 rounded-full bg-secondary/50 border border-border/40">
               <button onClick={() => setActiveTab("monthly")} className={cn("px-4 py-1.5 rounded-full text-xs font-semibold transition-all", activeTab === "monthly" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground")}>
-                {R ? "شهري" : "Monthly"}
+                {R ? "Ø´Ù‡Ø±ÙŠ" : "Monthly"}
               </button>
               <button onClick={() => setActiveTab("annual")} className={cn("px-4 py-1.5 rounded-full text-xs font-semibold transition-all", activeTab === "annual" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground")}>
-                {R ? "سنوي (خصم 20%)" : "Annual (save 20%)"}
+                {R ? "Ø³Ù†ÙˆÙŠ (Ø®ØµÙ… 20%)" : "Annual (save 20%)"}
               </button>
             </div>
           </div>
@@ -363,7 +363,7 @@ export default function PublicLanding() {
                   <h3 className="text-sm font-bold mb-1">{R ? plan.nameAr : plan.name}</h3>
                   <div className="flex items-baseline gap-1 mb-4">
                     <span className="text-3xl font-display font-black text-primary">${price === 0 ? "0" : price.toFixed(2)}</span>
-                    {plan.price > 0 && <span className="text-xs text-muted-foreground">{R ? "/شهر" : "/mo"}</span>}
+                    {plan.price > 0 && <span className="text-xs text-muted-foreground">{R ? "/Ø´Ù‡Ø±" : "/mo"}</span>}
                   </div>
                   <ul className="space-y-2 mb-5">
                     {(R ? plan.features_ar : plan.features_en).map(f => (
@@ -384,12 +384,12 @@ export default function PublicLanding() {
         </div>
       </section>
 
-      {/* ══ 7. TESTIMONIALS ══════════════════════════════════════ */}
+      {/* â•â• 7. TESTIMONIALS â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
       <section className="py-20">
         <div className="max-w-4xl mx-auto px-4">
           <div className="text-center mb-12">
-            <Badge className="mb-4 bg-primary/10 text-primary border-primary/20 text-xs">{R ? "آراء العملاء" : "Testimonials"}</Badge>
-            <h2 className="text-3xl font-display font-black">{R ? "ماذا يقول عملاؤنا" : "What Our Clients Say"}</h2>
+            <Badge className="mb-4 bg-primary/10 text-primary border-primary/20 text-xs">{R ? "Ø¢Ø±Ø§Ø¡ Ø§Ù„Ø¹Ù…Ù„Ø§Ø¡" : "Testimonials"}</Badge>
+            <h2 className="text-3xl font-display font-black">{R ? "Ù…Ø§Ø°Ø§ ÙŠÙ‚ÙˆÙ„ Ø¹Ù…Ù„Ø§Ø¤Ù†Ø§" : "What Our Clients Say"}</h2>
           </div>
           <div className="relative overflow-hidden">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -418,239 +418,118 @@ export default function PublicLanding() {
             </div>
           </div>
         </div>
+
+      {/* ══ 8b. MARKETPLACE & DIGITAL MALL ══════════════════════ */}
+      <section className="py-20 bg-secondary/10 border-y border-border/30">
+        <div className="max-w-5xl mx-auto px-4">
+          <div className="text-center mb-12">
+            <Badge className="mb-4 bg-primary/10 text-primary border-primary/20 text-xs gap-2">
+              <ShoppingBag className="w-3.5 h-3.5" />
+              {R ? "تسوق معنا" : "Shop With Us"}
+            </Badge>
+            <h2 className="text-3xl font-display font-black">
+              {R ? "المتجر والمول الرقمي" : "Marketplace & Digital Mall"}
+            </h2>
+            <p className="text-muted-foreground mt-2 text-sm">
+              {R ? "تصفح الآلاف من المنتجات والخدمات من موردين معتمدين" : "Browse thousands of products & services from verified vendors"}
+            </p>
+          </div>
+          <div className="grid md:grid-cols-2 gap-6">
+            {/* Marketplace Card */}
+            <div className="relative overflow-hidden rounded-3xl border border-primary/20 bg-gradient-to-br from-primary/5 to-transparent p-8 hover:-translate-y-1 transition-all duration-300 group">
+              <div className="absolute top-0 right-0 w-48 h-48 bg-primary/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+              <div className="relative z-10">
+                <div className="w-14 h-14 rounded-2xl bg-primary/15 border border-primary/20 flex items-center justify-center mb-5">
+                  <ShoppingBag className="w-7 h-7 text-primary" />
+                </div>
+                <h3 className="text-xl font-display font-black mb-2">{R ? "السوق الإلكتروني" : "Marketplace"}</h3>
+                <p className="text-sm text-muted-foreground leading-relaxed mb-5">
+                  {R
+                    ? "تصفح منتجات وخدمات من بائعين معتمدين. أضف للسلة قارن واشتر بثقة."
+                    : "Browse products & services from verified vendors. Add to cart, compare, and buy with confidence."}
+                </p>
+                <ul className="space-y-1.5 mb-6">
+                  {(R
+                    ? ["بحث وتصفية متقدم", "تقييمات موثوقة", "دفع آمن", "تتبع الطلبات"]
+                    : ["Advanced search & filter", "Verified reviews", "Secure checkout", "Order tracking"]
+                  ).map(f => (
+                    <li key={f} className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <CheckCircle className="w-3.5 h-3.5 text-primary shrink-0" />
+                      {f}
+                    </li>
+                  ))}
+                </ul>
+                <Button onClick={() => navigate(user ? "/marketplace" : "/auth?tab=signin")} className="gap-2 gold-glow">
+                  <ShoppingCart className="w-4 h-4" />
+                  {R ? "تصفح السوق" : "Browse Marketplace"}
+                  <ArrowRight className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+            {/* Digital Mall Card */}
+            <div className="relative overflow-hidden rounded-3xl border border-indigo-500/20 bg-gradient-to-br from-indigo-500/5 to-transparent p-8 hover:-translate-y-1 transition-all duration-300 group">
+              <div className="absolute top-0 right-0 w-48 h-48 bg-indigo-500/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+              <div className="relative z-10">
+                <div className="w-14 h-14 rounded-2xl bg-indigo-500/15 border border-indigo-500/20 flex items-center justify-center mb-5">
+                  <Building2 className="w-7 h-7 text-indigo-400" />
+                </div>
+                <h3 className="text-xl font-display font-black mb-2">{R ? "المول الرقمي" : "Digital Mall"}</h3>
+                <p className="text-sm text-muted-foreground leading-relaxed mb-5">
+                  {R
+                    ? "تجربة تسوق منظمة في بيئة مول متكاملة — كل قطاع في جناحه الخاص بمتاجر وعروض حصرية."
+                    : "Organized shopping in a full mall environment — each sector in its own wing with exclusive stores & offers."}
+                </p>
+                <ul className="space-y-1.5 mb-6">
+                  {(R
+                    ? ["أجنحة متخصصة بالقطاع", "عروض حصرية", "تجربة تسوق مرئية", "مقارنة بين المتاجر"]
+                    : ["Sector-specific wings", "Exclusive deals", "Visual browsing experience", "Cross-store comparison"]
+                  ).map(f => (
+                    <li key={f} className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <CheckCircle className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+                      {f}
+                    </li>
+                  ))}
+                </ul>
+                <Button onClick={() => navigate(user ? "/digital-mall" : "/auth?tab=signin")} className="gap-2 bg-indigo-600 hover:bg-indigo-500 text-white border-0">
+                  <Building2 className="w-4 h-4" />
+                  {R ? "دخول المول" : "Enter Digital Mall"}
+                  <ArrowRight className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
       </section>
 
-      {/* ══ 8. BUSINESS CTA ══════════════════════════════════════ */}
+      {/* â•â• 8. BUSINESS CTA â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
       <section className="py-20 relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-transparent to-primary/5" />
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-2xl h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
         <div className="max-w-3xl mx-auto px-4 text-center relative z-10">
           <div className="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs mb-6">
             <Award className="w-4 h-4" />
-            {R ? "حساب تجاري؟" : "Need a Business Account?"}
+            {R ? "Ø­Ø³Ø§Ø¨ ØªØ¬Ø§Ø±ÙŠØŸ" : "Need a Business Account?"}
           </div>
           <h2 className="text-4xl font-display font-black mb-4">
-            {R ? "حوّل حسابك إلى قوة تجارية" : "Upgrade to Business Power"}
+            {R ? "Ø­ÙˆÙ‘Ù„ Ø­Ø³Ø§Ø¨Ùƒ Ø¥Ù„Ù‰ Ù‚ÙˆØ© ØªØ¬Ø§Ø±ÙŠØ©" : "Upgrade to Business Power"}
           </h2>
           <p className="text-muted-foreground mb-8 leading-relaxed">
             {R
-              ? "سواء كنت بائعاً أو شريكاً أو وكيلاً — قدّم طلبك وبعد الموافقة تُفتح لك بوابتك الخاصة فوراً."
-              : "Whether vendor, partner, or agent — submit your request and your dedicated portal unlocks after approval."}
+              ? "Ø³ÙˆØ§Ø¡ ÙƒÙ†Øª Ø¨Ø§Ø¦Ø¹Ø§Ù‹ Ø£Ùˆ Ø´Ø±ÙŠÙƒØ§Ù‹ Ø£Ùˆ ÙˆÙƒÙŠÙ„Ø§Ù‹ â€” Ù‚Ø¯Ù‘Ù… Ø·Ù„Ø¨Ùƒ ÙˆØ¨Ø¹Ø¯ Ø§Ù„Ù…ÙˆØ§ÙÙ‚Ø© ØªÙÙØªØ­ Ù„Ùƒ Ø¨ÙˆØ§Ø¨ØªÙƒ Ø§Ù„Ø®Ø§ØµØ© ÙÙˆØ±Ø§Ù‹."
+              : "Whether vendor, partner, or agent â€” submit your request and your dedicated portal unlocks after approval."}
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button size="lg" onClick={() => navigate(user ? "/portal/profile" : "/auth?tab=signup")} className="gap-2 px-10 gold-glow">
               <Building2 className="w-5 h-5" />
-              {R ? "اطلب حساباً تجارياً" : "Request Business Account"}
+              {R ? "Ø§Ø·Ù„Ø¨ Ø­Ø³Ø§Ø¨Ø§Ù‹ ØªØ¬Ø§Ø±ÙŠØ§Ù‹" : "Request Business Account"}
             </Button>
             <Button size="lg" variant="outline" onClick={() => navigate("/contact")} className="gap-2 px-10">
               <MessageSquare className="w-5 h-5" />
-              {R ? "تواصل مع المبيعات" : "Contact Sales"}
+              {R ? "ØªÙˆØ§ØµÙ„ Ù…Ø¹ Ø§Ù„Ù…Ø¨ÙŠØ¹Ø§Øª" : "Contact Sales"}
             </Button>
           </div>
-          <p className="text-xs text-muted-foreground mt-5">{R ? "مراجعة خلال 24-48 ساعة عمل · بدون بطاقة ائتمان" : "Review within 24-48 business hours · No credit card required"}</p>
-        </div>
-      </section>
-    </PublicLayout>
-  );
-}
-
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
-import {
-  ArrowRight, Zap, Shield, Globe, BarChart3, Users, Layers,
-  CheckCircle, Star, TrendingUp, Building2, MessageSquare,
-  ShoppingBag, GraduationCap, Heart, Award, ChevronRight,
-  Stethoscope, Scale, Briefcase, ShoppingCart, Cpu,
-} from "lucide-react";
-import { cn } from "@/lib/utils";
-
-const FEATURES = [
-  { icon: Layers,      ar: "مصنع القطاعات",     en: "Sector Factory",      desc_ar: "تفعيل قطاعات متخصصة بلمسة واحدة",           desc_en: "Activate specialized sectors with one click",         color: "text-primary" },
-  { icon: Building2,   ar: "بيئات شركاء معزولة", en: "Partner Workspaces",  desc_ar: "كل شريك في بيئة عمل معزولة ومحمية",         desc_en: "Each partner in isolated sandboxed workspace",        color: "text-indigo-400" },
-  { icon: Users,       ar: "شبكة وكلاء ذكية",    en: "Agent Network",       desc_ar: "تتبع العملاء والعمولات في الوقت الفعلي",     desc_en: "Track clients & commissions in real-time",           color: "text-emerald-400" },
-  { icon: ShoppingBag, ar: "محفظة البائعين",      en: "Vendor Wallet",       desc_ar: "نظام تسوية مالية مع خصم رسوم تلقائي",       desc_en: "Settlement with automatic fee deduction",            color: "text-orange-400" },
-  { icon: BarChart3,   ar: "تحليلات المبيعات",    en: "Sales Analytics",     desc_ar: "قناة مبيعات Kanban مع تقارير ROI",           desc_en: "Kanban pipeline with ROI reporting",                 color: "text-pink-400" },
-  { icon: Cpu,         ar: "وكلاء ذكاء اصطناعي", en: "AI Chat Agents",      desc_ar: "وكلاء AI متخصصون لكل علامة تجارية",         desc_en: "Specialized AI agents per brand",                   color: "text-cyan-400" },
-  { icon: Globe,       ar: "دعم ثنائي اللغة",     en: "Bilingual Support",   desc_ar: "واجهة كاملة بالعربية والإنجليزية",          desc_en: "Full Arabic & English interface",                    color: "text-blue-400" },
-  { icon: Shield,      ar: "أمان متعدد الطبقات",  en: "Multi-layer Security", desc_ar: "RLS + دور + صلاحيات + سجل المراجعة",       desc_en: "RLS + roles + permissions + audit trail",           color: "text-red-400" },
-];
-
-const SECTORS = [
-  { icon: Stethoscope, label: "Medical",     ar: "الطب",     color: "#EF4444" },
-  { icon: Layers,      label: "Education",   ar: "التعليم",  color: "#8B5CF6" },
-  { icon: Scale,       label: "Legal",       ar: "القانون",  color: "#6366F1" },
-  { icon: Briefcase,   label: "Services",    ar: "الخدمات",  color: "#EC4899" },
-  { icon: ShoppingCart,label: "Retail",      ar: "التجزئة",  color: "#F97316" },
-  { icon: TrendingUp,  label: "Financial",   ar: "المالية",  color: "#F59E0B" },
-  { icon: GraduationCap,label:"Courses",     ar: "الدورات",  color: "#14B8A6" },
-  { icon: Building2,   label: "Tourism",     ar: "السياحة",  color: "#10B981" },
-];
-
-const PRICING = [
-  { code: "free",     name: "Free",       nameAr: "مجاني",      price: 0,    priceAr: "0",  features_en: ["Marketplace access","5 products","Basic analytics"], features_ar: ["وصول للسوق","5 منتجات","تحليلات أساسية"], color: "border-border", badge: "" },
-  { code: "starter",  name: "Starter",    nameAr: "مبتدئ",      price: 9.99, priceAr: "9.99", features_en: ["50 products","Orders management","Wallet"], features_ar: ["50 منتج","إدارة الطلبات","المحفظة"], color: "border-blue-500/30", badge: "" },
-  { code: "pro",      name: "Pro",        nameAr: "احترافي",    price: 29.99,priceAr: "29.99",features_en: ["Unlimited products","Partner workspace","AI agents","Analytics"], features_ar: ["منتجات لا محدودة","بيئة شريك","وكلاء AI","تحليلات"], color: "border-primary/40", badge: "Popular" },
-  { code: "enterprise",name: "Enterprise",nameAr: "مؤسسي",      price: 99.99,priceAr: "99.99",features_en: ["Everything in Pro","Custom sectors","Dedicated support","API access","HR & ERP"], features_ar: ["كل شيء في Pro","قطاعات مخصصة","دعم حصري","API","HR وERP"], color: "border-purple-500/30", badge: "Best Value" },
-];
-
-export default function PublicLanding() {
-  const { i18n } = useTranslation();
-  const navigate = useNavigate();
-  const { user } = useAuth();
-  const R = i18n.language === "ar";
-
-  return (
-    <PublicLayout>
-      {/* ── Hero ─────────────────────────────────────────────── */}
-      <section className="relative overflow-hidden pt-24 pb-20">
-        {/* Background glow */}
-        <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-primary/5 rounded-full blur-3xl" />
-          <div className="absolute top-0 right-1/4 w-64 h-64 bg-indigo-500/5 rounded-full blur-2xl" />
-        </div>
-        <div className="max-w-5xl mx-auto px-4 text-center relative z-10">
-          <Badge className="mb-6 px-4 py-1.5 bg-primary/10 text-primary border-primary/30 text-xs">
-            <Zap className="w-3 h-3 mr-1" />
-            {R ? "المنصة الموحدة متعددة المستأجرين" : "Unified Multi-Tenant SaaS & ERP Platform"}
-          </Badge>
-          <h1 className="text-4xl md:text-6xl font-display font-black text-foreground leading-tight mb-6">
-            <span className="text-primary">KemetRise</span>
-            <br />
-            <span className="text-muted-foreground text-3xl md:text-4xl">Legacy Nexus</span>
-          </h1>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto mb-10 leading-relaxed">
-            {R
-              ? "ثمانية بوابات متكاملة في نظام واحد — من الإدارة العليا إلى المستخدم النهائي، مع ذكاء اصطناعي وموارد بشرية وتحليلات فورية."
-              : "Eight interconnected portals in one system — from supreme admin to end user, with AI, HR, and real-time analytics."}
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            {user ? (
-              <Button size="lg" onClick={() => navigate("/portal")} className="gap-2 text-base px-8">
-                {R ? "الدخول للوحة التحكم" : "Go to Dashboard"} <ArrowRight className="w-5 h-5" />
-              </Button>
-            ) : (
-              <>
-                <Button size="lg" onClick={() => navigate("/auth?tab=signup")} className="gap-2 text-base px-8">
-                  {R ? "ابدأ مجاناً" : "Start Free"} <ArrowRight className="w-5 h-5" />
-                </Button>
-                <Button size="lg" variant="outline" onClick={() => navigate("/auth")} className="text-base px-8">
-                  {R ? "تسجيل الدخول" : "Sign In"}
-                </Button>
-              </>
-            )}
-          </div>
-          {/* Stats row */}
-          <div className="flex justify-center gap-8 mt-14 text-center">
-            {[["8", R ? "بوابات متكاملة" : "Integrated Portals"], ["∞", R ? "قطاعات قابلة للتفعيل" : "Activatable Sectors"], ["100%", R ? "ثنائي اللغة" : "Bilingual"], ["0", R ? "بيانات مشتركة بين الشركاء" : "Cross-partner data leaks"]].map(([v, l]) => (
-              <div key={l}>
-                <p className="text-2xl font-display font-black text-primary">{v}</p>
-                <p className="text-xs text-muted-foreground mt-1">{l}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── Sectors ──────────────────────────────────────────── */}
-      <section className="py-16 border-y border-border/40 bg-secondary/10">
-        <div className="max-w-6xl mx-auto px-4">
-          <p className="text-center text-xs text-muted-foreground uppercase tracking-widest mb-8">{R ? "القطاعات المدعومة — تُفعَّل ديناميكياً" : "Supported Sectors — Dynamically Activated"}</p>
-          <div className="flex flex-wrap justify-center gap-4">
-            {SECTORS.map(s => (
-              <div key={s.label} className="flex items-center gap-2.5 px-4 py-2.5 rounded-xl border border-border/40 bg-background/80 hover:border-border transition-all">
-                <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ backgroundColor: s.color + "20" }}>
-                  <s.icon className="w-4 h-4" style={{ color: s.color }} />
-                </div>
-                <span className="text-sm font-medium">{R ? s.ar : s.label}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── Features ─────────────────────────────────────────── */}
-      <section className="py-20">
-        <div className="max-w-6xl mx-auto px-4">
-          <div className="text-center mb-14">
-            <h2 className="text-3xl font-display font-black mb-3">{R ? "كل ما تحتاجه في مكان واحد" : "Everything You Need, One Platform"}</h2>
-            <p className="text-muted-foreground">{R ? "ثمانية أنظمة متكاملة تعمل معاً في قاعدة بيانات موحدة" : "Eight integrated systems working together on one unified database"}</p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {FEATURES.map(f => (
-              <Card key={f.en} className="border-border/40 hover:border-primary/20 transition-all hover:-translate-y-1 group">
-                <CardContent className="p-5">
-                  <f.icon className={cn("w-8 h-8 mb-4 group-hover:scale-110 transition-transform", f.color)} />
-                  <h3 className="text-sm font-bold mb-2">{R ? f.ar : f.en}</h3>
-                  <p className="text-xs text-muted-foreground leading-relaxed">{R ? f.desc_ar : f.desc_en}</p>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── Pricing ──────────────────────────────────────────── */}
-      <section className="py-20 bg-secondary/10 border-y border-border/40" id="pricing">
-        <div className="max-w-5xl mx-auto px-4">
-          <div className="text-center mb-14">
-            <h2 className="text-3xl font-display font-black mb-3">{R ? "خطط الاشتراك" : "Pricing Plans"}</h2>
-            <p className="text-muted-foreground">{R ? "ابدأ مجاناً وقم بالترقية عند الحاجة" : "Start free, upgrade when you need"}</p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {PRICING.map(plan => (
-              <Card key={plan.code} className={cn("border-2 relative transition-all hover:-translate-y-1", plan.color, plan.code === "pro" && "shadow-lg shadow-primary/10")}>
-                {plan.badge && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                    <Badge className="bg-primary text-primary-foreground text-[9px] px-3">{plan.badge}</Badge>
-                  </div>
-                )}
-                <CardContent className="p-5">
-                  <h3 className="text-sm font-bold mb-1">{R ? plan.nameAr : plan.name}</h3>
-                  <div className="flex items-baseline gap-1 mb-4">
-                    <span className="text-2xl font-display font-black">${plan.price === 0 ? "0" : plan.price}</span>
-                    {plan.price > 0 && <span className="text-xs text-muted-foreground">{R ? "/شهر" : "/mo"}</span>}
-                  </div>
-                  <ul className="space-y-2 mb-5">
-                    {(R ? plan.features_ar : plan.features_en).map(f => (
-                      <li key={f} className="flex items-center gap-2 text-xs">
-                        <CheckCircle className="w-3.5 h-3.5 text-green-400 shrink-0" />
-                        <span>{f}</span>
-                      </li>
-                    ))}
-                  </ul>
-                  <Button size="sm" className={cn("w-full", plan.code === "pro" ? "" : "variant-outline")}
-                    onClick={() => navigate(user ? "/portal/profile" : "/auth?tab=signup")}>
-                    {plan.price === 0 ? (R ? "ابدأ مجاناً" : "Start Free") : (R ? "اشترك الآن" : "Subscribe")}
-                  </Button>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── Business Account CTA ─────────────────────────────── */}
-      <section className="py-20">
-        <div className="max-w-3xl mx-auto px-4 text-center">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs mb-6">
-            <Award className="w-3.5 h-3.5" />
-            {R ? "هل أنت مزود خدمة أو شريك تجاري؟" : "Are you a service provider or business partner?"}
-          </div>
-          <h2 className="text-3xl font-display font-black mb-4">
-            {R ? "حوّل حسابك إلى حساب تجاري" : "Upgrade to Business Account"}
-          </h2>
-          <p className="text-muted-foreground mb-8 leading-relaxed">
-            {R
-              ? "بضغطة زر واحدة، قدّم طلبك لتصبح مزود خدمة أو وكيلاً أو شريكاً. بعد موافقة الإدارة، يفتح لك البوابة المناسبة فوراً."
-              : "With one button, submit your request to become a vendor, agent, or partner. After admin approval, your portal unlocks instantly."}
-          </p>
-          <Button size="lg" onClick={() => navigate(user ? "/portal/profile" : "/auth?tab=signup")} className="gap-2 text-base px-10">
-            <Building2 className="w-5 h-5" />
-            {R ? "اطلب حساباً تجارياً" : "Request Business Account"}
-            <ArrowRight className="w-5 h-5" />
-          </Button>
-          <p className="text-xs text-muted-foreground mt-4">{R ? "المراجعة خلال 24-48 ساعة عمل" : "Review within 24-48 business hours"}</p>
+          <p className="text-xs text-muted-foreground mt-5">{R ? "Ù…Ø±Ø§Ø¬Ø¹Ø© Ø®Ù„Ø§Ù„ 24-48 Ø³Ø§Ø¹Ø© Ø¹Ù…Ù„ Â· Ø¨Ø¯ÙˆÙ† Ø¨Ø·Ø§Ù‚Ø© Ø§Ø¦ØªÙ…Ø§Ù†" : "Review within 24-48 business hours Â· No credit card required"}</p>
         </div>
       </section>
     </PublicLayout>
