@@ -102,23 +102,24 @@ export default function PublicLayout({ children }: { children: ReactNode }) {
     if (!user) { setUserRole(null); setUserRoles([]); return; }
     (supabase as any)
       .from("user_profiles")
-      .select("role, extra_roles")
+      .select("role")
       .eq("id", user.id)
       .single()
       .then(({ data }: any) => {
         const primary = data?.role ?? "user";
         setUserRole(primary);
-        // extra_roles is an optional text[] column; fall back gracefully
-        const extras: string[] = Array.isArray(data?.extra_roles) ? data.extra_roles : [];
-        const combined = Array.from(new Set([primary, ...extras]));
-        setUserRoles(combined);
+        setUserRoles([primary]);
       })
       .catch(() => { setUserRole("user"); setUserRoles(["user"]); });
-  }, [user]);
+  }, [user?.id]);
 
   const portalLink = userRole ? ROLE_PORTAL[userRole] ?? ROLE_PORTAL.user : null;
-  /* Portals this user can access */
-  const accessiblePortals = ALL_PORTALS.filter((p) => userRoles.includes(p.role));
+  /* Superadmin / admin can access ALL portals; others see only their own */
+  const accessiblePortals = (() => {
+    if (!userRole) return [];
+    if (userRole === "superadmin" || userRole === "admin") return ALL_PORTALS;
+    return ALL_PORTALS.filter((p) => userRoles.includes(p.role));
+  })();
   const dashHref = portalLink?.href ?? "/dashboard";
 
   const isActive = (href: string) =>
