@@ -31,7 +31,7 @@ const NAV_ITEMS = [
   { ar: "المنتجات",   en: "Products",   href: "/products", icon: ShoppingBag },
   { ar: "السوق",      en: "Marketplace", href: "/marketplace", icon: ShoppingBag },
   { ar: "المول الرقمي",en: "Digital Mall",href: "/digital-mall",icon: Building2 },
-  { ar: "الأسعار",    en: "Pricing",    href: "/#pricing", icon: BarChart3 },
+  { ar: "الأسعار",    en: "Pricing",    href: "/pricing", icon: BarChart3 },
   { ar: "المدونة",    en: "Blog",       href: "/blog",     icon: MessageSquare },
   { ar: "تواصل معنا", en: "Contact",    href: "/contact",  icon: Phone },
 ];
@@ -234,7 +234,7 @@ export default function PublicLayout({ children }: { children: ReactNode }) {
               { title: R ? "المنصة" : "Platform", links: [
                 { l: R ? "الرئيسية" : "Home", h: "/" },
                 { l: R ? "المنتجات" : "Products", h: "/products" },
-                { l: R ? "الأسعار" : "Pricing", h: "/#pricing" },
+                { l: R ? "الأسعار" : "Pricing", h: "/pricing" },
                 { l: "API", h: "/api-docs" },
               ]},
               { title: R ? "الشركة" : "Company", links: [

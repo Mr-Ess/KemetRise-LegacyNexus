@@ -118,11 +118,27 @@ const STATIC_CATEGORIES: Record<string, { cats: string[]; subs: Record<string, s
     },
   },
   physical: {
-    cats: ["Hardware", "Office", "Promotional"],
+    cats: ["Electronics", "Fashion", "Food & Beverage", "Home", "Sports", "Beauty", "Books", "Handcraft"],
     subs: {
-      Hardware:    ["Servers", "Scanners", "POS Devices"],
-      Office:      ["Stationery", "Furniture"],
-      Promotional: ["Branded Gifts", "Print"],
+      Electronics: ["Phones & Tablets", "Laptops & PCs", "Smart Home", "Cameras", "Gaming Hardware"],
+      Fashion:     ["Men's Clothing", "Women's Clothing", "Shoes", "Bags", "Jewelry"],
+      "Food & Beverage": ["Organic", "Packaged Foods", "Beverages", "Sweets", "Spices"],
+      Home:        ["Furniture", "Kitchen", "Bedding", "Décor"],
+      Sports:      ["Gym Equipment", "Outdoor", "Team Sports", "Cycling"],
+      Beauty:      ["Skincare", "Haircare", "Makeup", "Fragrances"],
+      Books:       ["Fiction", "Non-fiction", "Educational", "Children's"],
+      Handcraft:   ["Pottery", "Textiles", "Woodwork", "Handmade Jewelry"],
+    },
+  },
+  virtual: {
+    cats: ["In-game Items", "NFTs", "Gift Cards", "License Keys", "Accounts", "Virtual Real Estate"],
+    subs: {
+      "In-game Items":     ["Skins & Cosmetics", "Weapons", "Characters", "Power-ups"],
+      "NFTs":              ["Art NFTs", "Collectibles", "Music NFTs", "Gaming NFTs"],
+      "Gift Cards":        ["Gaming Cards", "App Store", "Shopping", "Streaming"],
+      "License Keys":      ["Software Keys", "Game Keys", "Subscription Keys"],
+      "Accounts":          ["Gaming Accounts", "Social Accounts", "Premium Access"],
+      "Virtual Real Estate":["Metaverse Land", "Virtual Offices"],
     },
   },
 };

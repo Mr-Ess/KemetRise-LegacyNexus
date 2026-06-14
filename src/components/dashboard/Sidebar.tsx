@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useBrands } from "@/context/BrandsContext";
+import { useAuth } from "@/hooks/useAuth";
 import {
   LayoutDashboard, Crown, Gem, Building2, Database, ShieldCheck,
   Briefcase, FolderOpen, Users, UserCheck, Handshake, Map, Scroll,
@@ -17,6 +18,7 @@ const Sidebar = ({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => 
   const location = useLocation();
   const { brands } = useBrands();
   const { t } = useTranslation();
+  const { signOut } = useAuth();
   const [expanded, setExpanded] = useState<Record<string, boolean>>({ Brands: true });
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -68,7 +70,7 @@ const Sidebar = ({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => 
         </nav>
         <div className="border-t border-border py-2 px-1 space-y-1">
           <button onClick={() => navigate("/settings")} className="w-full flex items-center justify-center p-2.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-secondary" title="Settings"><Settings className="w-4 h-4" /></button>
-          <button className="w-full flex items-center justify-center p-2.5 rounded-md text-blood-red hover:bg-blood-red/10" title="Logout"><LogOut className="w-4 h-4" /></button>
+          <button onClick={signOut} className="w-full flex items-center justify-center p-2.5 rounded-md text-blood-red hover:bg-blood-red/10" title="Logout"><LogOut className="w-4 h-4" /></button>
         </div>
       </aside>
     );
@@ -144,7 +146,7 @@ const Sidebar = ({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => 
         <button onClick={() => navigate("/settings")} className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-md text-sm transition-all ${location.pathname === "/settings" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground hover:bg-secondary"}`}>
           <Settings className="w-4 h-4 shrink-0" /><span className="font-body font-medium text-sm">Settings</span>
         </button>
-        <button className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-md text-sm text-blood-red hover:bg-blood-red/10 transition-all">
+        <button onClick={signOut} className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-md text-sm text-blood-red hover:bg-blood-red/10 transition-all">
           <LogOut className="w-4 h-4 shrink-0" /><span className="font-body font-medium text-sm">Logout</span>
         </button>
       </div>

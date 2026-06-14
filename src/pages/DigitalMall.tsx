@@ -1222,6 +1222,76 @@ function MallManagerDrawer({ onClose, currentUserId }: { onClose: () => void; cu
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
+   MALL CATEGORY TREE — 5 main types + subcategories
+═══════════════════════════════════════════════════════════════════════════ */
+type MallCatDef = {
+  id: string; en: string; ar: string; icon: string;
+  tagKeywords: string[];
+  subs: { id: string; en: string; ar: string }[];
+};
+
+const MALL_CAT_TREE: MallCatDef[] = [
+  { id: "all", en: "All", ar: "الكل", icon: "🏬", tagKeywords: [], subs: [] },
+  {
+    id: "physical", en: "Physical Products", ar: "منتجات ملموسة", icon: "📦",
+    tagKeywords: ["physical","fashion","clothes","food","organic","electronics","tech","beauty","books","sports","handcraft","furniture","grocery","hardware"],
+    subs: [
+      { id: "electronics", en: "Electronics & Tech",  ar: "إلكترونيات وتقنية" },
+      { id: "fashion",     en: "Fashion & Apparel",   ar: "أزياء وملابس" },
+      { id: "food",        en: "Food & Beverages",    ar: "أغذية ومشروبات" },
+      { id: "home",        en: "Home & Furniture",    ar: "منزل وأثاث" },
+      { id: "beauty",      en: "Beauty & Health",     ar: "جمال وصحة" },
+      { id: "books",       en: "Books & Education",   ar: "كتب وتعليم" },
+      { id: "sports",      en: "Sports & Fitness",    ar: "رياضة ولياقة" },
+      { id: "handcraft",   en: "Art & Handcraft",     ar: "فن وحرف يدوية" },
+    ],
+  },
+  {
+    id: "digital", en: "Digital Products", ar: "منتجات رقمية", icon: "💾",
+    tagKeywords: ["software","erp","digital","online","apps","tools","saas","plugin","courses","templates","ebooks","api","developer"],
+    subs: [
+      { id: "software",   en: "Software & Apps",    ar: "برامج وتطبيقات" },
+      { id: "courses",    en: "Online Courses",     ar: "دورات تدريبية" },
+      { id: "templates",  en: "Templates & Design", ar: "قوالب وتصميم" },
+      { id: "ebooks",     en: "E-books & Content",  ar: "كتب إلكترونية" },
+      { id: "tools",      en: "Tools & Plugins",    ar: "أدوات وإضافات" },
+    ],
+  },
+  {
+    id: "virtual", en: "Virtual Goods", ar: "منتجات افتراضية", icon: "🎮",
+    tagKeywords: ["virtual","gaming","game","nft","collectible","gift-card","giftcard","license","account","metaverse"],
+    subs: [
+      { id: "gaming",    en: "In-game Items",       ar: "عناصر الألعاب" },
+      { id: "nft",       en: "NFTs & Collectibles", ar: "NFTs ومقتنيات" },
+      { id: "giftcards", en: "Gift Cards",          ar: "بطاقات هدايا" },
+      { id: "licenses",  en: "License Keys",        ar: "مفاتيح ترخيص" },
+    ],
+  },
+  {
+    id: "service", en: "Services", ar: "خدمات", icon: "🛠️",
+    tagKeywords: ["service","consulting","design","development","marketing","training","agency","freelance","support"],
+    subs: [
+      { id: "design",      en: "Design & Creative",    ar: "تصميم وإبداع" },
+      { id: "development", en: "Development & Tech",   ar: "تطوير وتقنية" },
+      { id: "marketing",   en: "Marketing & Growth",   ar: "تسويق ونمو" },
+      { id: "consulting",  en: "Business Consulting",  ar: "استشارات الأعمال" },
+      { id: "training",    en: "Training & Education", ar: "تدريب وتعليم" },
+    ],
+  },
+  {
+    id: "subscription", en: "Subscriptions", ar: "اشتراكات", icon: "♾️",
+    tagKeywords: ["subscription","saas","platform","cloud","membership","monthly","annual","streaming","recurring"],
+    subs: [
+      { id: "saas",     en: "SaaS Tools",          ar: "أدوات SaaS" },
+      { id: "media",    en: "Media & Entertainment", ar: "ميديا وترفيه" },
+      { id: "cloud",    en: "Cloud & Hosting",     ar: "سحابة واستضافة" },
+      { id: "business", en: "Business Tools",      ar: "أدوات الأعمال" },
+      { id: "edu_sub",  en: "Education Platforms", ar: "منصات تعليمية" },
+    ],
+  },
+];
+
+/* ═══════════════════════════════════════════════════════════════════════════
    MAIN PAGE
 ═══════════════════════════════════════════════════════════════════════════ */
 export default function DigitalMall() {
@@ -1255,6 +1325,8 @@ export default function DigitalMall() {
   const [viewMode, setViewMode] = useState<"stores" | "products">("stores");
   const [detailStore, setDetailStore] = useState<MallStore | null>(null);
   const [activeTag, setActiveTag] = useState<string | null>(null);
+  const [activeMallCat, setActiveMallCat] = useState("all");
+  const [activeMallSubCat, setActiveMallSubCat] = useState("all");
 
   const load = async () => {
     setLoading(true);
@@ -1320,6 +1392,16 @@ export default function DigitalMall() {
     let r = [...stores];
     if (activeFloor !== "all") r = r.filter((s) => s.floor_id === activeFloor);
     if (activeTag) r = r.filter((s) => (s.tags || []).includes(activeTag));
+    if (activeMallCat !== "all") {
+      const catDef = MALL_CAT_TREE.find((c) => c.id === activeMallCat);
+      if (catDef && catDef.tagKeywords.length > 0) {
+        if (activeMallSubCat !== "all") {
+          r = r.filter((s) => (s.tags || []).some((t) => t.toLowerCase().includes(activeMallSubCat)));
+        } else {
+          r = r.filter((s) => (s.tags || []).some((t) => catDef.tagKeywords.includes(t.toLowerCase())));
+        }
+      }
+    }
     if (search.trim()) { const q = search.toLowerCase(); r = r.filter((s) => s.name?.toLowerCase().includes(q) || s.description?.toLowerCase().includes(q) || s.tags?.some((t) => t.toLowerCase().includes(q))); }
     switch (sortBy) {
       case "featured": r.sort((a, b) => (b.is_featured ? 1 : 0) - (a.is_featured ? 1 : 0)); break;
@@ -1328,7 +1410,7 @@ export default function DigitalMall() {
       case "newest":   r.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()); break;
     }
     return r;
-  }, [stores, activeFloor, activeTag, search, sortBy]);
+  }, [stores, activeFloor, activeTag, activeMallCat, activeMallSubCat, search, sortBy]);
 
   const filteredProducts = useMemo(() => {
     let r = [...products];
@@ -1336,13 +1418,23 @@ export default function DigitalMall() {
       const floorStoreIds = stores.filter((s) => s.floor_id === activeFloor).map((s) => s.id);
       r = r.filter((p) => floorStoreIds.includes(p.store_id));
     }
+    if (activeMallCat !== "all") {
+      if (activeMallSubCat !== "all") {
+        r = r.filter((p) => p.category?.toLowerCase().includes(activeMallSubCat));
+      } else {
+        const catDef = MALL_CAT_TREE.find((c) => c.id === activeMallCat);
+        if (catDef && catDef.tagKeywords.length > 0) {
+          r = r.filter((p) => catDef.tagKeywords.some((k) => p.category?.toLowerCase().includes(k)));
+        }
+      }
+    }
     if (search.trim()) { const q = search.toLowerCase(); r = r.filter((p) => p.name?.toLowerCase().includes(q) || p.description?.toLowerCase().includes(q)); }
     if (sortBy === "price_low") r.sort((a, b) => a.price_cents - b.price_cents);
     if (sortBy === "price_high") r.sort((a, b) => b.price_cents - a.price_cents);
     if (sortBy === "rating") r.sort((a, b) => (b.rating || 0) - (a.rating || 0));
     if (sortBy === "popular") r.sort((a, b) => (b.sales_count || 0) - (a.sales_count || 0));
     return r;
-  }, [products, activeFloor, search, stores, sortBy]);
+  }, [products, activeFloor, activeMallCat, activeMallSubCat, search, stores, sortBy]);
 
   const kpis = {
     stores: stores.length,
@@ -1540,6 +1632,44 @@ export default function DigitalMall() {
           </div>
         )}
 
+        {/* ══ MAIN CATEGORY SELECTOR ═══════════════════════════════════════ */}
+        <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+          {MALL_CAT_TREE.map((cat) => (
+            <button key={cat.id}
+              onClick={() => { setActiveMallCat(cat.id); setActiveMallSubCat("all"); }}
+              className={`flex flex-col items-center gap-1 py-3 px-2 rounded-xl border text-center transition-all ${
+                activeMallCat === cat.id
+                  ? "bg-primary/10 border-primary/40 text-primary shadow-sm"
+                  : "border-border/50 text-muted-foreground hover:border-border hover:bg-secondary/20"
+              }`}>
+              <span className="text-xl">{cat.icon}</span>
+              <span className="text-[10px] font-semibold leading-tight">{cat.ar}</span>
+              <span className="text-[9px] text-muted-foreground leading-tight">{cat.en}</span>
+            </button>
+          ))}
+        </div>
+
+        {/* ══ SUB-CATEGORY STRIP (shown when a main cat has subs) ═══════════ */}
+        {activeMallCat !== "all" && (() => {
+          const catDef = MALL_CAT_TREE.find((c) => c.id === activeMallCat);
+          return catDef && catDef.subs.length > 0 ? (
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 border-l-2 border-primary/30 pl-3">
+              <button
+                onClick={() => setActiveMallSubCat("all")}
+                className={`shrink-0 text-[11px] px-2.5 py-1 rounded-full border transition-all whitespace-nowrap ${activeMallSubCat === "all" ? "bg-primary text-primary-foreground border-primary" : "border-border/50 text-muted-foreground hover:border-border hover:text-foreground"}`}>
+                {catDef.ar} - الكل
+              </button>
+              {catDef.subs.map((sub) => (
+                <button key={sub.id}
+                  onClick={() => setActiveMallSubCat(activeMallSubCat === sub.id ? "all" : sub.id)}
+                  className={`shrink-0 text-[11px] px-2.5 py-1 rounded-full border transition-all whitespace-nowrap ${activeMallSubCat === sub.id ? "bg-primary/10 text-primary border-primary/30 font-medium" : "border-border/30 text-muted-foreground hover:border-border/60 hover:text-foreground"}`}>
+                  {sub.ar}
+                </button>
+              ))}
+            </div>
+          ) : null;
+        })()}
+
         {/* ══ FLOOR SELECTOR ════════════════════════════════════════════════ */}
         <div className="flex items-center gap-2 overflow-x-auto pb-1">
           <button
@@ -1589,8 +1719,8 @@ export default function DigitalMall() {
             {" "}{viewMode}
             {activeFloor !== "all" && <span className="ml-1 font-medium text-foreground">in {floors.find((f) => f.id === activeFloor)?.name}</span>}
           </span>
-          {(search || activeFloor !== "all" || activeTag) && (
-            <button className="text-xs text-primary hover:underline flex items-center gap-1" onClick={() => { setSearch(""); setActiveFloor("all"); setActiveTag(null); }}>
+          {(search || activeFloor !== "all" || activeTag || activeMallCat !== "all") && (
+            <button className="text-xs text-primary hover:underline flex items-center gap-1" onClick={() => { setSearch(""); setActiveFloor("all"); setActiveTag(null); setActiveMallCat("all"); setActiveMallSubCat("all"); }}>
               <X className="w-3 h-3" />Clear
             </button>
           )}
