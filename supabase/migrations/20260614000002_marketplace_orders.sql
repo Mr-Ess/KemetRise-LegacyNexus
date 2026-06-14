@@ -48,29 +48,7 @@ DROP POLICY IF EXISTS "mp_orders_buyer" ON mp_orders;
 CREATE POLICY "mp_orders_buyer" ON mp_orders
   FOR ALL USING (user_id = auth.uid());
 
-DROP POLICY IF EXISTS "mp_orders_seller_view" ON mp_orders;
-CREATE POLICY "mp_orders_seller_view" ON mp_orders
-  FOR SELECT USING (
-    id IN (
-      SELECT DISTINCT oi.order_id
-      FROM mp_order_items oi
-      JOIN mp_listings l ON l.id = oi.listing_id
-      WHERE l.publisher_user_id = auth.uid()
-    )
-  );
-
-DROP POLICY IF EXISTS "mp_orders_seller_update" ON mp_orders;
-CREATE POLICY "mp_orders_seller_update" ON mp_orders
-  FOR UPDATE USING (
-    id IN (
-      SELECT DISTINCT oi.order_id
-      FROM mp_order_items oi
-      JOIN mp_listings l ON l.id = oi.listing_id
-      WHERE l.publisher_user_id = auth.uid()
-    )
-  );
-
--- ── Order Items ──────────────────────────────────────────
+-- ── Order Items (must exist before seller policies on mp_orders) ──
 CREATE TABLE IF NOT EXISTS mp_order_items (
   id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   order_id      UUID NOT NULL REFERENCES mp_orders(id) ON DELETE CASCADE,
@@ -104,6 +82,29 @@ DROP POLICY IF EXISTS "mp_order_items_insert" ON mp_order_items;
 CREATE POLICY "mp_order_items_insert" ON mp_order_items
   FOR INSERT WITH CHECK (
     order_id IN (SELECT id FROM mp_orders WHERE user_id = auth.uid())
+  );
+
+-- ── Seller policies on mp_orders (now mp_order_items exists) ─────
+DROP POLICY IF EXISTS "mp_orders_seller_view" ON mp_orders;
+CREATE POLICY "mp_orders_seller_view" ON mp_orders
+  FOR SELECT USING (
+    id IN (
+      SELECT DISTINCT oi.order_id
+      FROM mp_order_items oi
+      JOIN mp_listings l ON l.id = oi.listing_id
+      WHERE l.publisher_user_id = auth.uid()
+    )
+  );
+
+DROP POLICY IF EXISTS "mp_orders_seller_update" ON mp_orders;
+CREATE POLICY "mp_orders_seller_update" ON mp_orders
+  FOR UPDATE USING (
+    id IN (
+      SELECT DISTINCT oi.order_id
+      FROM mp_order_items oi
+      JOIN mp_listings l ON l.id = oi.listing_id
+      WHERE l.publisher_user_id = auth.uid()
+    )
   );
 
 -- ── Auto-generate order number ────────────────────────────
