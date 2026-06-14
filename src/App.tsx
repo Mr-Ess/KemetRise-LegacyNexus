@@ -87,6 +87,13 @@ const ChatApp           = lazy(() => import("./pages/chat/ChatApp"));
 const HRAttendance      = lazy(() => import("./pages/erp/HRAttendance"));
 const ERPLedger         = lazy(() => import("./pages/erp/ERPLedger"));
 const PublicLanding     = lazy(() => import("./pages/public/PublicLanding"));
+const PublicAbout       = lazy(() => import("./pages/public/PublicAbout"));
+const PublicContact     = lazy(() => import("./pages/public/PublicContact"));
+const PublicServices    = lazy(() => import("./pages/public/PublicServices"));
+const PublicProducts    = lazy(() => import("./pages/public/PublicProducts"));
+const VendorProducts    = lazy(() => import("./pages/vendor/VendorProducts"));
+const AdminUsers        = lazy(() => import("./pages/admin/AdminUsers"));
+const AdminAnalytics    = lazy(() => import("./pages/admin/AdminAnalytics"));
 
 import { ERPProvider } from "@/context/ERPContext";
 import { CartProvider } from "@/context/CartContext";
@@ -148,6 +155,10 @@ const App = () => (
                 <Route path="/accept-invite/:token" element={<AcceptInvite />} />
                 <Route path="/b/:id" element={<PublicBrand />} />
                 <Route path="/" element={<PublicLanding />} />
+                <Route path="/about" element={<PublicAbout />} />
+                <Route path="/contact" element={<PublicContact />} />
+                <Route path="/services" element={<PublicServices />} />
+                <Route path="/products" element={<PublicProducts />} />
                 <Route path="/erp" element={<Protected><ERPProvider><ERPCockpit /></ERPProvider></Protected>} />
                 <Route path="/brands" element={<Protected><BrandsHub /></Protected>} />
                 <Route path="/brands/add" element={<Navigate to="/brands" replace />} />
@@ -213,6 +224,8 @@ const App = () => (
                 {/* ── Admin Portal ── */}
                 <Route path="/admin" element={<Protected><AdminDashboard /></Protected>} />
                 <Route path="/admin/sectors" element={<Protected><SectorFactory /></Protected>} />
+                <Route path="/admin/users" element={<Protected><AdminUsers /></Protected>} />
+                <Route path="/admin/analytics" element={<Protected><AdminAnalytics /></Protected>} />
                 {/* ── Partner Portal ── */}
                 <Route path="/partner" element={<Protected><PartnerDashboard /></Protected>} />
                 <Route path="/partner/*" element={<Protected><PartnerDashboard /></Protected>} />
@@ -222,6 +235,7 @@ const App = () => (
                 {/* ── Vendor Portal ── */}
                 <Route path="/vendor" element={<Protected><VendorDashboard /></Protected>} />
                 <Route path="/vendor/wallet" element={<Protected><VendorWallet /></Protected>} />
+                <Route path="/vendor/products" element={<Protected><VendorProducts /></Protected>} />
                 <Route path="/vendor/*" element={<Protected><VendorDashboard /></Protected>} />
                 {/* ── Marketing Portal ── */}
                 <Route path="/marketing/leads" element={<Protected><LeadsPipeline /></Protected>} />
