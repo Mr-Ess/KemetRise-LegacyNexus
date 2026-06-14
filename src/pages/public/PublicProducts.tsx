@@ -24,6 +24,7 @@ type Product = {
   color?: string;
   image_url?: string;
   stock_qty?: number;
+  sub_category?: string;
   rating?: number;
   reviews_count?: number;
   is_featured?: boolean;
@@ -105,7 +106,38 @@ const MOCK_PRODUCTS: Product[] = [
   },
 ];
 
-const CATS = ["All", "Software", "AI", "Platform", "Marketing", "Tech"];
+type CategoryDef = { id: string; label: string; labelAr: string; icon: string; sub: { id: string; label: string; labelAr: string }[] };
+
+const CATEGORY_TREE: CategoryDef[] = [
+  { id: "All", label: "All Products", labelAr: "كل المنتجات", icon: "🏛️", sub: [] },
+  { id: "Software", label: "Software", labelAr: "برمجيات", icon: "💻", sub: [
+    { id: "ERP", label: "ERP & Finance", labelAr: "ERP والمالية" },
+    { id: "HR", label: "HR & Payroll", labelAr: "موارد بشرية ورواتب" },
+    { id: "Inventory", label: "Inventory & Warehouse", labelAr: "مخزون ومستودعات" },
+  ]},
+  { id: "AI", label: "AI & Automation", labelAr: "ذكاء اصطناعي", icon: "🤖", sub: [
+    { id: "Agents", label: "AI Agents", labelAr: "وكلاء AI" },
+    { id: "Analytics", label: "Analytics & BI", labelAr: "تحليلات وذكاء الأعمال" },
+  ]},
+  { id: "Platform", label: "Platform", labelAr: "المنصة", icon: "🏗️", sub: [
+    { id: "Sectors", label: "Sector Bundles", labelAr: "حزم القطاعات" },
+    { id: "Partner", label: "Partner & Workspace", labelAr: "شريك وبيئة عمل" },
+  ]},
+  { id: "Marketing", label: "Marketing", labelAr: "تسويق", icon: "📣", sub: [
+    { id: "CRM", label: "CRM & Leads", labelAr: "CRM وعملاء" },
+    { id: "Campaigns", label: "Campaigns", labelAr: "حملات" },
+    { id: "Chat", label: "Live Chat & Support", labelAr: "دردشة ودعم" },
+  ]},
+  { id: "Tech", label: "Tech & Security", labelAr: "تقنية وأمان", icon: "🔐", sub: [
+    { id: "API", label: "API & Developer", labelAr: "API ومطورين" },
+    { id: "Security", label: "Security & Compliance", labelAr: "أمان وامتثال" },
+  ]},
+];
+
+// Map sub-category id → parent category
+const SUB_TO_PARENT: Record<string, string> = {};
+CATEGORY_TREE.forEach(c => c.sub.forEach(s => { SUB_TO_PARENT[s.id] = c.id; }));
+
 
 const COLOR_MAP: Record<string, { bg: string; border: string; badge: string; bar: string }> = {
   amber:   { bg: "from-amber-500/20 to-amber-500/5",   border: "border-amber-500/30",   badge: "bg-amber-500/15 text-amber-400 border-amber-500/30",   bar: "bg-amber-500"   },
@@ -148,6 +180,11 @@ export default function PublicProducts() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [cat, setCat] = useState("All");
+  const [subCat, setSubCat] = useState("All");
+
+  const handleCatChange = (id: string) => { setCat(id); setSubCat("All"); };
+
+  const activeCatDef = CATEGORY_TREE.find(c => c.id === cat) || CATEGORY_TREE[0];
 
   useEffect(() => {
     (async () => {
@@ -163,11 +200,13 @@ export default function PublicProducts() {
     })();
   }, []);
 
-  const filtered = products.filter(p =>
-    (cat === "All" || p.category === cat) &&
-    (p.name.toLowerCase().includes(search.toLowerCase()) ||
-     (p.description || "").toLowerCase().includes(search.toLowerCase()))
-  );
+  const filtered = products.filter(p => {
+    const parentMatch = cat === "All" || p.category === cat || SUB_TO_PARENT[p.category || ""] === cat;
+    const subMatch = subCat === "All" || p.category === subCat || p.sub_category === subCat;
+    const textMatch = p.name.toLowerCase().includes(search.toLowerCase()) ||
+      (p.description || "").toLowerCase().includes(search.toLowerCase());
+    return parentMatch && subMatch && textMatch;
+  });
 
   return (
     <PublicLayout>
@@ -208,30 +247,54 @@ export default function PublicProducts() {
       {/* ── Filters & Grid ─────────────────────────────────────────────── */}
       <section className="pb-20">
         <div className="max-w-7xl mx-auto px-4">
-          <div className="flex flex-col sm:flex-row gap-3 mb-8">
-            <div className="relative flex-1 max-w-sm">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                value={search} onChange={e => setSearch(e.target.value)}
-                placeholder={R ? "ابحث عن منتج..." : "Search products..."}
-                className="pl-9 text-xs h-9"
-              />
-            </div>
-            <div className="flex gap-1.5 flex-wrap">
-              {CATS.map(c => (
-                <button key={c} onClick={() => setCat(c)}
-                  className={cn("px-3 py-1.5 rounded-lg text-xs font-medium transition-all",
-                    cat === c ? "bg-primary text-primary-foreground shadow-sm" : "bg-secondary/30 text-muted-foreground hover:text-foreground border border-border/40 hover:border-border/80")}>
-                  {c}
+          {/* Search */}
+          <div className="relative max-w-md mb-6">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              value={search} onChange={e => setSearch(e.target.value)}
+              placeholder={R ? "ابحث عن منتج..." : "Search products..."}
+              className="pl-9 text-xs h-9"
+            />
+          </div>
+
+          {/* Main categories */}
+          <div className="flex gap-2 flex-wrap mb-3">
+            {CATEGORY_TREE.map(c => (
+              <button key={c.id} onClick={() => handleCatChange(c.id)}
+                className={cn("flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all",
+                  cat === c.id
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : "bg-secondary/30 text-muted-foreground hover:text-foreground border border-border/40 hover:border-border/80")}>
+                <span>{c.icon}</span> {R ? c.labelAr : c.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Sub-categories */}
+          {activeCatDef.sub.length > 0 && (
+            <div className="flex gap-1.5 flex-wrap mb-6 pl-2 border-l-2 border-primary/20 ml-1">
+              <button onClick={() => setSubCat("All")}
+                className={cn("px-2.5 py-1 rounded-md text-[11px] transition-all",
+                  subCat === "All" ? "text-primary font-semibold" : "text-muted-foreground hover:text-foreground")}>
+                {R ? "الكل" : "All"}
+              </button>
+              {activeCatDef.sub.map(s => (
+                <button key={s.id} onClick={() => setSubCat(s.id)}
+                  className={cn("px-2.5 py-1 rounded-md text-[11px] transition-all",
+                    subCat === s.id
+                      ? "bg-primary/10 text-primary font-semibold border border-primary/30"
+                      : "text-muted-foreground hover:text-foreground hover:bg-secondary/40")}>
+                  {R ? s.labelAr : s.label}
                 </button>
               ))}
             </div>
-          </div>
+          )}
 
           {/* Count */}
           <p className="text-xs text-muted-foreground mb-5">
             {R ? `عرض ${filtered.length} منتج` : `Showing ${filtered.length} product${filtered.length !== 1 ? "s" : ""}`}
-            {cat !== "All" && <span className="ml-1 text-foreground font-medium">in {cat}</span>}
+            {cat !== "All" && <span className="ml-1 text-foreground font-medium">{R ? `في ${activeCatDef.labelAr}` : `in ${activeCatDef.label}`}</span>}
+            {subCat !== "All" && <span className="ml-1 text-muted-foreground">› {subCat}</span>}
           </p>
 
           {loading ? (

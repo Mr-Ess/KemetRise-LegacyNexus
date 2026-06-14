@@ -1254,6 +1254,7 @@ export default function DigitalMall() {
   const [showManager, setShowManager] = useState(false);
   const [viewMode, setViewMode] = useState<"stores" | "products">("stores");
   const [detailStore, setDetailStore] = useState<MallStore | null>(null);
+  const [activeTag, setActiveTag] = useState<string | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -1308,9 +1309,17 @@ export default function DigitalMall() {
 
   const floorMap = Object.fromEntries(floors.map((f) => [f.id, f]));
 
+  // Derive all unique tags from stores for sub-category filter
+  const allTags = useMemo(() => {
+    const tags = new Set<string>();
+    stores.forEach(s => (s.tags || []).forEach(t => tags.add(t)));
+    return Array.from(tags).sort();
+  }, [stores]);
+
   const filteredStores = useMemo(() => {
     let r = [...stores];
     if (activeFloor !== "all") r = r.filter((s) => s.floor_id === activeFloor);
+    if (activeTag) r = r.filter((s) => (s.tags || []).includes(activeTag));
     if (search.trim()) { const q = search.toLowerCase(); r = r.filter((s) => s.name?.toLowerCase().includes(q) || s.description?.toLowerCase().includes(q) || s.tags?.some((t) => t.toLowerCase().includes(q))); }
     switch (sortBy) {
       case "featured": r.sort((a, b) => (b.is_featured ? 1 : 0) - (a.is_featured ? 1 : 0)); break;
@@ -1319,7 +1328,7 @@ export default function DigitalMall() {
       case "newest":   r.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()); break;
     }
     return r;
-  }, [stores, activeFloor, search, sortBy]);
+  }, [stores, activeFloor, activeTag, search, sortBy]);
 
   const filteredProducts = useMemo(() => {
     let r = [...products];
@@ -1554,6 +1563,25 @@ export default function DigitalMall() {
           })}
         </div>
 
+        {/* ══ TAG / SUB-CATEGORY FILTER ════════════════════════════════════ */}
+        {allTags.length > 0 && viewMode === "stores" && (
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5">
+            <span className="text-[10px] text-muted-foreground shrink-0">Tags:</span>
+            <button
+              onClick={() => setActiveTag(null)}
+              className={`shrink-0 text-[11px] px-2.5 py-0.5 rounded-full border transition-all ${!activeTag ? "bg-secondary text-foreground border-border font-medium" : "border-border/30 text-muted-foreground hover:border-border/60 hover:text-foreground"}`}>
+              All
+            </button>
+            {allTags.map(tag => (
+              <button key={tag}
+                onClick={() => setActiveTag(activeTag === tag ? null : tag)}
+                className={`shrink-0 capitalize text-[11px] px-2.5 py-0.5 rounded-full border transition-all ${activeTag === tag ? "bg-primary/10 text-primary border-primary/30 font-medium" : "border-border/30 text-muted-foreground hover:border-border/60 hover:text-foreground"}`}>
+                {tag}
+              </button>
+            ))}
+          </div>
+        )}
+
         {/* ══ FILTER BAR ═══════════════════════════════════════════════════ */}
         <div className="flex items-center gap-2 flex-wrap">
           <span className="text-xs text-muted-foreground">
@@ -1561,8 +1589,8 @@ export default function DigitalMall() {
             {" "}{viewMode}
             {activeFloor !== "all" && <span className="ml-1 font-medium text-foreground">in {floors.find((f) => f.id === activeFloor)?.name}</span>}
           </span>
-          {(search || activeFloor !== "all") && (
-            <button className="text-xs text-primary hover:underline flex items-center gap-1" onClick={() => { setSearch(""); setActiveFloor("all"); }}>
+          {(search || activeFloor !== "all" || activeTag) && (
+            <button className="text-xs text-primary hover:underline flex items-center gap-1" onClick={() => { setSearch(""); setActiveFloor("all"); setActiveTag(null); }}>
               <X className="w-3 h-3" />Clear
             </button>
           )}

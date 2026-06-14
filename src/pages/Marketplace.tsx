@@ -86,8 +86,47 @@ function buildTypeConfig(types: MpListingType[]): Record<string, TypeCfg> {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   HELPERS
+   STATIC CATEGORY FALLBACKS (used when DB is empty)
 ═══════════════════════════════════════════════════════════════════════════ */
+const STATIC_CATEGORIES: Record<string, { cats: string[]; subs: Record<string, string[]> }> = {
+  digital: {
+    cats: ["Software", "AI", "Security", "Platform", "Tech"],
+    subs: {
+      Software:  ["ERP & Finance", "HR & Payroll", "Inventory", "CRM"],
+      AI:        ["AI Agents", "Analytics", "Automation"],
+      Security:  ["Compliance", "Access Control", "Audit"],
+      Platform:  ["Sector Bundles", "Partner Workspace", "White Label"],
+      Tech:      ["API & Developer", "Integrations"],
+    },
+  },
+  subscription: {
+    cats: ["Marketing", "Platform", "AI", "Analytics"],
+    subs: {
+      Marketing: ["Campaigns", "CRM & Leads", "Email", "Social"],
+      Platform:  ["Starter", "Business", "Enterprise"],
+      AI:        ["GPT Agents", "Chatbots"],
+      Analytics: ["BI Dashboards", "Reports"],
+    },
+  },
+  service: {
+    cats: ["Consulting", "Design", "Development", "Training"],
+    subs: {
+      Consulting:  ["Business Setup", "Legal", "Strategy"],
+      Design:      ["Brand Identity", "UI/UX", "Marketing Assets"],
+      Development: ["Custom Code", "Integration", "Migration"],
+      Training:    ["Onboarding", "Workshops", "Certifications"],
+    },
+  },
+  physical: {
+    cats: ["Hardware", "Office", "Promotional"],
+    subs: {
+      Hardware:    ["Servers", "Scanners", "POS Devices"],
+      Office:      ["Stationery", "Furniture"],
+      Promotional: ["Branded Gifts", "Print"],
+    },
+  },
+};
+
 function formatPrice(price_cents: number, pricing_model: PricingModel) {
   if (pricing_model === "free" || price_cents === 0) return "Free";
   if (pricing_model === "contact") return "Contact";
@@ -737,19 +776,27 @@ export default function Marketplace() {
   }, [listings, activeType, activeCategory, activeSubCategory, priceFilter, search, sortBy]);
 
   const filterCategories = useMemo(() => {
-    if (activeType === "all") return ["All", ...Array.from(new Set(listings.map((l) => l.category).filter(Boolean)))];
-    return ["All", ...(typeConfigMap[activeType]?.categories || [])];
+    if (activeType === "all") {
+      const fromListings = Array.from(new Set(listings.map((l) => l.category).filter(Boolean)));
+      return ["All", ...(fromListings.length ? fromListings : ["Software", "AI", "Marketing", "Platform", "Tech", "Consulting"])];
+    }
+    const fromConfig = typeConfigMap[activeType]?.categories || [];
+    const staticCats = STATIC_CATEGORIES[activeType]?.cats || [];
+    return ["All", ...(fromConfig.length ? fromConfig : staticCats)];
   }, [activeType, listings, typeConfigMap]);
 
-  // Sub-categories for the currently selected main category (from mp_categories DB)
+  // Sub-categories for the currently selected main category
   const filterSubCategories = useMemo(() => {
     if (activeCategory === "All") return [];
-    // Find the DB category row whose name matches activeCategory and has the right type
+    // Try DB first
     const parentRow = mpCategories.find(
       (c) => c.name === activeCategory && (activeType === "all" || c.listing_type === activeType) && !c.parent_id
     );
-    if (!parentRow) return [];
-    return mpCategories.filter((c) => c.parent_id === parentRow.id).map((c) => c.name);
+    const fromDB = parentRow ? mpCategories.filter((c) => c.parent_id === parentRow.id).map((c) => c.name) : [];
+    if (fromDB.length) return fromDB;
+    // Fallback to static
+    const staticSubs = STATIC_CATEGORIES[activeType]?.subs?.[activeCategory] || [];
+    return staticSubs;
   }, [activeCategory, activeType, mpCategories]);
 
   const kpis = useMemo(() => ({
