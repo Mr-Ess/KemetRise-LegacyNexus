@@ -206,18 +206,18 @@ export default function PublicLanding() {
           </div>
 
           {/* Stats */}
-          <div className="flex flex-wrap justify-center gap-10 mt-16">
+          <div className="mt-16 grid grid-cols-2 sm:grid-cols-4 gap-px bg-border/30 rounded-2xl overflow-hidden border border-border/30 max-w-2xl mx-auto">
             {[
-              { val: 8,    suffix: "",  labelEn: "Integrated Portals", labelAr: "بوابات متكاملة" },
-              { val: 25,   suffix: "+", labelEn: "DB Tables",          labelAr: "جدول قاعدة بيانات" },
-              { val: 10,   suffix: "",  labelEn: "Sectors",            labelAr: "قطاع تجاري" },
-              { val: 100,  suffix: "%", labelEn: "Bilingual",          labelAr: "ثنائي اللغة" },
+              { val: 8,   suffix: "",  labelEn: "Portals",   labelAr: "بوابات" },
+              { val: 25,  suffix: "+", labelEn: "DB Tables", labelAr: "جدول بيانات" },
+              { val: 10,  suffix: "",  labelEn: "Sectors",   labelAr: "قطاع" },
+              { val: 100, suffix: "%", labelEn: "Bilingual", labelAr: "ثنائي اللغة" },
             ].map((s) => (
-              <div key={s.labelEn} className="text-center">
-                <p className="text-3xl font-display font-black text-primary gold-text-glow">
+              <div key={s.labelEn} className="flex flex-col items-center justify-center py-6 px-4 bg-background hover:bg-secondary/20 transition-colors">
+                <p className="text-4xl font-display font-black text-primary tabular-nums">
                   <Counter to={s.val} suffix={s.suffix} />
                 </p>
-                <p className="text-xs text-muted-foreground mt-1">{R ? s.labelAr : s.labelEn}</p>
+                <p className="text-[11px] text-muted-foreground mt-1 text-center">{R ? s.labelAr : s.labelEn}</p>
               </div>
             ))}
           </div>

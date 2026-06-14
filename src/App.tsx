@@ -137,7 +137,7 @@ const PageFallback = () => (
 );
 
 const Protected = ({ children }: { children: React.ReactNode }) => (
-  <ProtectedRoute><UserRoleProvider><TenantProvider><CartProvider><BrandsProvider><OnboardingTour /><CommandPalette />{children}<AIAssistant /></BrandsProvider></CartProvider></TenantProvider></UserRoleProvider></ProtectedRoute>
+  <ProtectedRoute><UserRoleProvider><TenantProvider><BrandsProvider><OnboardingTour /><CommandPalette />{children}<AIAssistant /></BrandsProvider></TenantProvider></UserRoleProvider></ProtectedRoute>
 );
 
 const App = () => (
@@ -148,6 +148,7 @@ const App = () => (
       <ErrorBoundary>
         <BrowserRouter>
           <AuthProvider>
+            <CartProvider>
             <Suspense fallback={<PageFallback />}>
               <Routes>
                 <Route path="/auth" element={<Auth />} />
@@ -191,8 +192,8 @@ const App = () => (
                 <Route path="/security/ip-whitelist" element={<Protected><IPWhitelist /></Protected>} />
                 <Route path="/security/sso" element={<Protected><SSO /></Protected>} />
                 <Route path="/white-label" element={<Navigate to="/api-docs" replace />} />
-                <Route path="/marketplace" element={<Protected><Marketplace /></Protected>} />
-                <Route path="/digital-mall" element={<Protected><DigitalMall /></Protected>} />
+                <Route path="/marketplace" element={<Marketplace />} />
+                <Route path="/digital-mall" element={<DigitalMall />} />
                 <Route path="/referrals" element={<Protected><Referrals /></Protected>} />
                 <Route path="/extension" element={<Navigate to="/api-docs" replace />} />
                 <Route path="/landing" element={<Landing />} />
@@ -263,6 +264,7 @@ const App = () => (
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </Suspense>
+            </CartProvider>
           </AuthProvider>
         </BrowserRouter>
       </ErrorBoundary>

@@ -1267,7 +1267,7 @@ export default function DigitalMall() {
 
   const handleFollow = async (storeId: string) => {
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return toast.error("Please sign in");
+    if (!user) { navigate("/auth?tab=signin&redirect=/digital-mall"); return; }
     const isFollowed = followed.includes(storeId);
     if (isFollowed) {
       await db.from("mall_store_followers").delete().eq("store_id", storeId).eq("user_id", user.id);
@@ -1402,9 +1402,15 @@ export default function DigitalMall() {
               </div>
             </div>
             <div className="flex gap-2 shrink-0">
-              <Button size="sm" className="gap-1.5 text-xs" onClick={() => setShowApply(true)}>
-                <Sparkles className="w-3.5 h-3.5" />Open Your Store
-              </Button>
+              {currentUserId ? (
+                <Button size="sm" className="gap-1.5 text-xs" onClick={() => setShowApply(true)}>
+                  <Sparkles className="w-3.5 h-3.5" />Open Your Store
+                </Button>
+              ) : (
+                <Button size="sm" className="gap-1.5 text-xs" onClick={() => navigate("/auth?tab=signin&redirect=/digital-mall")}>
+                  Sign In to Shop
+                </Button>
+              )}
             </div>
           </div>
         </div>

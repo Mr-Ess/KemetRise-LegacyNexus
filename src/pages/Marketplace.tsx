@@ -583,6 +583,13 @@ function ListingRow({ item, cfg, onDetails, onWishlist, wishlisted }: {
 export default function Marketplace() {
   const navigate = useNavigate();
   const db = supabase as any;
+  // Auth state for guest-friendly UX
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => setCurrentUser(user));
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_, s) => setCurrentUser(s?.user ?? null));
+    return () => subscription.unsubscribe();
+  }, []);
 
   const [listings, setListings] = useState<Listing[]>([]);
   const [listingTypes, setListingTypes] = useState<MpListingType[]>([]);
@@ -656,6 +663,7 @@ export default function Marketplace() {
   };
 
   const handleAddToCart = (item: Listing) => {
+    if (!currentUser) { navigate("/auth?tab=signin&redirect=/marketplace"); return; }
     setDetailItem(null);
     addToCart(item);
   };
@@ -668,7 +676,7 @@ export default function Marketplace() {
 
   const handleWishlist = async (id: string) => {
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return toast.error("Please sign in");
+    if (!user) { navigate("/auth?tab=signin&redirect=/marketplace"); return; }
     const isWished = wishlist.includes(id);
     if (isWished) {
       await db.from("mp_wishlist").delete().eq("listing_id", id).eq("user_id", user.id);
@@ -804,19 +812,25 @@ export default function Marketplace() {
             <Button size="sm" className="gap-1.5 text-xs h-8" onClick={() => setShowRequest(true)}>
               <Sparkles className="w-3.5 h-3.5" />Request Listing
             </Button>
-            {/* Cart button */}
-            <button
-              onClick={() => setCartOpen(true)}
-              className="relative p-2 rounded-lg border border-border/50 hover:border-primary/50 hover:bg-primary/5 transition-all"
-              title="Shopping Cart"
-            >
-              <ShoppingCart className="w-4 h-4" />
-              {cartCount > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 w-4.5 h-4.5 min-w-[18px] text-[9px] font-bold bg-primary text-primary-foreground rounded-full flex items-center justify-center px-1">
-                  {cartCount}
-                </span>
-              )}
-            </button>
+            {/* Cart / Auth button */}
+            {currentUser ? (
+              <button
+                onClick={() => setCartOpen(true)}
+                className="relative p-2 rounded-lg border border-border/50 hover:border-primary/50 hover:bg-primary/5 transition-all"
+                title="Shopping Cart"
+              >
+                <ShoppingCart className="w-4 h-4" />
+                {cartCount > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 w-4.5 h-4.5 min-w-[18px] text-[9px] font-bold bg-primary text-primary-foreground rounded-full flex items-center justify-center px-1">
+                    {cartCount}
+                  </span>
+                )}
+              </button>
+            ) : (
+              <Button size="sm" className="gap-1.5 text-xs h-8" onClick={() => navigate("/auth?tab=signin&redirect=/marketplace")}>
+                Sign In to Buy
+              </Button>
+            )}
           </div>
         </div>
       </header>
