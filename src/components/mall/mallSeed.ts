@@ -100,9 +100,51 @@ export const SEED_FLOORS = [
 
 export async function seedMallDefaults(db: any): Promise<void> {
   try {
+    // ── Seed floors ───────────────────────────────────────────────────────
     const { count } = await db.from("mall_floors").select("*", { count: "exact", head: true });
     if ((count ?? 0) === 0) {
-      await db.from("mall_floors").insert(SEED_FLOORS);
+      const { data: floorRows } = await db.from("mall_floors").insert(SEED_FLOORS).select();
+
+      // ── Seed demo stores ────────────────────────────────────────────────
+      if (floorRows?.length) {
+        const floorByOrder: Record<number, string> = Object.fromEntries(
+          floorRows.map((f: any) => [f.sort_order, f.id])
+        );
+        const DEMO_STORES = [
+          { floor_id: floorByOrder[1], name: "TechZone Egypt",    slug: "techzone-egypt",   description: "Latest electronics, phones, laptops & accessories.", owner_name: "Ahmed Khalil",  contact_email: "info@techzone.eg",       cover_color: "blue",    tags: ["electronics","tech"],       rating: 4.8, reviews_count: 234, sales_count: 1870, products_count: 45, followers_count: 892,  is_active: true, is_featured: true,  is_verified: true,  is_new: false, status: "active", meta: {} },
+          { floor_id: floorByOrder[2], name: "FashionHub",         slug: "fashionhub",       description: "Trendy clothing, shoes & accessories for all occasions.", owner_name: "Sara Mohamed",  contact_email: "hello@fashionhub.co",   cover_color: "pink",    tags: ["fashion","clothes"],        rating: 4.6, reviews_count: 189, sales_count: 2340, products_count: 120, followers_count: 1204, is_active: true, is_featured: true,  is_verified: true,  is_new: false, status: "active", meta: {} },
+          { floor_id: floorByOrder[3], name: "FoodCorner",         slug: "foodcorner",       description: "Fresh groceries, snacks, beverages & organic products.", owner_name: "Omar Hassan",   contact_email: "orders@foodcorner.eg",  cover_color: "emerald", tags: ["food","organic"],           rating: 4.5, reviews_count: 98,  sales_count: 760,  products_count: 82,  followers_count: 430,  is_active: true, is_featured: false, is_verified: true,  is_new: true,  status: "active", meta: {} },
+          { floor_id: floorByOrder[1], name: "GadgetWorld",        slug: "gadgetworld",      description: "Smart gadgets, wearables, gaming & PC peripherals.", owner_name: "Karim Nasser",  contact_email: null,                    cover_color: "violet",  tags: ["gadgets","gaming"],         rating: 4.7, reviews_count: 156, sales_count: 1120, products_count: 63,  followers_count: 671,  is_active: true, is_featured: false, is_verified: true,  is_new: false, status: "active", meta: {} },
+          { floor_id: floorByOrder[4], name: "HomeStyle",          slug: "homestyle",        description: "Furniture, décor, kitchen essentials & home improvement.", owner_name: "Nour Ibrahim", contact_email: "support@homestyle.eg",  cover_color: "amber",   tags: ["furniture","home"],         rating: 4.4, reviews_count: 72,  sales_count: 480,  products_count: 97,  followers_count: 320,  is_active: true, is_featured: false, is_verified: false, is_new: true,  status: "active", meta: {} },
+          { floor_id: floorByOrder[5], name: "BeautyBox",          slug: "beautybox",        description: "Skincare, cosmetics, perfumes & wellness products.", owner_name: "Aya Sayed",     contact_email: "hello@beautybox.eg",    cover_color: "rose",    tags: ["beauty","skincare"],        rating: 4.9, reviews_count: 301, sales_count: 2890, products_count: 144, followers_count: 1560, is_active: true, is_featured: true,  is_verified: true,  is_new: false, status: "active", meta: {} },
+          { floor_id: floorByOrder[6], name: "BookNest",           slug: "booknest",         description: "Arabic & English books, e-books, courses & stationery.", owner_name: "Hassan Ali",   contact_email: null,                    cover_color: "blue",    tags: ["books","education"],        rating: 4.6, reviews_count: 88,  sales_count: 640,  products_count: 280, followers_count: 390,  is_active: true, is_featured: false, is_verified: true,  is_new: false, status: "active", meta: {} },
+          { floor_id: floorByOrder[8], name: "KemetRise Store",    slug: "kemetrise-store",  description: "Official KemetRise software, licences & digital products.", owner_name: "KemetRise Team", contact_email: "store@kemetrise.com", cover_color: "amber",   tags: ["software","erp"],           rating: 5.0, reviews_count: 47,  sales_count: 320,  products_count: 18,  followers_count: 890,  is_active: true, is_featured: true,  is_verified: true,  is_new: false, status: "active", meta: {} },
+          { floor_id: floorByOrder[7], name: "SportsPro",          slug: "sportspro",        description: "Premium sports equipment, gym gear & outdoor adventure.", owner_name: "Mostafa Fathi", contact_email: "info@sportspro.eg",   cover_color: "amber",   tags: ["sports","gym","fitness"],   rating: 4.5, reviews_count: 63,  sales_count: 410,  products_count: 55,  followers_count: 280,  is_active: true, is_featured: false, is_verified: true,  is_new: false, status: "active", meta: {} },
+          { floor_id: floorByOrder[9], name: "ArtisanCraft",       slug: "artisancraft",     description: "Handmade Egyptian art, pottery, textiles & collectibles.", owner_name: "Mariam Adel",  contact_email: "hello@artisancraft.eg", cover_color: "teal",   tags: ["art","handcraft","egypt"],  rating: 4.8, reviews_count: 44,  sales_count: 190,  products_count: 38,  followers_count: 210,  is_active: true, is_featured: false, is_verified: true,  is_new: true,  status: "active", meta: {} },
+        ];
+        const { data: storeRows } = await db.from("mall_stores").insert(DEMO_STORES).select();
+
+        // ── Seed demo products ────────────────────────────────────────────
+        if (storeRows?.length) {
+          const storeBySlug: Record<string, string> = Object.fromEntries(
+            storeRows.map((s: any) => [s.slug, s.id])
+          );
+          const DEMO_PRODUCTS = [
+            { store_id: storeBySlug["techzone-egypt"],  name: "iPhone 16 Pro",            category: "Phones & Tablets",    price_cents: 129900, currency: "USD", pricing_model: "one_time", is_digital: false, is_featured: true,  is_new: true,  is_active: true, rating: 4.9, reviews_count: 87, sales_count: 230, tags: ["apple","iphone","smartphone"], meta: {} },
+            { store_id: storeBySlug["techzone-egypt"],  name: "MacBook Pro M4",           category: "Laptops & PCs",       price_cents: 249900, currency: "USD", pricing_model: "one_time", is_digital: false, is_featured: true,  is_new: true,  is_active: true, rating: 4.8, reviews_count: 42, sales_count: 95,  tags: ["apple","laptop","macbook"],   meta: {} },
+            { store_id: storeBySlug["fashionhub"],      name: "Egyptian Cotton Thobe",    category: "Men's Clothing",      price_cents: 4900,  currency: "USD", pricing_model: "one_time", is_digital: false, is_featured: false, is_new: false, is_active: true, rating: 4.7, reviews_count: 56, sales_count: 340, tags: ["cotton","traditional"],       meta: {} },
+            { store_id: storeBySlug["fashionhub"],      name: "Silk Evening Dress",       category: "Women's Clothing",    price_cents: 8900,  currency: "USD", pricing_model: "one_time", is_digital: false, is_featured: true,  is_new: false, is_active: true, rating: 4.6, reviews_count: 91, sales_count: 180, tags: ["silk","dress","women"],       meta: {} },
+            { store_id: storeBySlug["foodcorner"],      name: "Organic Honey 1kg",        category: "Organic Products",    price_cents: 2500,  currency: "USD", pricing_model: "one_time", is_digital: false, is_featured: false, is_new: false, is_active: true, rating: 4.9, reviews_count: 34, sales_count: 520, tags: ["honey","organic","natural"],  meta: {} },
+            { store_id: storeBySlug["beautybox"],       name: "Argan Oil Serum",          category: "Skincare",            price_cents: 3500,  currency: "USD", pricing_model: "one_time", is_digital: false, is_featured: true,  is_new: false, is_active: true, rating: 4.8, reviews_count: 128, sales_count: 890, tags: ["argan","serum","skincare"],  meta: {} },
+            { store_id: storeBySlug["booknest"],        name: "أسرار العقل المفكر",       category: "Non-fiction",         price_cents: 1500,  currency: "USD", pricing_model: "one_time", is_digital: false, is_featured: false, is_new: false, is_active: true, rating: 4.5, reviews_count: 67, sales_count: 430, tags: ["arabic","book","mindset"],   meta: {} },
+            { store_id: storeBySlug["kemetrise-store"], name: "ERP Enterprise License",   category: "Software",            price_cents: 99900, currency: "USD", pricing_model: "annual",   is_digital: true,  is_featured: true,  is_new: false, is_active: true, rating: 5.0, reviews_count: 23, sales_count: 78,  tags: ["erp","license","enterprise"], meta: {} },
+            { store_id: storeBySlug["gadgetworld"],     name: "DJI Mini 4 Pro Drone",     category: "Gaming Hardware",     price_cents: 75900, currency: "USD", pricing_model: "one_time", is_digital: false, is_featured: true,  is_new: true,  is_active: true, rating: 4.7, reviews_count: 19, sales_count: 45,  tags: ["drone","dji","aerial"],       meta: {} },
+            { store_id: storeBySlug["sportspro"],       name: "Pro Treadmill X5",         category: "Gym Equipment",       price_cents: 89900, currency: "USD", pricing_model: "one_time", is_digital: false, is_featured: false, is_new: false, is_active: true, rating: 4.6, reviews_count: 31, sales_count: 62,  tags: ["treadmill","gym","cardio"],   meta: {} },
+            { store_id: storeBySlug["artisancraft"],    name: "Handmade Pharaonic Vase",  category: "Pottery & Ceramics",  price_cents: 5900,  currency: "USD", pricing_model: "one_time", is_digital: false, is_featured: false, is_new: true,  is_active: true, rating: 4.8, reviews_count: 12, sales_count: 28,  tags: ["pottery","pharaonic","egypt"], meta: {} },
+          ];
+          await db.from("mall_products").insert(DEMO_PRODUCTS);
+        }
+      }
     }
   } catch (e) {
     console.warn("Mall seed failed:", e);

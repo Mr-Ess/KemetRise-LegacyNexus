@@ -112,6 +112,22 @@ export const MARKETPLACE_SEED_SUBCATEGORIES: Record<string, Record<string, strin
   },
 };
 
+/** Demo listings inserted when mp_listings is empty */
+export const SEED_LISTINGS = [
+  { listing_type: "digital", name: "Enterprise ERP Suite", description: "Full ERP system — HR, finance, inventory, CRM in one platform.", category: "Software", tags: ["erp","enterprise","software"], price_cents: 99900, currency: "USD", pricing_model: "annual", publisher_name: "KemetRise", rating: 4.9, reviews_count: 128, sales_count: 340, is_featured: true, is_new: false, is_verified: true, is_active: true, meta: { version: "3.0", license_type: "Commercial" } },
+  { listing_type: "subscription", name: "AI Agent Pack", description: "10 custom AI brand agents — ANUBIS, ISIS, HORUS & more.", category: "AI", tags: ["ai","agents","automation"], price_cents: 4900, currency: "USD", pricing_model: "monthly", publisher_name: "KemetRise AI", rating: 4.8, reviews_count: 89, sales_count: 210, is_featured: true, is_new: true, is_verified: true, is_active: true, meta: { agents: 10, models: "GPT-4o, Claude" } },
+  { listing_type: "service", name: "Business Setup Consulting", description: "End-to-end business setup, legal structure & digital presence.", category: "Consulting", tags: ["consulting","setup","business"], price_cents: 49900, currency: "USD", pricing_model: "one_time", publisher_name: "KemetRise Pro", rating: 4.7, reviews_count: 56, sales_count: 95, is_featured: false, is_new: false, is_verified: true, is_active: true, meta: {} },
+  { listing_type: "digital", name: "HR & Attendance Module", description: "Biometric QR attendance, payroll, leave management.", category: "Software", tags: ["hr","payroll","attendance"], price_cents: 29900, currency: "USD", pricing_model: "annual", publisher_name: "KemetRise", rating: 4.6, reviews_count: 42, sales_count: 178, is_featured: false, is_new: false, is_verified: true, is_active: true, meta: { version: "2.1" } },
+  { listing_type: "subscription", name: "Marketing Suite", description: "CRM + campaigns + lead pipeline + analytics dashboard.", category: "SaaS Tools", tags: ["crm","campaigns","marketing"], price_cents: 1900, currency: "USD", pricing_model: "monthly", publisher_name: "KemetRise Marketing", rating: 4.5, reviews_count: 71, sales_count: 290, is_featured: true, is_new: false, is_verified: true, is_active: true, meta: {} },
+  { listing_type: "digital", name: "API Access Token", description: "Unlimited REST API access for developers and integrations.", category: "Software", tags: ["api","developer","integration"], price_cents: 9900, currency: "USD", pricing_model: "annual", publisher_name: "KemetRise Dev", rating: 4.4, reviews_count: 33, sales_count: 520, is_featured: false, is_new: true, is_verified: true, is_active: true, meta: { version: "v2" } },
+  { listing_type: "service", name: "Brand Identity Design", description: "Logo, colour palette, typography, brand guidelines.", category: "Design", tags: ["brand","logo","design"], price_cents: 19900, currency: "USD", pricing_model: "one_time", publisher_name: "KemetRise Studio", rating: 4.8, reviews_count: 19, sales_count: 67, is_featured: false, is_new: true, is_verified: true, is_active: true, meta: {} },
+  { listing_type: "subscription", name: "Sector Activation Bundle", description: "Activate any 5 business sectors in your dashboard.", category: "Business Tools", tags: ["sectors","platform","bundle"], price_cents: 0, currency: "USD", pricing_model: "free", publisher_name: "KemetRise", rating: 4.3, reviews_count: 88, sales_count: 1200, is_featured: false, is_new: false, is_verified: true, is_active: true, meta: {} },
+  { listing_type: "physical", name: "Smart Attendance Terminal", description: "QR & fingerprint attendance kiosk, plug & play setup.", category: "Electronics", tags: ["hardware","attendance","biometric"], price_cents: 34900, currency: "USD", pricing_model: "one_time", publisher_name: "KemetRise Hardware", rating: 4.7, reviews_count: 24, sales_count: 88, is_featured: true, is_new: false, is_verified: true, is_active: true, meta: { sku: "KR-HW-ATT-01" } },
+  { listing_type: "service", name: "White-Label Platform Setup", description: "Full white-label deployment of KemetRise under your brand.", category: "Development", tags: ["whitelabel","deployment","custom"], price_cents: 149900, currency: "USD", pricing_model: "one_time", publisher_name: "KemetRise Pro", rating: 5.0, reviews_count: 12, sales_count: 18, is_featured: true, is_new: false, is_verified: true, is_active: true, meta: {} },
+  { listing_type: "digital", name: "E-Commerce Starter Kit", description: "Ready-made online store template with payment integration.", category: "Templates", tags: ["ecommerce","template","store"], price_cents: 7900, currency: "USD", pricing_model: "one_time", publisher_name: "KemetRise Studio", rating: 4.5, reviews_count: 61, sales_count: 340, is_featured: false, is_new: false, is_verified: true, is_active: true, meta: {} },
+  { listing_type: "subscription", name: "Cloud Backup & Recovery", description: "Automated daily backups, 99.9% uptime SLA, instant restore.", category: "Cloud & Hosting", tags: ["backup","cloud","security"], price_cents: 2900, currency: "USD", pricing_model: "monthly", publisher_name: "KemetRise Cloud", rating: 4.6, reviews_count: 38, sales_count: 165, is_featured: false, is_new: false, is_verified: true, is_active: true, meta: {} },
+];
+
 /**
  * One-shot seed: inserts all 5 types + full category trees if tables are empty.
  * Safe to call on every page load — no-ops if data already exists.
@@ -157,6 +173,14 @@ export async function seedMarketplaceDefaults(db: any): Promise<void> {
         }
         if (subRows.length > 0) await db.from("mp_categories").insert(subRows);
       }
+    }
+
+    // ── Seed demo listings ────────────────────────────────────────────────
+    const { count: lc } = await db
+      .from("mp_listings")
+      .select("*", { count: "exact", head: true });
+    if ((lc ?? 0) === 0) {
+      await db.from("mp_listings").insert(SEED_LISTINGS);
     }
   } catch (e) {
     console.warn("Marketplace seed failed:", e);

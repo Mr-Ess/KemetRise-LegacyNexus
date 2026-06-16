@@ -82,6 +82,19 @@ export function UserRoleProvider({ children }: { children: ReactNode }) {
         .single();
 
       if (prof) {
+        // If this user has role='user' and there are no admins, promote them to superadmin
+        if (prof.role === "user") {
+          try {
+            const { count: adminCount } = await db
+              .from("user_profiles")
+              .select("*", { count: "exact", head: true })
+              .in("role", ["admin", "superadmin"]);
+            if ((adminCount ?? 0) === 0) {
+              await db.from("user_profiles").update({ role: "superadmin" }).eq("id", user.id);
+              prof.role = "superadmin";
+            }
+          } catch { /* non-fatal */ }
+        }
         setProfile(prof as UserProfile);
         // Load provider profile if provider role
         if (prof.role === "provider" || prof.role === "admin") {
@@ -93,10 +106,20 @@ export function UserRoleProvider({ children }: { children: ReactNode }) {
           setProviderProfile(prov || null);
         }
       } else {
+        // First user in the system becomes superadmin automatically
+        let defaultRole: UserRole = "user";
+        try {
+          const { count: adminCount } = await db
+            .from("user_profiles")
+            .select("*", { count: "exact", head: true })
+            .in("role", ["admin", "superadmin"]);
+          if ((adminCount ?? 0) === 0) defaultRole = "superadmin";
+        } catch { /* fallback to user */ }
+
         // Create profile if doesn't exist yet
         const newProfile = {
           id: user.id,
-          role: "user" as UserRole,
+          role: defaultRole,
           full_name: user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split("@")[0] || "",
           avatar_url: user.user_metadata?.avatar_url || "",
           preferred_lang: "ar" as const,

@@ -731,9 +731,9 @@ export default function Marketplace() {
   }, [currentUser?.id]);
 
   useEffect(() => {
-    load();
+    // loadTypes seeds the DB first (including listings), then load() fetches them
+    loadTypes().then(() => load());
     loadCategories();
-    loadTypes();
   }, []);
 
   const handleTypeChange = (type: "all" | ListingType) => {
