@@ -16,7 +16,7 @@ import { extApi } from "@/services/extended";
 import BrandSelector from "@/components/shared/BrandSelector";
 import ExportButton from "@/components/shared/ExportButton";
 
-const ROLES    = ["admin","manager","staff","viewer","agent"];
+const ROLES    = ["superadmin","admin","manager","staff","provider","partner","agent","vendor","marketing","viewer","user"];
 const SECTORS  = ["brands","projects","services","employees","customers","branches","affiliates","success_partners","inventory","materials","logistics","legal","finance","marketing","ai_agents","settings","reports","payments","workflows","audit_logs"];
 const Dot = ({ v }: { v: boolean }) => <span className={`inline-block w-2.5 h-2.5 rounded-full ${v ? "bg-emerald-500" : "bg-secondary"}`}/>;
 
