@@ -8,7 +8,7 @@ import {
   Settings, LogOut, Menu, Bell, Shield, Cpu, Layers, FileText,
   DollarSign, Package, UserCheck, Building2, Globe, Key, Tag,
   Boxes, RefreshCw, ChevronDown, Sun, Moon, Languages, Crown,
-  AlertTriangle, Activity, Webhook, Code,
+  AlertTriangle, Activity, Webhook, Code, Newspaper,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -31,7 +31,7 @@ const NAV_ITEMS = [
     { icon: Shield,    label: "الأدوار والصلاحيات",labelEn: "Roles & Perms",   path: "/permissions"            },
   ]},
   { group: "Commerce", items: [
-    { icon: Store,       label: "الماركت بليس",  labelEn: "Marketplace",       path: "/marketplace"            },
+    { icon: Store,       label: "المنتجات",      labelEn: "Products",          path: "/products"              },
     { icon: ShoppingBag, label: "الطلبات",        labelEn: "Orders",            path: "/admin/orders"           },
     { icon: Tag,         label: "الكوبونات",      labelEn: "Coupons",           path: "/admin/coupons"          },
     { icon: Package,     label: "المخزون",         labelEn: "Inventory",        path: "/operations"             },
@@ -48,7 +48,15 @@ const NAV_ITEMS = [
     { icon: Key,      label: "الأمان",       labelEn: "Security",        path: "/security/sessions"      },
     { icon: Webhook,  label: "الـ API",      labelEn: "API & Webhooks",  path: "/api-docs"               },
     { icon: Code,     label: "المطورون",     labelEn: "Developer Hub",   path: "/api-docs"               },
-    { icon: Globe,    label: "الواجهات",     labelEn: "White Label",     path: "/white-label"            },
+    { icon: Globe,    label: "الواجهات",     labelEn: "White Label",          path: "/white-label"            },
+    { icon: Globe,    label: "خدمات الموقع", labelEn: "Website Services",      path: "/admin/website-services" },
+  ]},
+  { group: "Website CMS", items: [
+    { icon: Globe,       label: "إدارة الموقع",      labelEn: "Website CMS",          path: "/admin/website"          },
+    { icon: FileText,    label: "الصفحة الرئيسية",   labelEn: "Hero & Stats",         path: "/admin/website"          },
+    { icon: Layers,      label: "الخدمات والمنتجات",  labelEn: "Services & Products",  path: "/admin/website"          },
+    { icon: Users,       label: "الشهادات والأسئلة",  labelEn: "Testimonials & FAQs",  path: "/admin/website"          },
+    { icon: Newspaper,   label: "الأخبار والتواصل",   labelEn: "News & Contact",       path: "/admin/website"          },
   ]},
 ];
 

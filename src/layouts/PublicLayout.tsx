@@ -2,12 +2,12 @@ import { ReactNode, useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/hooks/useAuth";
-import { supabase } from "@/integrations/supabase/client";
+import { useRole } from "@/context/UserRoleContext";
 import {
   Globe, Menu, X, Languages, ArrowRight,
   Sun, Moon, ChevronDown, Layers, ShoppingBag,
   MessageSquare, BarChart3, Building2, Briefcase, Users, Newspaper,
-  Phone, Mail, MapPin, LogOut, LayoutDashboard, Crown, Award,
+  Phone, Mail, MapPin, LogOut, LayoutDashboard, Crown, Award, UserCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -25,33 +25,34 @@ function useTheme() {
 }
 
 const NAV_ITEMS = [
-  { ar: "الرئيسية",     en: "Home",        href: "/",            icon: Globe },
-  { ar: "خدماتنا",     en: "Services",    href: "/services",    icon: Layers },
-  { ar: "المنتجات",    en: "Products",    href: "/products",    icon: ShoppingBag },
-  { ar: "السوق",       en: "Marketplace", href: "/marketplace", icon: ShoppingBag },
-  { ar: "المول الرقمي",en: "Digital Mall", href: "/digital-mall",icon: Building2 },
-  { ar: "الأسعار",     en: "Pricing",     href: "/pricing",     icon: BarChart3 },
-  { ar: "تواصل معنا",  en: "Contact",     href: "/contact",     icon: Phone },
+  { ar: "الرئيسية",     en: "Home",        href: "/",              icon: Globe },
+  { ar: "خدماتنا",     en: "Services",    href: "/services",      icon: Layers },
+  { ar: "منتجاتنا",    en: "Products",    href: "/products",      icon: ShoppingBag },
+  { ar: "مشاريعنا",    en: "Projects",    href: "/our-projects",  icon: Briefcase },
+  { ar: "باقاتنا",     en: "Plans",      href: "/pricing",       icon: BarChart3 },
 ];
 
 /* About sub-pages — used in dropdown */
 const ABOUT_ITEMS = [
   { ar: "من نحن",        en: "About Us",      href: "/about",     icon: Building2,  descAr: "رؤيتنا وفريقنا ومسيرتنا",            descEn: "Our vision, team and journey" },
   { ar: "أعمالنا السابقة",en: "Portfolio",     href: "/portfolio", icon: Award,      descAr: "قصص نجاح حقيقية في كل القطاعات",      descEn: "Real success stories across sectors" },
-  { ar: "شركاؤنا",       en: "Partners",      href: "/partners",  icon: Users,      descAr: "شركاؤنا التقنيون وبرنامج الشراكة",    descEn: "Tech partners & partner program" },
-  { ar: "آخر أخبارنا",   en: "News & Blog",   href: "/news",      icon: Newspaper,  descAr: "آخر التحديثات والمقالات",             descEn: "Latest updates & articles" },
+  { ar: "شركاؤنا",       en: "Partners",      href: "/partners",   icon: Users,      descAr: "شركاؤنا التقنيون وبرنامج الشراكة",    descEn: "Tech partners & partner program" },
+  { ar: "وكلاؤنا",       en: "Our Agents",    href: "/our-agents", icon: UserCheck,  descAr: "شبكة الوكلاء الإقليميين الدوليين",    descEn: "Global regional agent network" },
+  { ar: "آخر أخبارنا",   en: "News & Blog",   href: "/news",       icon: Newspaper,  descAr: "آخر التحديثات والمقالات",             descEn: "Latest updates & articles" },
 ];
 
 /* All portal definitions — used in multi-portal dropdown */
 const ALL_PORTALS: { role: string; ar: string; en: string; href: string; color: string; icon: string }[] = [
-  { role: "superadmin", ar: "الإدارة العليا",   en: "Super Admin",      href: "/admin",     color: "text-red-400",    icon: "🛡️" },
-  { role: "admin",      ar: "الإدارة",          en: "Admin Portal",     href: "/admin",     color: "text-primary",   icon: "⚙️" },
-  { role: "partner",    ar: "الشريك",           en: "Partner Portal",   href: "/partner",   color: "text-indigo-400",icon: "🤝" },
-  { role: "agent",      ar: "الوكيل",           en: "Agent Portal",     href: "/agent",     color: "text-emerald-400",icon: "🧑‍💼" },
-  { role: "vendor",     ar: "البائع",           en: "Vendor Portal",    href: "/vendor",    color: "text-orange-400",icon: "🏪" },
-  { role: "provider",   ar: "المزوّد",          en: "Provider Portal",  href: "/provider",  color: "text-yellow-400",icon: "🔧" },
-  { role: "marketing",  ar: "التسويق",          en: "Marketing Portal", href: "/marketing", color: "text-pink-400",  icon: "📣" },
-  { role: "user",       ar: "بوابة المستخدم",    en: "User Portal",      href: "/portal",    color: "text-blue-400",  icon: "👤" },
+  { role: "superadmin", ar: "لوحة التحكم المركزية", en: "Central Dashboard", href: "/dashboard", color: "text-red-400",     icon: "🛡️" },
+  { role: "admin",      ar: "الإدارة",             en: "Admin Portal",     href: "/admin",     color: "text-primary",   icon: "⚙️" },
+  { role: "manager",    ar: "المدير",              en: "Manager Portal",   href: "/manager",   color: "text-violet-400",icon: "👔" },
+  { role: "staff",      ar: "الموظف",             en: "Staff Portal",     href: "/staff",     color: "text-teal-400",  icon: "🧑‍💻" },
+  { role: "partner",    ar: "الشريك",             en: "Partner Portal",   href: "/partner",   color: "text-indigo-400",icon: "🤝" },
+  { role: "agent",      ar: "الوكيل",             en: "Agent Portal",     href: "/agent",     color: "text-emerald-400",icon: "🧑‍💼" },
+  { role: "vendor",     ar: "البائع",             en: "Vendor Portal",    href: "/vendor",    color: "text-orange-400",icon: "🏪" },
+  { role: "provider",   ar: "المزوّد",            en: "Provider Portal",  href: "/provider",  color: "text-yellow-400",icon: "🔧" },
+  { role: "marketing",  ar: "التسويق",            en: "Marketing Portal", href: "/marketing", color: "text-pink-400",  icon: "📣" },
+  { role: "user",       ar: "بوابة المستخدم",      en: "User Portal",      href: "/portal",    color: "text-blue-400",  icon: "👤" },
 ];
 /* Roles that can also access the central dashboard */
 const DASHBOARD_ROLES = new Set(["superadmin", "admin", "partner", "agent", "vendor", "provider", "marketing"]);
@@ -67,14 +68,16 @@ const PORTAL_LINKS = [
 ];
 
 const ROLE_PORTAL: Record<string, { ar: string; en: string; href: string; color: string }> = {
-  superadmin: { ar: "الإدارة",    en: "Admin Portal",     href: "/admin",     color: "text-primary" },
-  admin:      { ar: "الإدارة",    en: "Admin Portal",     href: "/admin",     color: "text-primary" },
-  partner:    { ar: "الشريك",     en: "Partner Portal",   href: "/partner",   color: "text-indigo-400" },
-  agent:      { ar: "الوكيل",     en: "Agent Portal",     href: "/agent",     color: "text-emerald-400" },
-  vendor:     { ar: "البائع",     en: "Vendor Portal",    href: "/vendor",    color: "text-orange-400" },
-  provider:   { ar: "البائع",     en: "Vendor Portal",    href: "/vendor",    color: "text-orange-400" },
-  marketing:  { ar: "التسويق",    en: "Marketing Portal", href: "/marketing", color: "text-pink-400" },
-  user:       { ar: "المستخدم",   en: "User Portal",      href: "/portal",    color: "text-blue-400" },
+  superadmin: { ar: "لوحة التحكم", en: "Dashboard",      href: "/dashboard", color: "text-red-400" },
+  admin:      { ar: "الإدارة",    en: "Admin Portal",    href: "/admin",     color: "text-primary" },
+  manager:    { ar: "المدير",     en: "Manager Portal",  href: "/manager",   color: "text-violet-400" },
+  staff:      { ar: "الموظف",     en: "Staff Portal",    href: "/staff",     color: "text-teal-400" },
+  partner:    { ar: "الشريك",     en: "Partner Portal",  href: "/partner",   color: "text-indigo-400" },
+  agent:      { ar: "الوكيل",     en: "Agent Portal",    href: "/agent",     color: "text-emerald-400" },
+  vendor:     { ar: "البائع",     en: "Vendor Portal",   href: "/vendor",    color: "text-orange-400" },
+  provider:   { ar: "المزوّد",    en: "Provider Portal", href: "/provider",  color: "text-yellow-400" },
+  marketing:  { ar: "التسويق",    en: "Marketing Portal",href: "/marketing", color: "text-pink-400" },
+  user:       { ar: "المستخدم",   en: "User Portal",     href: "/portal",    color: "text-blue-400" },
 };
 
 export default function PublicLayout({ children }: { children: ReactNode }) {
@@ -82,13 +85,13 @@ export default function PublicLayout({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, signOut } = useAuth();
+  const { role: userRole } = useRole();
   const { theme, toggle } = useTheme();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [portalOpen, setPortalOpen] = useState(false);
   const [aboutOpen, setAboutOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  const [userRole, setUserRole] = useState<string | null>(null);
-  const [userRoles, setUserRoles] = useState<string[]>([]);
+  const userRoles = [userRole];
   const R = i18n.language === "ar";
 
   useEffect(() => {
@@ -97,28 +100,12 @@ export default function PublicLayout({ children }: { children: ReactNode }) {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  // Fetch user role when logged in
-  useEffect(() => {
-    if (!user) { setUserRole(null); setUserRoles([]); return; }
-    (supabase as any)
-      .from("user_profiles")
-      .select("role")
-      .eq("id", user.id)
-      .single()
-      .then(({ data }: any) => {
-        const primary = data?.role ?? "user";
-        setUserRole(primary);
-        setUserRoles([primary]);
-      })
-      .catch(() => { setUserRole("user"); setUserRoles(["user"]); });
-  }, [user?.id]);
-
-  const portalLink = userRole ? ROLE_PORTAL[userRole] ?? ROLE_PORTAL.user : null;
+  const portalLink = userRole && userRole !== "user" ? ROLE_PORTAL[userRole] ?? ROLE_PORTAL.user : (user ? ROLE_PORTAL.user : null);
   /* Superadmin / admin can access ALL portals; others see only their own */
   const accessiblePortals = (() => {
-    if (!userRole) return [];
+    if (!user || !userRole || userRole === "user") return [];
     if (userRole === "superadmin" || userRole === "admin") return ALL_PORTALS;
-    return ALL_PORTALS.filter((p) => userRoles.includes(p.role));
+    return ALL_PORTALS.filter((p) => p.role === userRole);
   })();
   const dashHref = portalLink?.href ?? "/dashboard";
 
@@ -180,6 +167,15 @@ export default function PublicLayout({ children }: { children: ReactNode }) {
               )}
             </div>
 
+            {/* ── Contact ──────────────────────────────────────────── */}
+            <button onClick={() => navigate("/contact")}
+              className={cn(
+                "px-3 py-1.5 text-xs font-medium rounded-lg transition-all",
+                location.pathname === "/contact" ? "text-primary bg-primary/10" : "text-muted-foreground hover:text-foreground hover:bg-secondary/50"
+              )}>
+              {R ? "تواصل معنا" : "Contact"}
+            </button>
+
             {/* ── Portals Dropdown — only for logged-in users ───────── */}
             {user && portalLink && (
               <div className="relative" onMouseEnter={() => setPortalOpen(true)} onMouseLeave={() => setPortalOpen(false)}>
@@ -202,8 +198,8 @@ export default function PublicLayout({ children }: { children: ReactNode }) {
                         <span className="text-blue-400">{R ? "بوابة المستخدم" : "User Portal"}</span>
                       </button>
                     )}
-                    {/* Central Dashboard for staff roles */}
-                    {userRole && DASHBOARD_ROLES.has(userRole) && (
+                    {/* Central Dashboard only for non-superadmin staff roles */}
+                    {userRole && userRole !== "superadmin" && DASHBOARD_ROLES.has(userRole) && (
                       <button onClick={() => { navigate("/dashboard"); setPortalOpen(false); }}
                         className="w-full flex items-center gap-2 px-4 py-2.5 text-xs hover:bg-secondary/50 transition-colors text-left border-t border-border/50">
                         <span className="text-sm">🖥️</span>
@@ -231,7 +227,7 @@ export default function PublicLayout({ children }: { children: ReactNode }) {
               className="p-2 rounded-lg hover:bg-secondary/50 text-muted-foreground hover:text-foreground transition-colors">
               <Languages className="w-4 h-4" />
             </button>
-            {user ? (
+            {user && (
               <div className="hidden sm:flex items-center gap-1.5">
                 <Button size="sm" onClick={() => navigate(dashHref)} className="gap-1.5 text-xs h-8 px-4 gold-glow">
                   {R ? (portalLink ? portalLink.ar : "لوحة التحكم") : (portalLink ? portalLink.en : "Dashboard")} <ArrowRight className="w-3 h-3" />
@@ -241,11 +237,6 @@ export default function PublicLayout({ children }: { children: ReactNode }) {
                   <LogOut className="w-4 h-4" />
                 </button>
               </div>
-            ) : (
-              <>
-                <Button variant="ghost" size="sm" onClick={() => navigate("/auth")} className="text-xs h-8 px-3 hidden sm:flex">{R ? "دخول" : "Sign In"}</Button>
-                <Button size="sm" onClick={() => navigate("/auth?tab=signup")} className="text-xs h-8 px-4 hidden sm:flex gold-glow">{R ? "ابدأ مجاناً" : "Get Started"}</Button>
-              </>
             )}
             <button className="lg:hidden p-2 rounded-lg hover:bg-secondary/50 text-muted-foreground" onClick={() => setMobileOpen(!mobileOpen)}>
               {mobileOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
@@ -276,6 +267,10 @@ export default function PublicLayout({ children }: { children: ReactNode }) {
                     <n.icon className="w-3.5 h-3.5" />{R ? n.ar : n.en}
                   </button>
                 ))}
+                <button onClick={() => { navigate("/contact"); setMobileOpen(false); }}
+                  className="flex items-center gap-2 py-2.5 px-3 text-xs rounded-xl hover:bg-secondary/50 text-muted-foreground hover:text-foreground transition-all">
+                  <Phone className="w-3.5 h-3.5" />{R ? "تواصل معنا" : "Contact"}
+                </button>
               </div>
             </div>
             {user && (
@@ -295,16 +290,11 @@ export default function PublicLayout({ children }: { children: ReactNode }) {
                 </div>
               </div>
             )}
-            <div className="border-t border-border pt-3 flex gap-2">
-              {user ? (
-                <Button size="sm" onClick={() => { navigate(dashHref); setMobileOpen(false); }} className="flex-1 text-xs">{R ? "لوحة التحكم" : "Dashboard"}</Button>
-              ) : (
-                <>
-                  <Button variant="outline" size="sm" onClick={() => { navigate("/auth"); setMobileOpen(false); }} className="flex-1 text-xs">{R ? "دخول" : "Sign In"}</Button>
-                  <Button size="sm" onClick={() => { navigate("/auth?tab=signup"); setMobileOpen(false); }} className="flex-1 text-xs">{R ? "ابدأ" : "Start"}</Button>
-                </>
-              )}
-            </div>
+            {user && (
+              <div className="border-t border-border pt-3">
+                <Button size="sm" onClick={() => { navigate(dashHref); setMobileOpen(false); }} className="w-full text-xs gold-glow">{R ? "الدخول للوحة التحكم" : "Go to Dashboard"}</Button>
+              </div>
+            )}
           </div>
         )}
       </header>
@@ -335,16 +325,18 @@ export default function PublicLayout({ children }: { children: ReactNode }) {
             {[
               { title: R ? "المنصة" : "Platform", links: [
                 { l: R ? "الرئيسية" : "Home", h: "/" },
-                { l: R ? "المنتجات" : "Products", h: "/products" },
-                { l: R ? "الأسعار" : "Pricing", h: "/pricing" },
+                { l: R ? "منتجاتنا" : "Products", h: "/products" },
+                { l: R ? "مشاريعنا" : "Projects", h: "/our-projects" },
+                { l: R ? "باقاتنا" : "Our Plans", h: "/pricing" },
                 { l: "API", h: "/api-docs" },
               ]},
               { title: R ? "الشركة" : "Company", links: [
                 { l: R ? "من نحن" : "About Us",          h: "/about" },
                 { l: R ? "أعمالنا السابقة" : "Portfolio", h: "/portfolio" },
                 { l: R ? "شركاؤنا" : "Partners",          h: "/partners" },
-                { l: R ? "آخر أخبارنا" : "News",          h: "/news" },
-                { l: R ? "اتصل بنا" : "Contact",          h: "/contact" },
+                { l: R ? "وكلاؤنا" : "Our Agents",         h: "/our-agents" },
+                { l: R ? "آخر أخبارنا" : "News",           h: "/news" },
+                { l: R ? "اتصل بنا" : "Contact",           h: "/contact" },
               ]},
               { title: R ? "البوابات" : "Portals", links: PORTAL_LINKS.map(p => ({ l: R ? p.ar : p.en, h: p.href })) },
             ].map(col => (

@@ -1,4 +1,4 @@
-import { useNavigate } from "react-router-dom";
+﻿import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/hooks/useAuth";
 import PublicLayout from "@/layouts/PublicLayout";
@@ -11,8 +11,10 @@ import {
   CheckCircle, Star, Award, Building2, MessageSquare,
   ShoppingBag, GraduationCap, Scale, Briefcase, ShoppingCart,
   Cpu, Stethoscope, TrendingUp, Bot, Wallet, Code2, HeartHandshake,
+  Network, UserCheck, MapPin,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import LeadCaptureModal from "@/components/shared/LeadCaptureModal";
 
 /* ─── Animated Counter ─────────────────────────────────────────── */
 function Counter({ to, suffix = "", duration = 2000 }: { to: number; suffix?: string; duration?: number }) {
@@ -89,31 +91,27 @@ const SECTORS = [
   { icon: HeartHandshake,label: "NGO",       ar: "غير ربحي",   color: "#A855F7", bg: "bg-purple-500/10" },
 ];
 
-const PRICING = [
-  {
-    code: "free", name: "Free", nameAr: "مجاني", price: 0,
-    features_en: ["Marketplace access", "5 products", "Basic analytics"],
-    features_ar: ["وصول للسوق", "5 منتجات", "تحليلات أساسية"],
-    color: "border-border/50", badge: "", cta_en: "Start Free", cta_ar: "ابدأ مجاناً",
-  },
-  {
-    code: "starter", name: "Starter", nameAr: "مبتدئ", price: 9.99,
-    features_en: ["50 products", "Orders management", "Wallet"],
-    features_ar: ["50 منتج", "إدارة الطلبات", "المحفظة"],
-    color: "border-blue-500/30", badge: "", cta_en: "Get Started", cta_ar: "ابدأ الآن",
-  },
-  {
-    code: "pro", name: "Pro", nameAr: "احترافي", price: 29.99,
-    features_en: ["Unlimited products", "Partner workspace", "AI agents", "Analytics"],
-    features_ar: ["منتجات لا محدودة", "بيئة شريك", "وكلاء AI", "تحليلات"],
-    color: "border-primary/50", badge: "الأكثر طلباً", cta_en: "Go Pro", cta_ar: "اشترك الآن",
-  },
-  {
-    code: "enterprise", name: "Enterprise", nameAr: "مؤسسي", price: 99.99,
-    features_en: ["Everything in Pro", "Custom sectors", "Dedicated support", "API", "HR & ERP"],
-    features_ar: ["كل شيء في Pro", "قطاعات مخصصة", "دعم حصري", "API", "HR وERP"],
-    color: "border-purple-500/30", badge: "الأفضل قيمة", cta_en: "Contact Sales", cta_ar: "تواصل معنا",
-  },
+const BRANDS_ECOSYSTEM = [
+  { icon: "👗", nameAr: "فور هير",            nameEn: "For Her",               color: "#ec4899", descAr: "منظومة الأزياء المحتشمة والأناقة النسائية",        descEn: "Modest fashion & women's style ecosystem",         tagAr: "أزياء وتصميم",     tagEn: "Fashion & Design"        },
+  { icon: "🛒", nameAr: "جاست كليك ستور",     nameEn: "Just Click Store",       color: "#3b82f6", descAr: "منصة التجارة الإلكترونية متعددة البائعين",         descEn: "Multi-vendor e-commerce & logistics platform",    tagAr: "تجارة إلكترونية",  tagEn: "E-Commerce"             },
+  { icon: "🚀", nameAr: "يوكا'س كور",         nameEn: "Youka's Core",           color: "#10b981", descAr: "تقنيات النمو ومنظومة SaaS للشركات الناشئة",      descEn: "Growth tech & SaaS ecosystem for startups",       tagAr: "تقنية ونمو",       tagEn: "Tech & Growth"          },
+  { icon: "🎬", nameAr: "جرو فانس",           nameEn: "GrowVance",              color: "#f59e0b", descAr: "الإنتاج الإعلامي وترخيص الأعمال الإبداعية",      descEn: "Media production & creative content licensing",   tagAr: "إعلام وإنتاج",     tagEn: "Media & Production"     },
+  { icon: "🤖", nameAr: "أجنتيك",             nameEn: "Agentic",                color: "#06b6d4", descAr: "وكلاء الذكاء الاصطناعي المستقلين للأعمال",       descEn: "Autonomous AI agents for enterprise operations",  tagAr: "ذكاء اصطناعي",    tagEn: "Artificial Intelligence" },
+  { icon: "🤝", nameAr: "التوكيلات التجارية",  nameEn: "Commercial Agencies",    color: "#8b5cf6", descAr: "شبكة التوكيلات الإقليمية وحوكمة سلاسل الإمداد",  descEn: "Regional agencies & supply chain governance",     tagAr: "توكيلات وشراكات",  tagEn: "Agencies & Partnerships" },
+];
+
+const FEATURED_PROJECTS = [
+  { brandIcon: "👗", brand: "For Her",          brandColor: "#ec4899", titleAr: "مساعد التنسيق الأزيائي بالذكاء الاصطناعي", titleEn: "AI Fashion Styling Assistant",  sectorAr: "أزياء وأناقة",    sectorEn: "Fashion & Styling", execAr: "وكلاء AI",  execEn: "AI Agents"     },
+  { brandIcon: "🛒", brand: "Just Click Store", brandColor: "#3b82f6", titleAr: "منصة التجزئة متعددة البائعين",              titleEn: "Multi-Vendor Retail Platform", sectorAr: "تجارة إلكترونية", sectorEn: "E-commerce",        execAr: "بنية تحتية", execEn: "Infrastructure" },
+  { brandIcon: "🤖", brand: "Agentic",          brandColor: "#06b6d4", titleAr: "نظام إدارة وكلاء الذكاء الاصطناعي",         titleEn: "AI Agent Management System",   sectorAr: "ذكاء اصطناعي",    sectorEn: "AI Systems",        execAr: "وكلاء AI",  execEn: "AI Agents"     },
+];
+
+const REGIONS_PREVIEW = [
+  { flag: "🌿", ar: "بلاد الشام",      en: "The Levant",    color: "#10b981", count: 2 },
+  { flag: "🏙️", ar: "الخليج العربي",   en: "The GCC",       color: "#3b82f6", count: 2 },
+  { flag: "🏛️", ar: "أوروبا",         en: "Europe",        color: "#8b5cf6", count: 2 },
+  { flag: "🚀", ar: "أمريكا الشمالية", en: "North America", color: "#06b6d4", count: 2 },
+  { flag: "🌾", ar: "شمال أفريقيا",   en: "North Africa",  color: "#f59e0b", count: 2 },
 ];
 
 const STEPS = [
@@ -134,13 +132,14 @@ export default function PublicLanding() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const R = i18n.language === "ar";
-  const [annual, setAnnual] = useState(false);
   const [testimonialIdx, setTestimonialIdx] = useState(0);
+  const [demoOpen, setDemoOpen] = useState(false);
+  const [bizOpen, setBizOpen] = useState(false);
   const featuresRev = useReveal();
   const sectorsRev = useReveal();
   const stepsRev = useReveal();
-  const pricingRev = useReveal();
-  const mallRev = useReveal();
+  const brandsRev = useReveal();
+  const projsRev = useReveal();
 
   useEffect(() => {
     const t = setInterval(() => setTestimonialIdx(i => (i + 1) % TESTIMONIALS.length), 4500);
@@ -148,6 +147,7 @@ export default function PublicLanding() {
   }, []);
 
   return (
+    <>
     <PublicLayout>
 
       {/* ══ 1. HERO ══════════════════════════════════════════════ */}
@@ -195,11 +195,11 @@ export default function PublicLanding() {
               </Button>
             ) : (
               <>
-                <Button size="lg" onClick={() => navigate("/auth?tab=signup")} className="gap-2 text-base px-10 gold-glow">
-                  {R ? "ابدأ مجاناً" : "Start Free"} <ArrowRight className="w-5 h-5" />
+                <Button size="lg" onClick={() => setDemoOpen(true)} className="gap-2 text-base px-10 gold-glow">
+                  {R ? "اطلب عرضاً تجريبيًا" : "Request a Demo"} <ArrowRight className="w-5 h-5" />
                 </Button>
-                <Button size="lg" variant="outline" onClick={() => navigate("/auth")} className="text-base px-10">
-                  {R ? "تسجيل الدخول" : "Sign In"}
+                <Button size="lg" variant="outline" onClick={() => navigate("/services")} className="text-base px-10">
+                  {R ? "استكشف خدماتنا" : "Explore Services"}
                 </Button>
               </>
             )}
@@ -297,55 +297,202 @@ export default function PublicLanding() {
         </div>
       </section>
 
-      {/* ══ 6. PRICING ═══════════════════════════════════════════ */}
-      <section className="py-20 bg-secondary/10 border-y border-border/30" id="pricing">
-        <div ref={pricingRev.ref} className="max-w-5xl mx-auto px-4">
-          <div className={cn("text-center mb-12 transition-all duration-700", pricingRev.visible ? "opacity-100" : "opacity-0")}>
-            <Badge className="mb-4 bg-primary/10 text-primary border-primary/20 text-xs">{R ? "خطط الاشتراك" : "Pricing Plans"}</Badge>
-            <h2 className="text-3xl font-display font-black">{R ? "ابدأ مجاناً وقم بالترقية" : "Start Free, Upgrade When Ready"}</h2>
-            <div className="flex items-center justify-center gap-3 mt-5">
-              <span className={cn("text-xs", !annual && "text-primary font-bold")}>{R ? "شهري" : "Monthly"}</span>
-              <button onClick={() => setAnnual(v => !v)} className={cn("w-11 h-6 rounded-full border transition-all relative", annual ? "bg-primary border-primary" : "bg-secondary border-border/50")}>
-                <span className={cn("absolute top-0.5 w-5 h-5 rounded-full bg-white transition-all", annual ? "left-[22px]" : "left-0.5")} />
-              </button>
-              <span className={cn("text-xs", annual && "text-primary font-bold")}>{R ? "سنوي (-20%)" : "Annual (-20%)"}</span>
-            </div>
+      {/* ══ 6. BRAND ECOSYSTEM ══════════════════════════════════════ */}
+      <section className="py-20 bg-secondary/10 border-y border-border/30">
+        <div ref={brandsRev.ref} className="max-w-6xl mx-auto px-4">
+          <div className={cn("text-center mb-14 transition-all duration-700", brandsRev.visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8")}>
+            <Badge className="mb-4 bg-primary/10 text-primary border-primary/20 text-xs">{R ? "شركاتنا الشقيقة" : "Brand Ecosystem"}</Badge>
+            <h2 className="text-3xl md:text-4xl font-display font-black">{R ? "منظومة علاماتنا التجارية" : "Our Brand Companies"}</h2>
+            <p className="text-muted-foreground text-sm mt-3 max-w-xl mx-auto">
+              {R ? "ست علامات تجارية متخصصة تعمل بتناسق كامل لتغطية أوسع نطاق تجاري وتقني" : "Six specialized brands working in complete synergy for maximum commercial and technical coverage"}
+            </p>
           </div>
-          <div className={cn("grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 transition-all duration-700 delay-150", pricingRev.visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8")}>
-            {PRICING.map((plan) => {
-              const finalPrice = annual ? (plan.price * 0.8).toFixed(2) : plan.price.toFixed(2);
-              return (
-                <div key={plan.code} className={cn("relative p-5 rounded-2xl border-2 transition-all hover:-translate-y-1", plan.color, plan.code === "pro" && "shadow-lg shadow-primary/10")}>
-                  {plan.badge && (
-                    <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                      <Badge className="bg-primary text-primary-foreground text-[9px] px-3">{plan.badge}</Badge>
+          <div className={cn("grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 transition-all duration-700 delay-150", brandsRev.visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10")}>
+            {BRANDS_ECOSYSTEM.map((brand) => (
+              <button key={brand.nameEn} onClick={() => navigate("/our-projects")}
+                className="group relative p-6 rounded-2xl border text-start transition-all duration-300 hover:-translate-y-1.5 overflow-hidden"
+                style={{ borderColor: `${brand.color}25`, background: `${brand.color}06` }}
+              >
+                <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-2xl" style={{ background: `radial-gradient(circle at 80% 20%, ${brand.color}14, transparent 60%)` }} />
+                <div className="relative z-10">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl border" style={{ background: `${brand.color}12`, borderColor: `${brand.color}25` }}>
+                      {brand.icon}
                     </div>
-                  )}
-                  <h3 className="text-sm font-bold mb-1">{R ? plan.nameAr : plan.name}</h3>
-                  <div className="flex items-baseline gap-1 mb-4">
-                    <span className="text-2xl font-display font-black">{plan.price === 0 ? "0" : `$${finalPrice}`}</span>
-                    {plan.price > 0 && <span className="text-xs text-muted-foreground">{R ? "/شهر" : "/mo"}</span>}
+                    <span className="text-[10px] font-bold px-2 py-1 rounded-full border" style={{ color: brand.color, borderColor: `${brand.color}40`, background: `${brand.color}12` }}>
+                      {R ? brand.tagAr : brand.tagEn}
+                    </span>
                   </div>
-                  <ul className="space-y-2 mb-5">
-                    {(R ? plan.features_ar : plan.features_en).map((f) => (
-                      <li key={f} className="flex items-start gap-2 text-xs">
-                        <CheckCircle className="w-3.5 h-3.5 text-green-400 shrink-0 mt-0.5" />
-                        <span>{f}</span>
-                      </li>
-                    ))}
-                  </ul>
-                  <Button size="sm" className="w-full" variant={plan.code === "pro" ? "default" : "outline"}
-                    onClick={() => navigate(user ? "/portal/profile" : "/auth?tab=signup")}>
-                    {R ? plan.cta_ar : plan.cta_en}
-                  </Button>
+                  <h3 className="text-sm font-bold mb-2" style={{ color: brand.color }}>{R ? brand.nameAr : brand.nameEn}</h3>
+                  <p className="text-xs text-muted-foreground leading-relaxed">{R ? brand.descAr : brand.descEn}</p>
+                  <div className="flex items-center gap-1 mt-4 text-[10px] font-semibold group-hover:gap-2 transition-all" style={{ color: brand.color }}>
+                    {R ? "استعرض المشاريع" : "View Projects"} <ArrowRight className="w-3 h-3" />
+                  </div>
                 </div>
-              );
-            })}
+              </button>
+            ))}
+          </div>
+          <div className="text-center mt-10">
+            <button
+              onClick={() => navigate("/our-projects")}
+              className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full border border-primary/40 text-primary text-xs font-semibold hover:bg-primary hover:text-background transition-all duration-200 hover:shadow-lg hover:shadow-primary/20"
+            >
+              {R ? "استعرض جميع المشاريع" : "View All Projects"}
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
           </div>
         </div>
       </section>
 
-      {/* ══ 7. TESTIMONIALS ══════════════════════════════════════ */}
+      {/* ══ 8. FEATURED SERVICES ══════════════════════════════════════ */}
+      <section className="py-20">
+        <div className="max-w-6xl mx-auto px-4">
+          <div className="text-center mb-14">
+            <Badge className="mb-4 bg-primary/10 text-primary border-primary/20 text-xs gap-2">
+              <Layers className="w-3.5 h-3.5" />{R ? "خدماتنا" : "Our Services"}
+            </Badge>
+            <h2 className="text-3xl md:text-4xl font-display font-black">{R ? "ما الذي نقدمه لك؟" : "What We Build For You"}</h2>
+            <p className="text-muted-foreground text-sm mt-3 max-w-xl mx-auto">
+              {R ? "منظومة متكاملة من الخدمات الرقمية والذكاء الاصطناعي لبناء مشاريع متكاملة" : "A complete suite of digital & AI-powered services to build fully integrated businesses"}
+            </p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-10">
+            {[
+              { icon: BarChart3,   color: "#f59e0b", tagAr: "ERP & مالية",       tagEn: "ERP & Finance",           titleAr: "نظام ERP متكامل",             titleEn: "Integrated ERP System",        descAr: "إدارة مالية وموارد بشرية ومخزون وعمليات في منصة واحدة", descEn: "Finance, HR, inventory & ops in one platform" },
+              { icon: Bot,         color: "#06b6d4", tagAr: "ذكاء اصطناعي",      tagEn: "Artificial Intelligence", titleAr: "وكلاء الذكاء الاصطناعي",      titleEn: "AI Agents & Automation",       descAr: "وكلاء AI مخصصون لأتمتة كل عملياتك التجارية",           descEn: "Custom AI agents to automate your entire business" },
+              { icon: ShoppingBag, color: "#10b981", tagAr: "تجارة إلكترونية",   tagEn: "E-Commerce",              titleAr: "متجر إلكتروني احترافي",        titleEn: "Professional Online Store",    descAr: "متجر متكامل متعدد البائعين مع نظام دفع آمن",           descEn: "Full multi-vendor store with secure payment gateway" },
+              { icon: Globe,       color: "#8b5cf6", tagAr: "تطوير رقمي",        tagEn: "Digital Development",     titleAr: "بناء الهوية الرقمية",          titleEn: "Digital Identity Building",    descAr: "موقع احترافي وتطبيق وهوية بصرية متكاملة",              descEn: "Website, app & complete visual identity design" },
+            ].map(({ icon: Icon, color, tagAr, tagEn, titleAr, titleEn, descAr, descEn }) => (
+              <button key={titleEn} onClick={() => navigate("/services")}
+                className="group flex items-start gap-5 p-6 rounded-2xl border text-start transition-all hover:-translate-y-1 hover:shadow-xl"
+                style={{ borderColor: `${color}25`, background: `${color}06` }}
+              >
+                <div className="w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 transition-transform group-hover:scale-110"
+                  style={{ background: `${color}18`, border: `1px solid ${color}30` }}>
+                  <Icon className="w-7 h-7" style={{ color }} />
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-2 flex-wrap">
+                    <h3 className="text-sm font-bold">{R ? titleAr : titleEn}</h3>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full border"
+                      style={{ color, borderColor: `${color}40`, background: `${color}12` }}>
+                      {R ? tagAr : tagEn}
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground leading-relaxed">{R ? descAr : descEn}</p>
+                  <div className="flex items-center gap-1 mt-3 text-[10px] font-semibold group-hover:gap-2 transition-all" style={{ color }}>
+                    {R ? "اكتشف الخدمة" : "Learn More"} <ArrowRight className="w-3 h-3" />
+                  </div>
+                </div>
+              </button>
+            ))}
+          </div>
+          <div className="text-center">
+            <Button onClick={() => navigate("/services")} variant="outline" className="gap-2 px-8">
+              <Layers className="w-4 h-4" />{R ? "استعرض جميع خدماتنا" : "View All Services"}<ArrowRight className="w-4 h-4" />
+            </Button>
+          </div>
+        </div>
+      </section>
+
+      {/* ══ 8. PRODUCTS ══════════════════════════════════════════ */}
+      <section className="py-20 bg-secondary/10 border-y border-border/30">
+        <div className="max-w-6xl mx-auto px-4">
+          <div className="text-center mb-14">
+            <Badge className="mb-4 bg-primary/10 text-primary border-primary/20 text-xs gap-2">
+              <ShoppingBag className="w-3.5 h-3.5" />{R ? "منتجاتنا" : "Our Products"}
+            </Badge>
+            <h2 className="text-3xl md:text-4xl font-display font-black">{R ? "منتجات جاهزة للانطلاق" : "Ready-to-Deploy Products"}</h2>
+            <p className="text-muted-foreground text-sm mt-3 max-w-xl mx-auto">
+              {R ? "حلول برمجية ورقمية ومنتجات ذكاء اصطناعي جاهزة للتفعيل الفوري في مشروعك" : "Software, digital & AI products ready for immediate activation in your business"}
+            </p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
+            {[
+              { icon: "⚡", color: "#f59e0b", nameAr: "رخصة ERP المؤسسي",            nameEn: "Enterprise ERP License",     descAr: "ERP كامل: مالية، موارد بشرية، مخزون، CRM وتحليلات",             descEn: "Full ERP: finance, HR, inventory, CRM & analytics",         tagAr: "برمجيات",   tagEn: "Software"      },
+              { icon: "🤖", color: "#06b6d4", nameAr: "حزمة وكلاء AI — 10 وكلاء",   nameEn: "AI Agent Pack — 10 Agents",  descAr: "نشر 10 وكلاء AI مخصصين مدعومين بـ GPT-4",                     descEn: "Deploy 10 custom AI agents powered by GPT-4",               tagAr: "ذكاء اصطناعي", tagEn: "AI"         },
+              { icon: "📣", color: "#ec4899", nameAr: "حزمة التسويق الشاملة",        nameEn: "Marketing Suite",            descAr: "CRM + مدير حملات + خط عملاء + تحليلات ROI",                  descEn: "CRM + campaign manager + lead pipeline + ROI analytics",    tagAr: "تسويق",     tagEn: "Marketing"     },
+              { icon: "🤝", color: "#10b981", nameAr: "رخصة بيئة عمل الشريك",       nameEn: "Partner Workspace Licence",  descAr: "بيئة عمل معزولة متعددة المستأجرين مع تشارك الإيرادات",       descEn: "Isolated multi-tenant workspace with revenue sharing",       tagAr: "منصة",      tagEn: "Platform"      },
+            ].map(({ icon, color, nameAr, nameEn, descAr, descEn, tagAr, tagEn }) => (
+              <button key={nameEn} onClick={() => navigate("/products")}
+                className="group flex flex-col p-5 rounded-2xl border text-start transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl"
+                style={{ borderColor: `${color}25`, background: `${color}06` }}
+              >
+                <div className="flex items-start justify-between mb-3">
+                  <div className="w-11 h-11 rounded-xl flex items-center justify-center text-xl border transition-transform group-hover:scale-110"
+                    style={{ background: `${color}18`, borderColor: `${color}30` }}>
+                    {icon}
+                  </div>
+                  <span className="text-[9px] font-bold px-2 py-0.5 rounded-full border"
+                    style={{ color, borderColor: `${color}40`, background: `${color}12` }}>
+                    {R ? tagAr : tagEn}
+                  </span>
+                </div>
+                <h3 className="text-xs font-bold mb-1.5 leading-snug" style={{ color }}>{R ? nameAr : nameEn}</h3>
+                <p className="text-[11px] text-muted-foreground leading-relaxed flex-1">{R ? descAr : descEn}</p>
+                <div className="flex items-center gap-1 mt-3 text-[10px] font-semibold group-hover:gap-2 transition-all" style={{ color }}>
+                  {R ? "عرض المنتج" : "View Product"} <ArrowRight className="w-3 h-3" />
+                </div>
+              </button>
+            ))}
+          </div>
+          <div className="text-center">
+            <Button onClick={() => navigate("/products")} variant="outline" className="gap-2 px-8">
+              <ShoppingBag className="w-4 h-4" />{R ? "استعرض جميع المنتجات" : "View All Products"}<ArrowRight className="w-4 h-4" />
+            </Button>
+          </div>
+        </div>
+      </section>
+
+      {/* ══ 9. GLOBAL AGENT NETWORK ══════════════════════════════════════ */}
+      <section className="py-20 bg-secondary/10 border-y border-border/30">
+        <div className="max-w-6xl mx-auto px-4">
+          <div className="text-center mb-12">
+            <Badge className="mb-4 bg-primary/10 text-primary border-primary/20 text-xs gap-2">
+              <Network className="w-3.5 h-3.5" />{R ? "الشبكة العالمية" : "Global Network"}
+            </Badge>
+            <h2 className="text-3xl font-display font-black">{R ? "وكلاؤنا حول العالم" : "Our Agents Worldwide"}</h2>
+            <p className="text-muted-foreground text-sm mt-2">{R ? "شبكة وكلاء إقليميين متخصصين في 5 مناطق وأكثر من 10 دول" : "Specialized regional agents across 5 territories & 10+ countries"}</p>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-10">
+            {REGIONS_PREVIEW.map((r) => (
+              <button key={r.en} onClick={() => navigate("/our-agents")}
+                className="rounded-xl border p-4 text-center transition-all hover:-translate-y-1 hover:shadow-lg"
+                style={{ borderColor: `${r.color}25`, background: `${r.color}06` }}
+              >
+                <div className="text-2xl mb-2">{r.flag}</div>
+                <p className="text-xs font-bold text-foreground">{R ? r.ar : r.en}</p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">{r.count}+ {R ? "وكيل" : "agents"}</p>
+              </button>
+            ))}
+          </div>
+          <div className="flex flex-wrap items-center justify-center gap-8 mb-10 py-6 rounded-2xl border border-border/30 bg-background/40">
+            {[
+              { icon: UserCheck, val: "10+", labelAr: "وكيل معتمد",    labelEn: "Certified Agents" },
+              { icon: Globe,     val: "5",   labelAr: "منطقة جغرافية", labelEn: "Regions"          },
+              { icon: MapPin,    val: "10+", labelAr: "دولة",           labelEn: "Countries"        },
+              { icon: Briefcase, val: "6",   labelAr: "علامة تجارية",   labelEn: "Brand Lines"      },
+            ].map(({ icon: Icon, val, labelAr, labelEn }) => (
+              <div key={labelEn} className="flex items-center gap-2">
+                <div className="w-9 h-9 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center">
+                  <Icon className="w-4 h-4 text-primary" />
+                </div>
+                <div>
+                  <p className="text-xl font-black text-primary leading-none">{val}</p>
+                  <p className="text-[10px] text-muted-foreground">{R ? labelAr : labelEn}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="text-center">
+            <Button onClick={() => navigate("/our-agents")} variant="outline" className="gap-2 px-8">
+              <Network className="w-4 h-4" />{R ? "تعرف على شبكة وكلائنا" : "Explore Our Agent Network"}<ArrowRight className="w-4 h-4" />
+            </Button>
+          </div>
+        </div>
+      </section>
+
+      {/* ══ 9. TESTIMONIALS ══════════════════════════════════════ */}
       <section className="py-20">
         <div className="max-w-4xl mx-auto px-4">
           <div className="text-center mb-12">
@@ -377,88 +524,7 @@ export default function PublicLanding() {
         </div>
       </section>
 
-      {/* ══ 8. MARKETPLACE & DIGITAL MALL ════════════════════════ */}
-      <section className="py-20 bg-secondary/10 border-y border-border/30">
-        <div ref={mallRev.ref} className="max-w-5xl mx-auto px-4">
-          <div className={cn("text-center mb-12 transition-all duration-700", mallRev.visible ? "opacity-100" : "opacity-0")}>
-            <Badge className="mb-4 bg-primary/10 text-primary border-primary/20 text-xs gap-2">
-              <ShoppingBag className="w-3.5 h-3.5" />
-              {R ? "تسوق معنا" : "Shop With Us"}
-            </Badge>
-            <h2 className="text-3xl font-display font-black">
-              {R ? "السوق الإلكتروني والمول الرقمي" : "Marketplace & Digital Mall"}
-            </h2>
-            <p className="text-muted-foreground mt-2 text-sm">
-              {R ? "تصفح الآلاف من المنتجات والخدمات من موردين معتمدين" : "Browse thousands of products & services from verified vendors"}
-            </p>
-          </div>
-          <div className={cn("grid md:grid-cols-2 gap-6 transition-all duration-700 delay-150", mallRev.visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8")}>
-            {/* Marketplace */}
-            <div className="relative overflow-hidden rounded-3xl border border-primary/20 bg-gradient-to-br from-primary/5 to-transparent p-8 hover:-translate-y-1 transition-all duration-300">
-              <div className="absolute top-0 right-0 w-40 h-40 bg-primary/8 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
-              <div className="relative z-10">
-                <div className="w-14 h-14 rounded-2xl bg-primary/15 border border-primary/20 flex items-center justify-center mb-5">
-                  <ShoppingBag className="w-7 h-7 text-primary" />
-                </div>
-                <h3 className="text-xl font-display font-black mb-2">{R ? "السوق الإلكتروني" : "Marketplace"}</h3>
-                <p className="text-sm text-muted-foreground leading-relaxed mb-5">
-                  {R
-                    ? "تصفح منتجات وخدمات من بائعين معتمدين. أضف للسلة، قارن، واشترِ بثقة."
-                    : "Browse products & services from verified vendors. Add to cart, compare, and buy with confidence."}
-                </p>
-                <ul className="space-y-1.5 mb-6">
-                  {(R
-                    ? ["بحث وتصفية متقدم", "تقييمات موثوقة", "دفع آمن", "تتبع الطلبات"]
-                    : ["Advanced search & filter", "Verified reviews", "Secure checkout", "Order tracking"]
-                  ).map((f) => (
-                    <li key={f} className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <CheckCircle className="w-3.5 h-3.5 text-primary shrink-0" />{f}
-                    </li>
-                  ))}
-                </ul>
-                <Button onClick={() => navigate(user ? "/marketplace" : "/auth?tab=signin")} className="gap-2 gold-glow">
-                  <ShoppingCart className="w-4 h-4" />
-                  {R ? "تصفح السوق" : "Browse Marketplace"}
-                  <ArrowRight className="w-4 h-4" />
-                </Button>
-              </div>
-            </div>
-
-            {/* Digital Mall */}
-            <div className="relative overflow-hidden rounded-3xl border border-indigo-500/20 bg-gradient-to-br from-indigo-500/5 to-transparent p-8 hover:-translate-y-1 transition-all duration-300">
-              <div className="absolute top-0 right-0 w-40 h-40 bg-indigo-500/8 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
-              <div className="relative z-10">
-                <div className="w-14 h-14 rounded-2xl bg-indigo-500/15 border border-indigo-500/20 flex items-center justify-center mb-5">
-                  <Building2 className="w-7 h-7 text-indigo-400" />
-                </div>
-                <h3 className="text-xl font-display font-black mb-2">{R ? "المول الرقمي" : "Digital Mall"}</h3>
-                <p className="text-sm text-muted-foreground leading-relaxed mb-5">
-                  {R
-                    ? "تجربة تسوق منظمة في بيئة مول متكاملة — كل قطاع في جناحه الخاص بمتاجر وعروض حصرية."
-                    : "Organized shopping in a full mall environment — each sector in its own wing with exclusive stores & offers."}
-                </p>
-                <ul className="space-y-1.5 mb-6">
-                  {(R
-                    ? ["أجنحة متخصصة بالقطاع", "عروض حصرية", "تجربة تسوق مرئية", "مقارنة بين المتاجر"]
-                    : ["Sector-specific wings", "Exclusive deals", "Visual browsing experience", "Cross-store comparison"]
-                  ).map((f) => (
-                    <li key={f} className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <CheckCircle className="w-3.5 h-3.5 text-indigo-400 shrink-0" />{f}
-                    </li>
-                  ))}
-                </ul>
-                <Button onClick={() => navigate(user ? "/digital-mall" : "/auth?tab=signin")} className="gap-2 bg-indigo-600 hover:bg-indigo-500 text-white border-0">
-                  <Building2 className="w-4 h-4" />
-                  {R ? "دخول المول" : "Enter Digital Mall"}
-                  <ArrowRight className="w-4 h-4" />
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ══ 9. BUSINESS CTA ══════════════════════════════════════ */}
+      {/* ══ 10. BUSINESS CTA ══════════════════════════════════════ */}
       <section className="py-24 relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-transparent to-primary/5 pointer-events-none" />
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-2xl h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
@@ -476,7 +542,7 @@ export default function PublicLanding() {
               : "Whether vendor, partner, or agent — submit your request and your dedicated portal unlocks after approval."}
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button size="lg" onClick={() => navigate(user ? "/portal/profile" : "/auth?tab=signup")} className="gap-2 px-10 gold-glow">
+            <Button size="lg" onClick={() => setBizOpen(true)} className="gap-2 px-10 gold-glow">
               <Building2 className="w-5 h-5" />
               {R ? "اطلب حساباً تجارياً" : "Request Business Account"}
             </Button>
@@ -492,5 +558,22 @@ export default function PublicLanding() {
       </section>
 
     </PublicLayout>
+
+    {/* ── Lead Capture Modals ── */}
+    <LeadCaptureModal
+      open={demoOpen}
+      onClose={() => setDemoOpen(false)}
+      type="demo"
+      isAr={R}
+      meta={{ icon: "🚀", color: "#D4A017", refName: R ? "KemetRise: Legacy Nexus" : "KemetRise: Legacy Nexus" }}
+    />
+    <LeadCaptureModal
+      open={bizOpen}
+      onClose={() => setBizOpen(false)}
+      type="partner"
+      isAr={R}
+      meta={{ icon: "🏢", color: "#8b5cf6", refName: R ? "طلب حساب تجاري" : "Business Account Request" }}
+    />
+    </>
   );
 }

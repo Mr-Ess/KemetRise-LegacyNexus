@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import {
   Users, Building2, DollarSign, ShoppingBag, TrendingUp, Activity,
   Shield, BarChart3, Layers, UserCheck, ArrowUpRight, Eye, AlertTriangle,
-  RefreshCw, Clock, CheckCircle, XCircle, Cpu,
+  RefreshCw, Clock, CheckCircle, XCircle, Cpu, Globe,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
@@ -116,6 +116,7 @@ export default function AdminDashboard() {
           </div>
           <div className="flex gap-2">
             <Button size="sm" variant="outline" onClick={load} className="gap-2"><RefreshCw className="w-3.5 h-3.5" />{R ? "تحديث" : "Refresh"}</Button>
+            <Button size="sm" variant="outline" onClick={() => navigate("/admin/website")} className="gap-2"><Globe className="w-3.5 h-3.5" />{R ? "إدارة الموقع" : "Website CMS"}</Button>
             <Button size="sm" onClick={() => navigate("/admin/sectors")} className="gap-2"><Layers className="w-3.5 h-3.5" />{R ? "إدارة القطاعات" : "Sector Factory"}</Button>
           </div>
         </div>

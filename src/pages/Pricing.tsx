@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/hooks/useAuth";
@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import {
-  Check, X, Crown, Sparkles, Zap, Star,
+  Check, X, Crown, Sparkles, Zap, Star, MessageSquare,
   ArrowRight, Shield, Globe, BarChart3,
   Bot, Package, Layers, Building2, Wallet,
   ChevronDown, ChevronUp,
@@ -17,7 +17,6 @@ import {
 /* ═══════════════════════════════════════════════════════════════════════
    TYPES
 ═══════════════════════════════════════════════════════════════════════ */
-type Interval = "monthly" | "annual";
 type Tab = "subscriptions" | "products" | "services" | "sectors";
 
 /* ═══════════════════════════════════════════════════════════════════════
@@ -179,14 +178,9 @@ export default function Pricing() {
   const { user } = useAuth();
   const { i18n } = useTranslation();
   const R = i18n.language === "ar";
-  const [interval, setInterval] = useState<Interval>("monthly");
   const [tab, setTab] = useState<Tab>("subscriptions");
   const [openFaq, setOpenFaq] = useState<number | null>(null);
 
-  const goTo = (path: string) => {
-    if (!user) navigate(`/auth?tab=signin&redirect=${path}`);
-    else navigate(path);
-  };
 
   const TABS: { id: Tab; label: string; labelAr: string; icon: React.ElementType }[] = [
     { id: "subscriptions", label: "Subscriptions",  labelAr: "الاشتراكات",    icon: Crown   },
@@ -212,17 +206,8 @@ export default function Pricing() {
             {R ? "اختر خطتك" : "Choose Your Plan"}
           </h1>
           <p className="text-muted-foreground max-w-xl mx-auto text-base mb-10">
-            {R ? "تسعير شفاف — لا رسوم خفية. ابدأ مجاناً، أو اختر الخطة التي تناسب نموك." : "Transparent pricing — no hidden fees. Start free, or pick the plan that fits your growth."}
+            {R ? "تسعير شفاف — لا رسوم خفية. ابدأ مجاناً، أو اختر الخطة التي تناسب نموك." : "Contact us for custom pricing tailored to your business needs."}
           </p>
-          <div className="inline-flex items-center gap-1 bg-secondary/40 border border-border/60 rounded-xl p-1">
-            {(["monthly", "annual"] as Interval[]).map(i => (
-              <button key={i} onClick={() => setInterval(i)}
-                className={cn("px-5 py-2 rounded-lg text-xs font-semibold transition-all", interval === i ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground")}>
-                {i === "monthly" ? (R ? "شهري" : "Monthly") : (R ? "سنوي" : "Annual")}
-                {i === "annual" && <span className="ml-1.5 text-[10px] bg-emerald-500/20 text-emerald-400 px-1.5 py-0.5 rounded-full">-20%</span>}
-              </button>
-            ))}
-          </div>
         </div>
       </section>
 
@@ -258,17 +243,10 @@ export default function Pricing() {
                     </div>
                   </div>
                   <div className="mb-5">
-                    <div className="flex items-end gap-1">
-                      <span className="font-display text-4xl font-black text-primary">
-                        {plan.price.monthly === 0 ? "FREE" : `$${interval === "monthly" ? plan.price.monthly : plan.price.annual}`}
-                      </span>
-                      {plan.price.monthly > 0 && (
-                        <span className="text-xs text-muted-foreground mb-1.5">/{R ? (interval === "monthly" ? "شهر" : "شهر، سنوياً") : (interval === "monthly" ? "mo" : "mo, billed annually")}</span>
-                      )}
+                    <div className="flex items-center gap-2 p-3 rounded-xl bg-primary/5 border border-primary/15">
+                      <MessageSquare className="w-4 h-4 text-primary shrink-0" />
+                      <p className="text-xs text-muted-foreground">{R ? "تواصل معنا للحصول على عرض سعر مخصص" : "Contact us for a custom pricing quote"}</p>
                     </div>
-                    {interval === "annual" && plan.price.monthly > 0 && (
-                      <p className="text-[11px] text-emerald-400 mt-0.5">{R ? `وفّر $${(plan.price.monthly - plan.price.annual) * 12}/سنة` : `Save $${(plan.price.monthly - plan.price.annual) * 12}/yr`}</p>
-                    )}
                   </div>
                   <div className="flex gap-4 mb-5 flex-wrap">
                     {plan.limits.map(l => (
@@ -286,9 +264,9 @@ export default function Pricing() {
                       </li>
                     ))}
                   </ul>
-                  <Button onClick={() => goTo(plan.id === "enterprise" ? "/contact" : "/auth?tab=signup")}
+                  <Button onClick={() => navigate("/contact")}
                     variant={plan.highlighted ? "default" : "outline"} className="w-full gap-2">
-                    {R ? plan.ctaAr : plan.cta} <ArrowRight className="w-3.5 h-3.5" />
+                    <MessageSquare className="w-3.5 h-3.5" />{R ? "اطلب عرض سعر" : "Request a Quote"}
                   </Button>
                 </div>
               ))}
@@ -308,13 +286,9 @@ export default function Pricing() {
                     </div>
                     <h3 className="text-sm font-bold mb-1">{R ? p.nameAr : p.name}</h3>
                     <p className="text-xs text-muted-foreground mb-4 flex-1">{R ? p.descAr : p.desc}</p>
-                    <div className="flex items-center justify-between pt-3 border-t border-border/40">
-                      <div>
-                        <span className="text-lg font-black text-primary">${p.price}</span>
-                        <span className="text-[10px] text-muted-foreground ml-1">{R ? "مرة واحدة" : "one-time"}</span>
-                      </div>
-                      <Button size="sm" className="text-xs h-7 gap-1" onClick={() => goTo("/marketplace")}>
-                        {R ? "اشترِ" : "Buy"} <ArrowRight className="w-3 h-3" />
+                    <div className="pt-3 border-t border-border/40">
+                      <Button size="sm" className="w-full text-xs h-7 gap-1" onClick={() => navigate("/contact")}>
+                        <MessageSquare className="w-3 h-3" />{R ? "اطلب عرض سعر" : "Request a Quote"}
                       </Button>
                     </div>
                   </Card>
@@ -340,11 +314,9 @@ export default function Pricing() {
                       </div>
                       <p className="text-xs text-muted-foreground">{R ? s.descAr : s.desc}</p>
                     </div>
-                    <div className="shrink-0 text-right">
-                      <p className="text-xl font-black text-primary">${s.price}</p>
-                      <p className="text-[10px] text-muted-foreground">{R ? `لكل ${s.unitAr}` : `per ${s.unit}`}</p>
-                      <Button size="sm" className="mt-2 text-xs h-7 gap-1" variant="outline" onClick={() => goTo("/contact")}>
-                        {R ? "احجز" : "Book"} <ArrowRight className="w-3 h-3" />
+                    <div className="shrink-0">
+                      <Button size="sm" className="text-xs h-7 gap-1" variant="outline" onClick={() => navigate("/contact")}>
+                        <MessageSquare className="w-3 h-3" />{R ? "اطلب عرض سعر" : "Request a Quote"}
                       </Button>
                     </div>
                   </Card>
@@ -369,7 +341,7 @@ export default function Pricing() {
                         <span className="text-3xl">{s.icon}</span>
                         <div>
                           <h3 className="text-sm font-bold">{R ? s.nameAr : s.name}</h3>
-                          <p className={`text-base font-black ${pal.txt}`}>${s.price}<span className="text-[11px] font-normal text-muted-foreground ml-1">{R ? "/شهر" : "/mo"}</span></p>
+                          <p className="text-xs text-muted-foreground mt-0.5">{R ? "تواصل للتسعير" : "Contact for pricing"}</p>
                         </div>
                       </div>
                       <ul className="space-y-1.5 mb-4">
@@ -379,8 +351,8 @@ export default function Pricing() {
                           </li>
                         ))}
                       </ul>
-                      <Button size="sm" className="w-full gap-1.5 text-xs" variant="outline" onClick={() => goTo("/auth?tab=signup")}>
-                        {R ? "تفعيل القطاع" : "Activate Sector"} <ArrowRight className="w-3 h-3" />
+                      <Button size="sm" className="w-full gap-1.5 text-xs" variant="outline" onClick={() => navigate("/contact")}>
+                        <MessageSquare className="w-3 h-3" />{R ? "اطلب عرض سعر" : "Request a Quote"}
                       </Button>
                     </Card>
                   );
@@ -480,8 +452,8 @@ export default function Pricing() {
               {R ? "انضم إلى آلاف الشركات التي تستخدم KemetRise لتشغيل عملياتها." : "Join thousands of businesses using KemetRise to run their operations."}
             </p>
             <div className="flex items-center justify-center gap-3 flex-wrap">
-              <Button size="lg" onClick={() => goTo("/auth?tab=signup")} className="gap-2 gold-glow">
-                <Sparkles className="w-4 h-4" />{R ? "ابدأ مجاناً" : "Get Started Free"}
+              <Button size="lg" onClick={() => navigate("/contact")} className="gap-2 gold-glow">
+                <MessageSquare className="w-4 h-4" />{R ? "تواصل معنا الآن" : "Contact Us Now"}
               </Button>
               <Button size="lg" variant="outline" onClick={() => navigate("/contact")} className="gap-2">
                 {R ? "تحدث مع المبيعات" : "Talk to Sales"} <ArrowRight className="w-4 h-4" />

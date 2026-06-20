@@ -58,7 +58,7 @@ const navItems = [
   // المطورين
   { group: "المطورين", icon: Webhook,      label: "Webhooks", path: "/webhooks" },
   { group: "المطورين", icon: Code,         label: "API Docs", path: "/api-docs" },
-  { group: "المطورين", icon: Store,        label: "متجر التطبيقات", path: "/marketplace" },
+  { group: "المطورين", icon: Store,        label: "المنتجات", path: "/products" },
   { group: "المطورين", icon: KeyRound,     label: "المطور", path: "/developer" },
   // النظام
   { group: "النظام", icon: Bell,           label: "الإشعارات", path: "/notifications" },

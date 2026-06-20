@@ -79,8 +79,11 @@ export default function UserPortalAccess() {
       if (!profiles?.length) { setUsers([]); setLoading(false); return; }
 
       // Get emails from auth.users via admin — fallback to id if not available
-      // We'll fetch emails from a "profiles" or "auth_users" view if available
-      const { data: authData } = await db.rpc("get_users_with_email").catch(() => ({ data: null }));
+      let authData: any = null;
+      try {
+        const { data } = await db.rpc("get_users_with_email");
+        authData = data;
+      } catch { /* RPC not available, emails will show as partial IDs */ }
       const emailMap: Record<string, string> = {};
       if (Array.isArray(authData)) {
         authData.forEach((u: any) => { emailMap[u.id] = u.email; });

@@ -7,6 +7,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { BrandsProvider } from "@/context/BrandsContext";
 import { AuthProvider } from "@/hooks/useAuth";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import RoleProtectedRoute from "@/components/RoleProtectedRoute";
 import ErrorBoundary from "@/components/shared/ErrorBoundary";
 import OnboardingWizard from "@/components/OnboardingWizard";
 import OnboardingTour from "@/components/OnboardingTour";
@@ -92,12 +93,17 @@ const PublicAbout       = lazy(() => import("./pages/public/PublicAbout"));
 const PublicContact     = lazy(() => import("./pages/public/PublicContact"));
 const PublicServices    = lazy(() => import("./pages/public/PublicServices"));
 const PublicProducts    = lazy(() => import("./pages/public/PublicProducts"));
+const PublicProjects    = lazy(() => import("./pages/public/PublicProjects"));
 const PublicPortfolio   = lazy(() => import("./pages/public/PublicPortfolio"));
 const PublicPartners    = lazy(() => import("./pages/public/PublicPartners"));
+const PublicAgents      = lazy(() => import("./pages/public/PublicAgents"));
 const PublicNews        = lazy(() => import("./pages/public/PublicNews"));
+const PrivacyPolicy     = lazy(() => import("./pages/public/PrivacyPolicy"));
+const TermsOfService    = lazy(() => import("./pages/public/TermsOfService"));
 const VendorProducts    = lazy(() => import("./pages/vendor/VendorProducts"));
 const AdminUsers        = lazy(() => import("./pages/admin/AdminUsers"));
 const AdminAnalytics    = lazy(() => import("./pages/admin/AdminAnalytics"));
+const WebsiteManager    = lazy(() => import("./pages/admin/WebsiteManager"));
 
 import { ERPProvider } from "@/context/ERPContext";
 import { CartProvider } from "@/context/CartContext";
@@ -109,6 +115,9 @@ const ProviderDashboard = lazy(() => import("./pages/provider/ProviderDashboard"
 const UserDashboard     = lazy(() => import("./pages/portal/UserDashboard"));
 const UserOrders        = lazy(() => import("./pages/portal/UserOrders"));
 const FinancialHub      = lazy(() => import("./pages/FinancialHub"));
+const ManagerDashboard  = lazy(() => import("./pages/manager/ManagerDashboard"));
+const StaffDashboard    = lazy(() => import("./pages/staff/StaffDashboard"));
+const WebsiteServicesAdmin = lazy(() => import("./pages/admin/WebsiteServicesAdmin"));
 
 const AffiliatedAgents = lazy(() => import("./pages/AffiliatedAgents.tsx"));
 const NotificationRules = lazy(() => import("./pages/NotificationRules.tsx"));
@@ -141,7 +150,7 @@ const PageFallback = () => (
 );
 
 const Protected = ({ children }: { children: React.ReactNode }) => (
-  <ProtectedRoute><UserRoleProvider><TenantProvider><BrandsProvider><OnboardingTour /><CommandPalette />{children}<AIAssistant /></BrandsProvider></TenantProvider></UserRoleProvider></ProtectedRoute>
+  <ProtectedRoute><TenantProvider><BrandsProvider><OnboardingTour /><CommandPalette />{children}<AIAssistant /></BrandsProvider></TenantProvider></ProtectedRoute>
 );
 
 const App = () => (
@@ -152,6 +161,7 @@ const App = () => (
       <ErrorBoundary>
         <BrowserRouter>
           <AuthProvider>
+            <UserRoleProvider>
             <CartProvider>
             <Suspense fallback={<PageFallback />}>
               <Routes>
@@ -165,10 +175,14 @@ const App = () => (
                 <Route path="/contact" element={<PublicContact />} />
                 <Route path="/services" element={<PublicServices />} />
                 <Route path="/products" element={<PublicProducts />} />
+                <Route path="/our-projects" element={<PublicProjects />} />
                 <Route path="/portfolio" element={<PublicPortfolio />} />
                 <Route path="/partners" element={<PublicPartners />} />
+                <Route path="/our-agents" element={<PublicAgents />} />
                 <Route path="/news" element={<PublicNews />} />
                 <Route path="/news/:slug" element={<PublicNews />} />
+                <Route path="/privacy" element={<PrivacyPolicy />} />
+                <Route path="/terms" element={<TermsOfService />} />
                 <Route path="/erp" element={<Protected><ERPProvider><ERPCockpit /></ERPProvider></Protected>} />
                 <Route path="/cockpit" element={<Protected><ExecutiveCockpit /></Protected>} />
                 <Route path="/brands" element={<Protected><BrandsHub /></Protected>} />
@@ -221,42 +235,53 @@ const App = () => (
                 <Route path="/import-export"      element={<Navigate to="/operations" replace />} />
                 <Route path="/clients" element={<Navigate to="/customers" replace />} />
                 <Route path="/finance-analytics" element={<Protected><FinanceAnalytics /></Protected>} />
+                {/* ── Manager Portal ── */}
+                <Route path="/manager" element={<Protected><RoleProtectedRoute allowedRoles={["superadmin","admin","manager"]}><ManagerDashboard /></RoleProtectedRoute></Protected>} />
+                <Route path="/manager/*" element={<Protected><RoleProtectedRoute allowedRoles={["superadmin","admin","manager"]}><ManagerDashboard /></RoleProtectedRoute></Protected>} />
+                {/* ── Staff Portal ── */}
+                <Route path="/staff" element={<Protected><RoleProtectedRoute allowedRoles={["superadmin","admin","manager","staff"]}><StaffDashboard /></RoleProtectedRoute></Protected>} />
+                <Route path="/staff/*" element={<Protected><RoleProtectedRoute allowedRoles={["superadmin","admin","manager","staff"]}><StaffDashboard /></RoleProtectedRoute></Protected>} />
                 {/* ── Provider Portal ── */}
-                <Route path="/provider" element={<Protected><ProviderDashboard /></Protected>} />
+                <Route path="/provider" element={<Protected><RoleProtectedRoute allowedRoles={["superadmin","admin","manager","provider"]}><ProviderDashboard /></RoleProtectedRoute></Protected>} />
                 {/* ── User Portal ── */}
-                <Route path="/portal" element={<Protected><UserDashboard /></Protected>} />
+                <Route path="/portal" element={<Protected><RoleProtectedRoute allowedRoles={["superadmin","admin","manager","staff","partner","agent","vendor","provider","marketing","user"]}><UserDashboard /></RoleProtectedRoute></Protected>} />
                 <Route path="/portal/orders" element={<Protected><UserOrders /></Protected>} />
                 <Route path="/portal/wishlist" element={<Protected><UserDashboard /></Protected>} />
                 <Route path="/portal/invoices" element={<Protected><UserDashboard /></Protected>} />
                 <Route path="/portal/reviews" element={<Protected><UserDashboard /></Protected>} />
                 <Route path="/portal/profile" element={<Protected><Settings /></Protected>} />
                 {/* ── Admin Finance Hub ── */}
-                <Route path="/admin/finance" element={<Protected><FinancialHub /></Protected>} />
+                <Route path="/admin/finance" element={<Protected><RoleProtectedRoute allowedRoles={["superadmin","admin"]}><FinancialHub /></RoleProtectedRoute></Protected>} />
                 {/* ── Admin Portal ── */}
-                <Route path="/admin" element={<Protected><AdminDashboard /></Protected>} />
-                <Route path="/admin/sectors" element={<Protected><SectorFactory /></Protected>} />
-                <Route path="/admin/users" element={<Protected><AdminUsers /></Protected>} />
-                <Route path="/admin/analytics" element={<Protected><AdminAnalytics /></Protected>} />
+                <Route path="/admin" element={<Protected><RoleProtectedRoute allowedRoles={["superadmin","admin"]}><AdminDashboard /></RoleProtectedRoute></Protected>} />
+                <Route path="/admin/sectors" element={<Protected><RoleProtectedRoute allowedRoles={["superadmin","admin"]}><SectorFactory /></RoleProtectedRoute></Protected>} />
+                <Route path="/admin/users" element={<Protected><RoleProtectedRoute allowedRoles={["superadmin","admin"]}><AdminUsers /></RoleProtectedRoute></Protected>} />
+                <Route path="/admin/analytics" element={<Protected><RoleProtectedRoute allowedRoles={["superadmin","admin"]}><AdminAnalytics /></RoleProtectedRoute></Protected>} />
+                <Route path="/admin/website-services" element={<Protected><RoleProtectedRoute allowedRoles={["superadmin","admin"]}><WebsiteServicesAdmin /></RoleProtectedRoute></Protected>} />
+                <Route path="/admin/website" element={<Protected><RoleProtectedRoute allowedRoles={["superadmin","admin"]}><WebsiteManager /></RoleProtectedRoute></Protected>} />
+                <Route path="/dashboard/website" element={<Navigate to="/admin/website" replace />} />
                 {/* ── Partner Portal ── */}
-                <Route path="/partner" element={<Protected><PartnerDashboard /></Protected>} />
-                <Route path="/partner/*" element={<Protected><PartnerDashboard /></Protected>} />
+                <Route path="/partner" element={<Protected><RoleProtectedRoute allowedRoles={["superadmin","admin","manager","partner"]}><PartnerDashboard /></RoleProtectedRoute></Protected>} />
+                <Route path="/partner/*" element={<Protected><RoleProtectedRoute allowedRoles={["superadmin","admin","manager","partner"]}><PartnerDashboard /></RoleProtectedRoute></Protected>} />
                 {/* ── Agent Portal ── */}
-                <Route path="/agent" element={<Protected><AgentDashboard /></Protected>} />
-                <Route path="/agent/*" element={<Protected><AgentDashboard /></Protected>} />
+                <Route path="/agent" element={<Protected><RoleProtectedRoute allowedRoles={["superadmin","admin","manager","agent"]}><AgentDashboard /></RoleProtectedRoute></Protected>} />
+                <Route path="/agent/*" element={<Protected><RoleProtectedRoute allowedRoles={["superadmin","admin","manager","agent"]}><AgentDashboard /></RoleProtectedRoute></Protected>} />
                 {/* ── Vendor Portal ── */}
-                <Route path="/vendor" element={<Protected><VendorDashboard /></Protected>} />
-                <Route path="/vendor/wallet" element={<Protected><VendorWallet /></Protected>} />
-                <Route path="/vendor/products" element={<Protected><VendorProducts /></Protected>} />
-                <Route path="/vendor/*" element={<Protected><VendorDashboard /></Protected>} />
+                <Route path="/vendor" element={<Protected><RoleProtectedRoute allowedRoles={["superadmin","admin","manager","vendor"]}><VendorDashboard /></RoleProtectedRoute></Protected>} />
+                <Route path="/vendor/wallet" element={<Protected><RoleProtectedRoute allowedRoles={["superadmin","admin","manager","vendor"]}><VendorWallet /></RoleProtectedRoute></Protected>} />
+                <Route path="/vendor/products" element={<Protected><RoleProtectedRoute allowedRoles={["superadmin","admin","manager","vendor"]}><VendorProducts /></RoleProtectedRoute></Protected>} />
+                <Route path="/vendor/*" element={<Protected><RoleProtectedRoute allowedRoles={["superadmin","admin","manager","vendor"]}><VendorDashboard /></RoleProtectedRoute></Protected>} />
                 {/* ── Marketing Portal ── */}
-                <Route path="/marketing/leads" element={<Protected><LeadsPipeline /></Protected>} />
-                <Route path="/marketing" element={<Protected><MarketingDashboard /></Protected>} />
-                <Route path="/marketing/*" element={<Protected><MarketingDashboard /></Protected>} />
+                <Route path="/marketing/leads" element={<Protected><RoleProtectedRoute allowedRoles={["superadmin","admin","manager","marketing"]}><LeadsPipeline /></RoleProtectedRoute></Protected>} />
+                <Route path="/marketing" element={<Protected><RoleProtectedRoute allowedRoles={["superadmin","admin","manager","marketing"]}><MarketingDashboard /></RoleProtectedRoute></Protected>} />
+                <Route path="/marketing/*" element={<Protected><RoleProtectedRoute allowedRoles={["superadmin","admin","manager","marketing"]}><MarketingDashboard /></RoleProtectedRoute></Protected>} />
                 {/* ── Chat Portal ── */}
                 <Route path="/chat" element={<Protected><ChatApp /></Protected>} />
                 {/* ── ERP / HR ── */}
-                <Route path="/erp/hr" element={<Protected><HRAttendance /></Protected>} />
-                <Route path="/erp/ledger" element={<Protected><ERPLedger /></Protected>} />
+                <Route path="/erp/hr" element={<Protected><RoleProtectedRoute allowedRoles={["superadmin","admin","manager","staff","user"]}><HRAttendance /></RoleProtectedRoute></Protected>} />
+                <Route path="/erp/ledger" element={<Protected><RoleProtectedRoute allowedRoles={["superadmin","admin","manager","user"]}><ERPLedger /></RoleProtectedRoute></Protected>} />
+                <Route path="/erp/hr/*" element={<Protected><RoleProtectedRoute allowedRoles={["superadmin","admin","manager","staff","user"]}><HRAttendance /></RoleProtectedRoute></Protected>} />
+                <Route path="/erp/ledger/*" element={<Protected><RoleProtectedRoute allowedRoles={["superadmin","admin","manager","user"]}><ERPLedger /></RoleProtectedRoute></Protected>} />
                 <Route path="/heirs" element={<Navigate to="/digital-inheritance" replace />} />
                 <Route path="/affiliated-agents" element={<Navigate to="/affiliates" replace />} />
                 <Route path="/notification-rules" element={<Navigate to="/notifications" replace />} />
@@ -275,6 +300,7 @@ const App = () => (
               </Routes>
             </Suspense>
             </CartProvider>
+            </UserRoleProvider>
           </AuthProvider>
         </BrowserRouter>
       </ErrorBoundary>

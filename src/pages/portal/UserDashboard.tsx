@@ -34,14 +34,14 @@ export default function UserDashboard() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Auto-redirect based on role so admins/vendors/etc. don't land here
+  // Auto-redirect only if user navigated here directly (not via intentional portal choice)
+  // Superadmin/admin can visit /portal deliberately — only redirect if they have NO reason to be here
   useEffect(() => {
     if (!profile) return;
     const role = profile.role;
-    if (role === "admin" || role === "superadmin") navigate("/admin", { replace: true });
-    else if (role === "partner")   navigate("/partner",   { replace: true });
+    // Only auto-redirect roles that have NO content in UserDashboard at all
+    if (role === "partner")   navigate("/partner",   { replace: true });
     else if (role === "agent")     navigate("/agent",     { replace: true });
-    else if (role === "vendor" || role === "provider") navigate("/vendor", { replace: true });
     else if (role === "marketing") navigate("/marketing", { replace: true });
   }, [profile, navigate]);
   const isRTL = i18n.language === "ar";

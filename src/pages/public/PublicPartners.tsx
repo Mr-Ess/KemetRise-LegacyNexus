@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ArrowRight, Handshake, Globe, Star, CheckCircle, ExternalLink } from "lucide-react";
 import { cn } from "@/lib/utils";
+import LeadCaptureModal from "@/components/shared/LeadCaptureModal";
 
 /* ─── Data ────────────────────────────────────────────────────────────── */
 type Partner = {
@@ -110,10 +111,12 @@ export default function PublicPartners() {
   const navigate = useNavigate();
   const R = i18n.language === "ar";
   const [activeTier, setActiveTier] = useState<"all" | Partner["tier"]>("all");
+  const [partnerOpen, setPartnerOpen] = useState(false);
 
   const filtered = activeTier === "all" ? PARTNERS : PARTNERS.filter((p) => p.tier === activeTier);
 
   return (
+    <>
     <PublicLayout>
       {/* ── Hero ──────────────────────────────────────────────────────── */}
       <section className="relative py-24 overflow-hidden">
@@ -201,7 +204,7 @@ export default function PublicPartners() {
               ))}
             </div>
             <div className="flex items-center justify-center gap-3 flex-wrap">
-              <Button size="lg" onClick={() => navigate("/auth?tab=signup&role=partner")} className="gap-2 gold-glow">
+              <Button size="lg" onClick={() => setPartnerOpen(true)} className="gap-2 gold-glow">
                 {R ? "كن شريكاً الآن" : "Become a Partner"} <ArrowRight className="w-4 h-4" />
               </Button>
               <Button size="lg" variant="outline" onClick={() => navigate("/contact")}>
@@ -227,5 +230,14 @@ export default function PublicPartners() {
         </div>
       </section>
     </PublicLayout>
+
+    <LeadCaptureModal
+      open={partnerOpen}
+      onClose={() => setPartnerOpen(false)}
+      type="partner"
+      isAr={R}
+      meta={{ icon: "🤝", color: "#D4A017", refName: R ? "برنامج شركاء KemetRise" : "KemetRise Partner Program" }}
+    />
+    </>
   );
 }

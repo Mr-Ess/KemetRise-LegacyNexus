@@ -182,3 +182,8 @@ export function UserRoleProvider({ children }: { children: ReactNode }) {
 export function useRole() {
   return useContext(RoleContext);
 }
+
+/** Alias for useRole — used by RoleProtectedRoute and other components */
+export function useUserRole() {
+  return useContext(RoleContext);
+}
