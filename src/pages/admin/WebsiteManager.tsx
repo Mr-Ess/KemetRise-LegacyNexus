@@ -20,7 +20,7 @@ import {
   Globe, Layers, Package, Briefcase, Users, Star, HelpCircle,
   Newspaper, Phone, Settings2, BarChart3, Home, Edit, Trash2,
   Plus, Eye, EyeOff, Save, Loader2, RefreshCw, CheckCircle,
-  MessageSquare, Bot, ChevronUp, ChevronDown, Layout,
+  MessageSquare, Bot, ChevronUp, ChevronDown, Layout, Cpu,
 } from "lucide-react";
 
 const db = supabase as any;
@@ -36,6 +36,7 @@ const TABS = [
   { id: "projects",      labelAr: "المشاريع",           labelEn: "Projects",        icon: Briefcase   },
   { id: "agents",        labelAr: "الوكلاء",            labelEn: "Agents",          icon: Users       },
   { id: "partners",      labelAr: "الشركاء",            labelEn: "Partners",        icon: CheckCircle },
+  { id: "tech_stack",    labelAr: "التقنيات",           labelEn: "Tech Stack",      icon: Cpu         },
   { id: "testimonials",  labelAr: "آراء العملاء",       labelEn: "Testimonials",    icon: Star        },
   { id: "faqs",          labelAr: "الأسئلة الشائعة",    labelEn: "FAQs",            icon: HelpCircle  },
   { id: "news",          labelAr: "الأخبار",            labelEn: "News",            icon: Newspaper   },
@@ -54,11 +55,24 @@ function useCrud(table: string) {
   const fetch = async () => {
     setLoading(true);
     try {
-      const { data } = await db.from(table).select("*").order("sort_order", { ascending: true, nullsFirst: false }).order("created_at", { ascending: false, nullsFirst: false });
+      let { data, error } = await db.from(table).select("*")
+        .order("sort_order", { ascending: true, nullsFirst: false })
+        .order("created_at", { ascending: false, nullsFirst: false });
+      if (error) {
+        // Some tables lack created_at — retry with sort_order only
+        ({ data, error } = await db.from(table).select("*")
+          .order("sort_order", { ascending: true, nullsFirst: false }));
+      }
+      if (error) {
+        // Some tables lack sort_order too — plain select
+        ({ data } = await db.from(table).select("*"));
+      }
       setRows(data ?? []);
     } catch {
-      const { data } = await db.from(table).select("*");
-      setRows(data ?? []);
+      try {
+        const { data } = await db.from(table).select("*");
+        setRows(data ?? []);
+      } catch { setRows([]); }
     } finally { setLoading(false); }
   };
 
@@ -296,6 +310,48 @@ function PartnersPanel({ R }: { R: boolean }) {
       ])}
     >
       <RowDialog title={editing?.id ? "Edit Partner" : "New Partner"} open={!!editing} onClose={() => setEditing(null)}
+        fields={fields} initial={editing ?? {}} onSave={upsert} />
+    </CrudPanel>
+  );
+}
+
+function TechStackPanel({ R }: { R: boolean }) {
+  const { rows, loading, remove, toggle, upsert, fetch } = useCrud("website_tech_stack");
+  const [editing, setEditing] = useState<Row | null>(null);
+  const fields = [
+    { key: "name_ar",     label: "الاسم بالعربية" },
+    { key: "name_en",     label: "Name (English)" },
+    { key: "icon",        label: "Icon (emoji)" },
+    { key: "category",    label: "Category (English)" },
+    { key: "category_ar", label: "التصنيف بالعربية" },
+    { key: "tier",        label: "Tier (platinum / gold / silver)" },
+    { key: "color",       label: "Color key (emerald/violet/cyan/indigo/blue/red/orange/amber/pink)" },
+    { key: "desc_ar",     label: "الوصف بالعربية",   type: "textarea" as const },
+    { key: "desc_en",     label: "Description (EN)",  type: "textarea" as const },
+    { key: "website_url", label: "Website URL" },
+    { key: "sort_order",  label: "Sort Order",        type: "number" as const },
+    { key: "is_active",   label: "Active",            type: "switch" as const },
+  ];
+  const TIER_BADGE: Record<string, string> = {
+    platinum: "bg-primary/15 text-primary border-primary/30",
+    gold:     "bg-amber-500/15 text-amber-400 border-amber-500/30",
+    silver:   "bg-slate-400/15 text-slate-400 border-slate-400/30",
+  };
+  return (
+    <CrudPanel title={R ? "التقنيات المستخدمة" : "Tech Stack"} loading={loading} onAdd={() => setEditing({})} onRefresh={fetch}
+      columns={["الاسم / Name", "Tier", "Category", "Active", "Actions"]}
+      rows={rows.map(r => [
+        <div className="flex items-center gap-2">
+          <span>{r.icon}</span>
+          <span className="font-medium text-xs">{R ? r.name_ar : r.name_en}</span>
+        </div>,
+        <Badge variant="outline" className={`text-[10px] ${TIER_BADGE[r.tier] ?? ""}`}>{r.tier}</Badge>,
+        <span className="text-xs text-muted-foreground">{R ? r.category_ar : r.category}</span>,
+        <Switch checked={!!r.is_active} onCheckedChange={() => toggle(r.id, "is_active", r.is_active)} />,
+        <RowActions onEdit={() => setEditing(r)} onDelete={() => remove(r.id)} />,
+      ])}
+    >
+      <RowDialog title={editing?.id ? "Edit Tech Item" : "New Tech Item"} open={!!editing} onClose={() => setEditing(null)}
         fields={fields} initial={editing ?? {}} onSave={upsert} />
     </CrudPanel>
   );
@@ -626,6 +682,7 @@ export default function WebsiteManager() {
       case "projects":      return <ProjectsPanel R={R} />;
       case "agents":        return <AgentsPanel R={R} />;
       case "partners":      return <PartnersPanel R={R} />;
+      case "tech_stack":    return <TechStackPanel R={R} />;
       case "testimonials":  return <TestimonialsPanel R={R} />;
       case "faqs":          return <FAQsPanel R={R} />;
       case "news":          return <NewsPanel R={R} />;

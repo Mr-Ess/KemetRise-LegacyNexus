@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from "react";
+import { createContext, useContext, useEffect, useRef, useState, ReactNode, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -64,14 +64,19 @@ export function UserRoleProvider({ children }: { children: ReactNode }) {
   const [providerProfile, setProviderProfile] = useState<ProviderProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const db = supabase as any;
+  // Track last loaded userId so token-refresh events don't trigger redundant loads
+  const lastLoadedUserIdRef = useRef<string | null>(null);
 
   const load = useCallback(async () => {
     if (!user) {
+      lastLoadedUserIdRef.current = null;
       setProfile(null);
       setProviderProfile(null);
       setLoading(false);
       return;
     }
+    // Skip reload if same user is already loaded (e.g. TOKEN_REFRESHED event)
+    if (user.id === lastLoadedUserIdRef.current && profile !== null) return;
     setLoading(true);
     try {
       // Load user profile
@@ -95,6 +100,7 @@ export function UserRoleProvider({ children }: { children: ReactNode }) {
             }
           } catch { /* non-fatal */ }
         }
+        lastLoadedUserIdRef.current = user.id;
         setProfile(prof as UserProfile);
         // Load provider profile if provider role
         if (prof.role === "provider" || prof.role === "admin") {
@@ -129,11 +135,13 @@ export function UserRoleProvider({ children }: { children: ReactNode }) {
           onboarding_done: false,
         };
         await db.from("user_profiles").upsert(newProfile);
+        lastLoadedUserIdRef.current = user.id;
         setProfile(newProfile as UserProfile);
       }
     } catch {
-      // Graceful fallback if table doesn't exist yet
-      setProfile({
+      // Graceful fallback — only if no valid profile is already loaded
+      // (prevents token-refresh errors from downgrading an existing superadmin to "user")
+      setProfile(prev => prev ?? {
         id: user.id,
         role: "user",
         full_name: user.user_metadata?.full_name || user.email || "",
@@ -146,7 +154,7 @@ export function UserRoleProvider({ children }: { children: ReactNode }) {
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [user, profile]);
 
   useEffect(() => { load(); }, [load]);
 

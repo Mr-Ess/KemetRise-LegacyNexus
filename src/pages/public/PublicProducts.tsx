@@ -4,15 +4,13 @@ import { useNavigate } from "react-router-dom";
 import PublicLayout from "@/layouts/PublicLayout";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { useCart } from "@/context/CartContext";
 import {
-  Search, ShoppingCart, Star, ChevronDown, X, CheckCircle, ChevronRight,
+  Search, Star, ChevronDown, X, CheckCircle, ChevronRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -115,6 +113,14 @@ const ALL_ITEMS: CatalogItem[] = [
   { id:"sub1",type:"subscription",category:"Plans",         category_ar:"\u0627\u0644\u0628\u0627\u0642\u0627\u062a",  sub_category:"Starter",   sub_category_ar:"\u0623\u0633\u0627\u0633\u064a\u0629",   name:"Starter Plan",                      name_ar:"\u0627\u0644\u0628\u0627\u0642\u0629 \u0627\u0644\u0623\u0633\u0627\u0633\u064a\u0629",   description:"Perfect for small businesses just getting started.",                description_ar:"\u0645\u062b\u0627\u0644\u064a\u0629 \u0644\u0644\u0634\u0631\u0643\u0627\u062a \u0627\u0644\u0635\u063a\u064a\u0631\u0629 \u0627\u0644\u062a\u064a \u062a\u0628\u062f\u0623 \u0631\u062d\u0644\u062a\u0647\u0627.",  price_cents:1900,   pricing_model:"monthly",   icon:"\uD83C\uDF31", color:"#10b981", rating:4.5, reviews_count:234, features:["1 User Account","3 Business Sectors","Basic ERP Modules","Email Support","2 GB Storage","Standard Reports"],     features_ar:["\u062d\u0633\u0627\u0628 \u0645\u0633\u062a\u062e\u062f\u0645 \u0648\u0627\u062d\u062f","3 \u0642\u0637\u0627\u0639\u0627\u062a \u0623\u0639\u0645\u0627\u0644","\u0648\u062d\u062f\u0627\u062a ERP \u0623\u0633\u0627\u0633\u064a\u0629","\u062f\u0639\u0645 \u0628\u0627\u0644\u0628\u0631\u064a\u062f","2 \u062c\u064a\u062c\u0627 \u062a\u062e\u0632\u064a\u0646","\u062a\u0642\u0627\u0631\u064a\u0631 \u0642\u064a\u0627\u0633\u064a\u0629"] },
   { id:"sub2",type:"subscription",category:"Plans",         category_ar:"\u0627\u0644\u0628\u0627\u0642\u0627\u062a",  sub_category:"Business",  sub_category_ar:"\u0623\u0639\u0645\u0627\u0644",   name:"Business Plan",                     name_ar:"\u0628\u0627\u0642\u0629 \u0627\u0644\u0623\u0639\u0645\u0627\u0644",   description:"Everything you need to grow and scale your business.",              description_ar:"\u0643\u0644 \u0645\u0627 \u062a\u062d\u062a\u0627\u062c\u0647 \u0644\u0646\u0645\u0648 \u0648\u062a\u0648\u0633\u064a\u0639 \u0623\u0639\u0645\u0627\u0644\u0643.",  price_cents:7900,   pricing_model:"monthly",   icon:"\uD83D\uDE80", color:"#6366f1", rating:4.8, reviews_count:445, is_featured:true, features:["10 User Accounts","10 Business Sectors","Full ERP Suite","AI Assistant","Priority Support","50 GB Storage","Advanced Analytics","API Access"], features_ar:["10 \u062d\u0633\u0627\u0628\u0627\u062a \u0645\u0633\u062a\u062e\u062f\u0645\u064a\u0646","10 \u0642\u0637\u0627\u0639\u0627\u062a \u0623\u0639\u0645\u0627\u0644","\u0645\u062c\u0645\u0648\u0639\u0629 ERP \u0643\u0627\u0645\u0644\u0629","\u0645\u0633\u0627\u0639\u062f AI","\u062f\u0639\u0645 \u0623\u0648\u0644\u0648\u064a\u0629","50 \u062c\u064a\u062c\u0627 \u062a\u062e\u0632\u064a\u0646","\u062a\u062d\u0644\u064a\u0644\u0627\u062a \u0645\u062a\u0642\u062f\u0645\u0629","\u0648\u0635\u0648\u0644 API"] },
   { id:"sub3",type:"subscription",category:"Plans",         category_ar:"\u0627\u0644\u0628\u0627\u0642\u0627\u062a",  sub_category:"Enterprise",sub_category_ar:"\u0645\u0624\u0633\u0633\u0627\u062a",   name:"Enterprise Plan",                   name_ar:"\u0628\u0627\u0642\u0629 \u0627\u0644\u0645\u0624\u0633\u0633\u0627\u062a",   description:"Unlimited power for large organizations.",                          description_ar:"\u0642\u062f\u0631\u0629 \u063a\u064a\u0631 \u0645\u062d\u062f\u0648\u062f\u0629 \u0644\u0644\u0645\u0646\u0638\u0645\u0627\u062a \u0627\u0644\u0643\u0628\u064a\u0631\u0629.",  price_cents:24900,  pricing_model:"monthly",   icon:"\uD83C\uDFDB\uFE0F", color:"#f59e0b", rating:4.9, reviews_count:188, features:["Unlimited Users","All Sectors","Custom ERP","Dedicated AI Agents","24/7 Phone Support","Unlimited Storage","Custom BI","Full API","White Label"], features_ar:["\u0645\u0633\u062a\u062e\u062f\u0645\u0648\u0646 \u063a\u064a\u0631 \u0645\u062d\u062f\u0648\u062f\u0648\u0646","\u0643\u0644 \u0627\u0644\u0642\u0637\u0627\u0639\u0627\u062a","ERP \u0645\u062e\u0635\u0635","\u0648\u0643\u0644\u0627\u0621 AI \u0645\u062e\u0635\u0635\u0648\u0646","\u062f\u0639\u0645 \u0647\u0627\u062a\u0641\u064a 24/7","\u062a\u062e\u0632\u064a\u0646 \u063a\u064a\u0631 \u0645\u062d\u062f\u0648\u062f","BI \u0645\u062e\u0635\u0635","API \u0643\u0627\u0645\u0644","\u0639\u0644\u0627\u0645\u0629 \u0628\u064a\u0636\u0627\u0621"] },
+  // INFRASTRUCTURE — Cloud, Hosting, Security
+  { id:"infra1", type:"subscription", category:"Cloud & Hosting", category_ar:"\u0633\u062d\u0627\u0628\u0629 \u0648\u0627\u0633\u062a\u0636\u0627\u0641\u0629", sub_category:"Shared Hosting", sub_category_ar:"\u0627\u0633\u062a\u0636\u0627\u0641\u0629 \u0645\u0634\u062a\u0631\u0643\u0629", name:"Smart Shared Hosting", name_ar:"\u0627\u0644\u0627\u0633\u062a\u0636\u0627\u0641\u0629 \u0627\u0644\u0645\u0634\u062a\u0631\u0643\u0629 \u0627\u0644\u0630\u0643\u064a\u0629", description:"Feature-rich hosting for websites and emerging systems with flexible control panels, pre-wired for direct integration and rapid automation.", description_ar:"\u0627\u0633\u062a\u0636\u0627\u0641\u0629 \u0645\u062a\u0643\u0627\u0645\u0644\u0629 \u0644\u0644\u0645\u0648\u0627\u0642\u0639 \u0648\u0627\u0644\u0623\u0646\u0638\u0645\u0629 \u0627\u0644\u0646\u0627\u0634\u0626\u0629 \u0645\u0639 \u0644\u0648\u062d\u0627\u062a \u062a\u062d\u0643\u0645 \u0645\u0631\u0646\u0629\u060c \u0645\u0647\u064a\u0623\u0629 \u0644\u0644\u0631\u0628\u0637 \u0627\u0644\u0645\u0628\u0627\u0634\u0631 \u0648\u0627\u0644\u0623\u062a\u0645\u062a\u0629 \u0627\u0644\u0633\u0631\u064a\u0639\u0629.", price_cents:1500, pricing_model:"monthly", icon:"\uD83C\uDF10", color:"#06b6d4", rating:4.6, reviews_count:87, is_new:true, features:["cPanel/DirectAdmin","Free SSL","Unlimited Email","1-Click WordPress","Daily Backup","99.9% Uptime SLA"], features_ar:["\u0644\u0648\u062d\u0629 \u062a\u062d\u0643\u0645 \u0645\u0631\u0646\u0629","SSL \u0645\u062c\u0627\u0646\u064a","\u0628\u0631\u064a\u062f \u063a\u064a\u0631 \u0645\u062d\u062f\u0648\u062f","\u062a\u062b\u0628\u064a\u062a WordPress \u0628\u0646\u0642\u0631\u0629","\u0646\u0633\u062e \u0627\u062d\u062a\u064a\u0627\u0637\u064a \u064a\u0648\u0645\u064a","\u0636\u0645\u0627\u0646 99.9% \u062a\u0634\u063a\u064a\u0644"] },
+  { id:"infra2", type:"virtual",       category:"Cloud & Hosting", category_ar:"\u0633\u062d\u0627\u0628\u0629 \u0648\u0627\u0633\u062a\u0636\u0627\u0641\u0629", sub_category:"VPS",            sub_category_ar:"\u062e\u0648\u0627\u062f\u0645 \u0627\u0641\u062a\u0631\u0627\u0636\u064a\u0629",   name:"Managed Cloud VPS",   name_ar:"\u062e\u0648\u0627\u062f\u0645 \u0627\u0641\u062a\u0631\u0627\u0636\u064a\u0629 \u0633\u062d\u0627\u0628\u064a\u0629 \u0645\u062f\u0627\u0631\u0629",   description:"Fully isolated virtual servers with dedicated resources and full root access, optimized for running digital workforce empires and enterprise-grade systems.", description_ar:"\u062e\u0648\u0627\u062f\u0645 \u0627\u0641\u062a\u0631\u0627\u0636\u064a\u0629 \u0645\u0639\u0632\u0648\u0644\u0629 \u0628\u0627\u0644\u0643\u0627\u0645\u0644 \u0628\u0645\u0648\u0627\u0631\u062f \u0645\u062e\u0635\u0635\u0629 \u0648\u0635\u0644\u0627\u062d\u064a\u0627\u062a root \u0643\u0627\u0645\u0644\u0629\u060c \u0645\u0647\u064a\u0623\u0629 \u0644\u062a\u0634\u063a\u064a\u0644 \u0625\u0645\u0628\u0631\u0627\u0637\u0648\u0631\u064a\u0629 \u0627\u0644\u0639\u0645\u0627\u0644\u0629 \u0627\u0644\u0631\u0642\u0645\u064a\u0629 \u0648\u0627\u0644\u0623\u0646\u0638\u0645\u0629 \u0627\u0644\u0645\u0631\u0643\u0632\u064a\u0629.", price_cents:2900, pricing_model:"monthly", icon:"\u26A1", color:"#8b5cf6", rating:4.7, reviews_count:112, is_featured:true, features:["Dedicated vCPU & RAM","Full Root Access","SSD NVMe Storage","Managed Firewall","Auto-scaling","24/7 Monitoring"], features_ar:["\u0645\u0648\u0627\u0631\u062f vCPU & RAM \u0645\u062e\u0635\u0635\u0629","\u0635\u0644\u0627\u062d\u064a\u0627\u062a root \u0643\u0627\u0645\u0644\u0629","\u062a\u062e\u0632\u064a\u0646 SSD NVMe","\u062c\u062f\u0627\u0631 \u062d\u0645\u0627\u064a\u0629 \u0645\u064f\u062f\u0627\u0631","\u062a\u0648\u0633\u0639 \u062a\u0644\u0642\u0627\u0626\u064a","\u0645\u0631\u0627\u0642\u0628\u0629 24/7"] },
+  { id:"infra3", type:"physical",      category:"Cloud & Hosting", category_ar:"\u0633\u062d\u0627\u0628\u0629 \u0648\u0627\u0633\u062a\u0636\u0627\u0641\u0629", sub_category:"Dedicated Servers", sub_category_ar:"\u062e\u0648\u0627\u062f\u0645 \u0645\u062e\u0635\u0635\u0629", name:"Dedicated Enterprise Servers", name_ar:"\u0627\u0644\u062e\u0648\u0627\u062f\u0645 \u0627\u0644\u0641\u064a\u0632\u064a\u0627\u0626\u064a\u0629 \u0627\u0644\u0645\u062e\u0635\u0635\u0629", description:"Rent complete bare-metal servers inside data centers for maximum performance and privacy for large enterprises and business conglomerates.", description_ar:"\u062a\u0623\u062c\u064a\u0631 \u062e\u0648\u0627\u062f\u0645 \u062d\u0642\u064a\u0642\u064a\u0629 \u0643\u0627\u0645\u0644\u0629 \u062f\u0627\u062e\u0644 \u0645\u0631\u0627\u0643\u0632 \u0627\u0644\u0628\u064a\u0627\u0646\u0627\u062a \u0644\u0636\u0645\u0627\u0646 \u0623\u0639\u0644\u0649 \u0645\u0633\u062a\u0648\u064a\u0627\u062a \u0627\u0644\u0623\u062f\u0627\u0621 \u0648\u0627\u0644\u062e\u0635\u0648\u0635\u064a\u0629 \u0644\u0628\u064a\u0627\u0646\u0627\u062a \u0627\u0644\u0634\u0631\u0643\u0627\u062a \u0627\u0644\u0643\u0628\u0631\u0649 \u0648\u0627\u0644\u062a\u0643\u062a\u0644\u0627\u062a \u0627\u0644\u062a\u062c\u0627\u0631\u064a\u0629.", price_cents:19900, pricing_model:"monthly", icon:"\uD83D\uDDA5\uFE0F", color:"#f59e0b", rating:4.8, reviews_count:45, is_featured:true, features:["Bare Metal Hardware","Dedicated Bandwidth","RAID Storage","Hardware Firewall","Remote KVM Access","99.99% SLA"], features_ar:["\u0639\u062a\u0627\u062f \u062e\u0627\u0635 \u0628\u0627\u0644\u0643\u0627\u0645\u0644","\u0628\u0627\u0646\u062f\u0648\u064a\u062f\u062b \u0645\u062e\u0635\u0635","\u062a\u062e\u0632\u064a\u0646 RAID","\u062c\u062f\u0627\u0631 \u062d\u0645\u0627\u064a\u0629 \u0639\u062a\u0627\u062f\u064a","\u0648\u0635\u0648\u0644 KVM \u0639\u0646 \u0628\u064f\u0639\u062f","\u0636\u0645\u0627\u0646 99.99%"] },
+  { id:"infra4", type:"subscription",  category:"Domains",         category_ar:"\u0627\u0644\u0646\u0637\u0627\u0642\u0627\u062a",               sub_category:"Domain Names",     sub_category_ar:"\u0623\u0633\u0645\u0627\u0621 \u0627\u0644\u0646\u0637\u0627\u0642\u0627\u062a",  name:"Domain Name Hub",       name_ar:"\u062d\u062c\u0632 \u0648\u0625\u062f\u0627\u0631\u0629 \u0627\u0644\u0646\u0637\u0627\u0642\u0627\u062a \u0627\u0644\u0631\u0642\u0645\u064a\u0629", description:"Register and secure domain names (international & local) with instant automated DNS server records binding.", description_ar:"\u062d\u062c\u0632 \u0648\u062a\u0623\u0645\u064a\u0646 \u0623\u0633\u0645\u0627\u0621 \u0627\u0644\u0646\u0637\u0627\u0642\u0627\u062a \u0648\u0627\u0644\u0645\u0648\u0627\u0642\u0639 \u0627\u0644\u0631\u0633\u0645\u064a\u0629 (\u0627\u0644\u062f\u0648\u0644\u064a\u0629 \u0648\u0627\u0644\u0645\u062d\u0644\u064a\u0629) \u0645\u0639 \u0631\u0628\u0637 \u0641\u0648\u0631\u064a \u0648\u0645\u0624\u062a\u0645\u062a \u0628\u0633\u062c\u0644\u0627\u062a \u062e\u0648\u0627\u062f\u0645 \u0627\u0644\u0623\u0633\u0645\u0627\u0621.", price_cents:1200, pricing_model:"annual", icon:"\uD83C\uDF0D", color:"#22c55e", rating:4.5, reviews_count:210, is_new:true, features:[".com / .net / .org",".eg Local Domains","Free DNS Management","WHOIS Privacy","Auto-renewal","Domain Transfer In"], features_ar:[".com / .net / .org","\u0646\u0637\u0627\u0642\u0627\u062a .eg \u0627\u0644\u0645\u062d\u0644\u064a\u0629","\u0625\u062f\u0627\u0631\u0629 DNS \u0645\u062c\u0627\u0646\u064a\u0629","\u062e\u0635\u0648\u0635\u064a\u0629 WHOIS","\u062a\u062c\u062f\u064a\u062f \u062a\u0644\u0642\u0627\u0626\u064a","\u0646\u0642\u0644 \u0646\u0637\u0627\u0642 \u0633\u0647\u0644"] },
+  { id:"infra5", type:"subscription",  category:"Email",           category_ar:"\u0627\u0644\u0628\u0631\u064a\u062f \u0627\u0644\u0625\u0644\u0643\u062a\u0631\u0648\u0646\u064a",  sub_category:"Business Email",   sub_category_ar:"\u0628\u0631\u064a\u062f \u0627\u0644\u0623\u0639\u0645\u0627\u0644",  name:"Business Email Suites", name_ar:"\u0627\u0633\u062a\u0636\u0627\u0641\u0629 \u0627\u0644\u0628\u0631\u064a\u062f \u0627\u0644\u0625\u0644\u0643\u062a\u0631\u0648\u0646\u064a \u0627\u0644\u0627\u062d\u062a\u0631\u0627\u0641\u064a", description:"Dedicated, secure mail servers under your company name to boost credibility and enable automated messaging campaigns.", description_ar:"\u0633\u064a\u0631\u0641\u0631\u0627\u062a \u0628\u0631\u064a\u062f \u0625\u0644\u0643\u062a\u0631\u0648\u0646\u064a \u0645\u0633\u062a\u0642\u0644\u0629 \u0648\u0645\u062d\u0645\u064a\u0629 \u0628\u0627\u0633\u0645 \u0634\u0631\u0643\u062a\u0643 \u0644\u062a\u0639\u0632\u064a\u0632 \u0627\u0644\u0645\u0648\u062b\u0648\u0642\u064a\u0629 \u0648\u062a\u0633\u0647\u064a\u0644 \u062d\u0645\u0644\u0627\u062a \u0627\u0644\u0645\u0631\u0627\u0633\u0644\u0629 \u0627\u0644\u0645\u0624\u062a\u0645\u062a\u0629.", price_cents:800, pricing_model:"monthly", icon:"\uD83D\uDCE7", color:"#3b82f6", rating:4.6, reviews_count:178, features:["Custom Domain Email","Anti-spam & Anti-virus","50 GB Mailbox","Email Forwarding","Webmail Access","SMTP/IMAP/POP3"], features_ar:["\u0628\u0631\u064a\u062f \u0628\u0646\u0637\u0627\u0642\u0643 \u0627\u0644\u062e\u0627\u0635","\u062d\u0645\u0627\u064a\u0629 \u0645\u0646 \u0627\u0644\u0628\u0631\u064a\u062f \u0627\u0644\u0645\u0632\u0639\u062c","\u0635\u0646\u062f\u0648\u0642 \u0628\u0631\u064a\u062f 50 \u062c\u064a\u062c\u0627","\u0625\u0639\u0627\u062f\u0629 \u062a\u0648\u062c\u064a\u0647 \u0627\u0644\u0628\u0631\u064a\u062f","Webmail \u0645\u062a\u0627\u062d","\u062f\u0639\u0645 SMTP/IMAP/POP3"] },
+  { id:"infra6", type:"service",       category:"Technology",      category_ar:"\u062a\u0642\u0646\u064a\u0629",                                 sub_category:"SOC",              sub_category_ar:"\u0645\u0631\u0643\u0632 \u0627\u0644\u0639\u0645\u0644\u064a\u0627\u062a \u0627\u0644\u0623\u0645\u0646\u064a\u0629", name:"Cyber Security & SOC Center", name_ar:"\u0645\u0631\u0643\u0632 \u0627\u0644\u0639\u0645\u0644\u064a\u0627\u062a \u0627\u0644\u0623\u0645\u0646\u064a\u0629 \u0648\u0627\u0644\u062f\u0631\u0639 \u0627\u0644\u0633\u064a\u0628\u0631\u0627\u0646\u064a", description:"Round-the-clock vulnerability monitoring and scanning to protect software and defend against DDoS attacks for complete digital sovereignty.", description_ar:"\u0645\u0631\u0627\u0642\u0628\u0629 \u0648\u0641\u062d\u0635 \u0627\u0644\u062b\u063a\u0631\u0627\u062a \u0639\u0644\u0649 \u0645\u062f\u0627\u0631 \u0627\u0644\u0633\u0627\u0639\u0629 \u0644\u062d\u0645\u0627\u064a\u0629 \u0627\u0644\u0628\u0631\u0645\u062c\u064a\u0627\u062a \u0648\u0635\u062f \u0647\u062c\u0645\u0627\u062a \u062d\u062c\u0628 \u0627\u0644\u062e\u062f\u0645\u0629 DDoS \u0644\u0636\u0645\u0627\u0646 \u0627\u0644\u0633\u064a\u0627\u062f\u0629 \u0627\u0644\u0631\u0642\u0645\u064a\u0629 \u0627\u0644\u0643\u0627\u0645\u0644\u0629.", icon:"\uD83D\uDEE1\uFE0F", color:"#ef4444", rating:4.9, reviews_count:33, is_new:true, features:["24/7 SOC Monitoring","DDoS Protection","Vulnerability Scanning","Incident Response","Threat Intelligence","Compliance Reports"], features_ar:["\u0645\u0631\u0627\u0642\u0628\u0629 SOC 24/7","\u062d\u0645\u0627\u064a\u0629 DDoS","\u0641\u062d\u0635 \u0627\u0644\u062b\u063a\u0631\u0627\u062a","\u0627\u0644\u0627\u0633\u062a\u062c\u0627\u0628\u0629 \u0644\u0644\u062d\u0648\u0627\u062f\u062b","\u0627\u0633\u062a\u062e\u0628\u0627\u0631\u0627\u062a \u0627\u0644\u062a\u0647\u062f\u064a\u062f\u0627\u062a","\u062a\u0642\u0627\u0631\u064a\u0631 \u0627\u0644\u0627\u0645\u062a\u062b\u0627\u0644"] },
+  { id:"infra7", type:"subscription",  category:"Cloud & Hosting", category_ar:"\u0633\u062d\u0627\u0628\u0629 \u0648\u0627\u0633\u062a\u0636\u0627\u0641\u0629", sub_category:"Backup & DR",     sub_category_ar:"\u0646\u0633\u062e \u0627\u062d\u062a\u064a\u0627\u0637\u064a \u0648\u062a\u0639\u0627\u0641\u064d",   name:"Disaster Recovery & Backup", name_ar:"\u0627\u0644\u0646\u0633\u062e \u0627\u0644\u0627\u062d\u062a\u064a\u0627\u0637\u064a \u0648\u0627\u0633\u062a\u0645\u0631\u0627\u0631\u064a\u0629 \u0627\u0644\u0623\u0639\u0645\u0627\u0644", description:"Periodic encrypted backup systems ensuring instant data recovery in emergencies without any system downtime.", description_ar:"\u0623\u0646\u0638\u0645\u0629 \u062a\u0623\u0645\u064a\u0646 \u0648\u062d\u0641\u0638 \u0646\u0633\u062e \u0627\u062d\u062a\u064a\u0627\u0637\u064a\u0629 \u062f\u0648\u0631\u064a\u0629 \u0645\u0634\u0641\u0631\u0629 \u0644\u0636\u0645\u0627\u0646 \u0627\u0633\u062a\u0631\u062c\u0627\u0639 \u0627\u0644\u0628\u064a\u0627\u0646\u0627\u062a \u0627\u0644\u0641\u0648\u0631\u064a \u0641\u064a \u062d\u0627\u0644\u0627\u062a \u0627\u0644\u0637\u0648\u0627\u0631\u0626 \u062f\u0648\u0646 \u062a\u0648\u0642\u0641 \u0627\u0644\u0646\u0638\u0627\u0645.", price_cents:2900, pricing_model:"monthly", icon:"\uD83D\uDD10", color:"#14b8a6", rating:4.8, reviews_count:64, features:["Encrypted Backups","Point-in-time Recovery","Automated Schedules","Cross-region Replication","Instant Failover","99.99% RPO SLA"], features_ar:["\u0646\u0633\u062e \u0645\u0634\u0641\u0631\u0629","\u0627\u0633\u062a\u0631\u062c\u0627\u0639 \u0644\u062d\u0638\u064a","\u062c\u062f\u0627\u0648\u0644 \u062a\u0644\u0642\u0627\u0626\u064a\u0629","\u0646\u0633\u062e \u0645\u062a\u0639\u062f\u062f \u0627\u0644\u0645\u0646\u0627\u0637\u0642","\u062a\u062d\u0648\u064a\u0644 \u0641\u0648\u0631\u064a","\u0636\u0645\u0627\u0646 RPO 99.99%"] },
 ];
 
 // -----------------------------------------------------------------
@@ -146,7 +152,7 @@ function RequestDialog({
 
   const handleSubmit = async () => {
     if (!form.name.trim() || !form.email.trim()) {
-      toast.error(isAr ? "\u0627\u0644\u0627\u0633\u0645 \u0648\u0627\u0644\u0628\u0631\u064a\u062f \u0627\u0644\u0625\u0644\u0643\u062a\u0631\u0648\u0646\u064a \u0645\u0637\u0644\u0648\u0628\u0627\u0646" : "Name and email are required");
+      toast.error(isAr ? "الاسم والبريد الإلكتروني مطلوبان" : "Name and email are required");
       return;
     }
     setSubmitting(true);
@@ -157,14 +163,31 @@ function RequestDialog({
         customer_phone: form.phone || null, company_name: form.company || null,
         message: form.message || null, status: "pending",
       });
+
+      // Send notification + confirmation emails
+      await supabase.functions.invoke("send-contact-email", {
+        body: {
+          section_en: `Products & Services — ${item.name}`,
+          section_ar: `المنتجات والخدمات — ${item.name_ar}`,
+          data: {
+            name:    form.name,
+            email:   form.email,
+            phone:   form.phone,
+            company: form.company,
+            product: `${item.name} / ${item.name_ar}`,
+            message: form.message,
+          },
+        },
+      });
+
       setSuccess(true);
-      toast.success(isAr ? "\u062a\u0645 \u0625\u0631\u0633\u0627\u0644 \u0637\u0644\u0628\u0643 \u0628\u0646\u062c\u0627\u062d!" : "Request submitted successfully!");
+      toast.success(isAr ? "تم إرسال طلبك بنجاح!" : "Request submitted successfully!");
       setTimeout(() => {
         setSuccess(false); onClose();
         setForm({ name: "", email: "", phone: "", company: "", message: "" });
       }, 2000);
     } catch {
-      toast.error(isAr ? "\u062d\u062f\u062b \u062e\u0637\u0623\u060c \u064a\u0631\u062c\u0649 \u0627\u0644\u0645\u062d\u0627\u0648\u0644\u0629 \u0644\u0627\u062d\u0642\u0627\u064b" : "Something went wrong, please try again.");
+      toast.error(isAr ? "حدث خطأ، يرجى المحاولة لاحقاً" : "Something went wrong, please try again.");
     } finally { setSubmitting(false); }
   };
 
@@ -228,10 +251,9 @@ function RequestDialog({
 // -----------------------------------------------------------------
 //  ITEM CARD
 // -----------------------------------------------------------------
-function ItemCard({ item, isAr, onRequest, onAddCart }: {
+function ItemCard({ item, isAr, onRequest }: {
   item: CatalogItem; isAr: boolean;
   onRequest: (item: CatalogItem) => void;
-  onAddCart: (item: CatalogItem) => void;
 }) {
   const [showFeatures, setShowFeatures] = useState(false);
   const features = isAr ? item.features_ar : item.features;
@@ -295,29 +317,10 @@ function ItemCard({ item, isAr, onRequest, onAddCart }: {
           )}
         </div>
       )}
-      <div className="mt-auto flex items-center justify-between gap-2 pt-2 border-t border-slate-700/40">
-        <div>
-          {item.price_cents ? (
-            <div className="flex items-baseline gap-1.5">
-              <span className="text-white font-bold text-sm">{formatPrice(item.price_cents, item.pricing_model, isAr)}</span>
-              {item.compare_price_cents && (
-                <span className="text-slate-500 text-[10px] line-through">{formatPrice(item.compare_price_cents, item.pricing_model, isAr)}</span>
-              )}
-            </div>
-          ) : (
-            <span className="text-slate-400 text-xs">{isAr ? "\u0628\u0627\u0644\u062a\u0641\u0627\u0648\u0636" : "Custom pricing"}</span>
-          )}
-        </div>
-        <div className="flex gap-1.5">
-          {item.price_cents && (
-            <Button size="sm" variant="ghost" onClick={() => onAddCart(item)} className="h-7 px-2 text-slate-400 hover:text-white hover:bg-slate-700">
-              <ShoppingCart className="w-3.5 h-3.5" />
-            </Button>
-          )}
-          <Button size="sm" onClick={() => onRequest(item)} className="h-7 px-2.5 text-[11px] font-medium text-white" style={{ background: item.color }}>
-            {isAr ? "\u0627\u0637\u0644\u0628 \u0627\u0644\u0622\u0646" : "Request"}
-          </Button>
-        </div>
+      <div className="mt-auto pt-2 border-t border-slate-700/40">
+        <Button size="sm" onClick={() => onRequest(item)} className="w-full h-8 text-[11px] font-semibold text-white" style={{ background: item.color }}>
+          {isAr ? "\u062a\u0642\u062f\u064a\u0645 \u0637\u0644\u0628" : "Submit Request"}
+        </Button>
       </div>
     </div>
   );
@@ -331,10 +334,7 @@ export default function PublicProducts() {
   const isAr = i18n.language === "ar";
   const navigate = useNavigate();
 
-  // safe cart access
-  let cart: ReturnType<typeof useCart> | null = null;
-  try { cart = useCart(); } catch { cart = null; }
-
+  // safe cart access removed — no cart needed (all items use Submit Request)
   const [typeFilter, setTypeFilter] = useState<TypeId>("all");
   const [catFilter, setCatFilter] = useState<string>("all");
   const [subFilter, setSubFilter] = useState<string>("all");
@@ -402,13 +402,6 @@ export default function PublicProducts() {
     return types.map(t => ({ type: t, items: filtered.filter(i => i.type === t) })).filter(g => g.items.length > 0);
   }, [filtered]);
 
-  const handleAddCart = (item: CatalogItem) => {
-    if (cart && item.price_cents) {
-      (cart as any).addItem({ id: item.id, name: isAr ? item.name_ar : item.name, price: item.price_cents / 100, quantity: 1 });
-      toast.success(isAr ? "\u062a\u0645\u062a \u0627\u0644\u0625\u0636\u0627\u0641\u0629 \u0625\u0644\u0649 \u0627\u0644\u0633\u0644\u0629" : "Added to cart");
-    }
-  };
-
   const typeKeys: TypeId[] = ["all", "digital", "physical", "virtual", "service", "subscription"];
   const activeColor = typeFilter === "all" ? "#94a3b8" : TYPE_CONFIG[typeFilter].color;
 
@@ -426,8 +419,8 @@ export default function PublicProducts() {
           </h1>
           <p className="text-slate-400 max-w-xl mx-auto text-sm md:text-base">
             {isAr
-              ? "\u0627\u0643\u062a\u0634\u0641 \u0623\u0643\u062b\u0631 \u0645\u0646 40 \u0645\u0646\u062a\u062c\u0627\u064b \u0648\u062e\u062f\u0645\u0629\u064b \u0641\u064a \u0645\u0643\u0627\u0646 \u0648\u0627\u062d\u062f"
-              : "Explore 40+ products & services in one place"}
+              ? "\u0627\u0643\u062a\u0634\u0641 \u0623\u0643\u062b\u0631 \u0645\u0646 50 \u0645\u0646\u062a\u062c\u0627\u064b \u0648\u062e\u062f\u0645\u0629\u064b \u0641\u064a \u0645\u0643\u0627\u0646 \u0648\u0627\u062d\u062f"
+              : "Explore 50+ products & services in one place"}
           </p>
         </div>
 
@@ -541,7 +534,7 @@ export default function PublicProducts() {
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                       {visible.map(item => (
-                        <ItemCard key={item.id} item={item} isAr={isAr} onRequest={setReqItem} onAddCart={handleAddCart} />
+                        <ItemCard key={item.id} item={item} isAr={isAr} onRequest={setReqItem} />
                       ))}
                     </div>
                     {group.items.length > SHOW && (
@@ -559,7 +552,7 @@ export default function PublicProducts() {
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {filtered.map(item => (
-                <ItemCard key={item.id} item={item} isAr={isAr} onRequest={setReqItem} onAddCart={handleAddCart} />
+                <ItemCard key={item.id} item={item} isAr={isAr} onRequest={setReqItem} />
               ))}
             </div>
           )}

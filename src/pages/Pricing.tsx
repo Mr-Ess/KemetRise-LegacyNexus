@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/hooks/useAuth";
 import PublicLayout from "@/layouts/PublicLayout";
+import LeadCaptureModal, { type LeadType } from "@/components/shared/LeadCaptureModal";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -180,6 +181,12 @@ export default function Pricing() {
   const R = i18n.language === "ar";
   const [tab, setTab] = useState<Tab>("subscriptions");
   const [openFaq, setOpenFaq] = useState<number | null>(null);
+  const [leadModal, setLeadModal] = useState<{
+    open: boolean; type: LeadType; icon?: string; color?: string; refName?: string;
+  }>({ open: false, type: "demo" });
+  const openLead = (type: LeadType, icon?: string, color?: string, refName?: string) =>
+    setLeadModal({ open: true, type, icon, color, refName });
+  const closeLead = () => setLeadModal(m => ({ ...m, open: false }));
 
 
   const TABS: { id: Tab; label: string; labelAr: string; icon: React.ElementType }[] = [
@@ -264,7 +271,7 @@ export default function Pricing() {
                       </li>
                     ))}
                   </ul>
-                  <Button onClick={() => navigate("/contact")}
+                  <Button onClick={() => openLead("demo", undefined, undefined, R ? plan.nameAr : plan.name)}
                     variant={plan.highlighted ? "default" : "outline"} className="w-full gap-2">
                     <MessageSquare className="w-3.5 h-3.5" />{R ? "اطلب عرض سعر" : "Request a Quote"}
                   </Button>
@@ -287,7 +294,7 @@ export default function Pricing() {
                     <h3 className="text-sm font-bold mb-1">{R ? p.nameAr : p.name}</h3>
                     <p className="text-xs text-muted-foreground mb-4 flex-1">{R ? p.descAr : p.desc}</p>
                     <div className="pt-3 border-t border-border/40">
-                      <Button size="sm" className="w-full text-xs h-7 gap-1" onClick={() => navigate("/contact")}>
+                      <Button size="sm" className="w-full text-xs h-7 gap-1" onClick={() => openLead("product", p.icon, undefined, R ? p.nameAr : p.name)}>
                         <MessageSquare className="w-3 h-3" />{R ? "اطلب عرض سعر" : "Request a Quote"}
                       </Button>
                     </div>
@@ -315,7 +322,7 @@ export default function Pricing() {
                       <p className="text-xs text-muted-foreground">{R ? s.descAr : s.desc}</p>
                     </div>
                     <div className="shrink-0">
-                      <Button size="sm" className="text-xs h-7 gap-1" variant="outline" onClick={() => navigate("/contact")}>
+                      <Button size="sm" className="text-xs h-7 gap-1" variant="outline" onClick={() => openLead("service", undefined, undefined, R ? s.nameAr : s.name)}>
                         <MessageSquare className="w-3 h-3" />{R ? "اطلب عرض سعر" : "Request a Quote"}
                       </Button>
                     </div>
@@ -351,7 +358,7 @@ export default function Pricing() {
                           </li>
                         ))}
                       </ul>
-                      <Button size="sm" className="w-full gap-1.5 text-xs" variant="outline" onClick={() => navigate("/contact")}>
+                      <Button size="sm" className="w-full gap-1.5 text-xs" variant="outline" onClick={() => openLead("project", s.icon, undefined, R ? s.nameAr : s.name)}>
                         <MessageSquare className="w-3 h-3" />{R ? "اطلب عرض سعر" : "Request a Quote"}
                       </Button>
                     </Card>
@@ -452,16 +459,24 @@ export default function Pricing() {
               {R ? "انضم إلى آلاف الشركات التي تستخدم KemetRise لتشغيل عملياتها." : "Join thousands of businesses using KemetRise to run their operations."}
             </p>
             <div className="flex items-center justify-center gap-3 flex-wrap">
-              <Button size="lg" onClick={() => navigate("/contact")} className="gap-2 gold-glow">
+              <Button size="lg" onClick={() => openLead("demo")} className="gap-2 gold-glow">
                 <MessageSquare className="w-4 h-4" />{R ? "تواصل معنا الآن" : "Contact Us Now"}
               </Button>
-              <Button size="lg" variant="outline" onClick={() => navigate("/contact")} className="gap-2">
+              <Button size="lg" variant="outline" onClick={() => openLead("demo")} className="gap-2">
                 {R ? "تحدث مع المبيعات" : "Talk to Sales"} <ArrowRight className="w-4 h-4" />
               </Button>
             </div>
           </div>
         </div>
       </section>
+
+      <LeadCaptureModal
+        open={leadModal.open}
+        onClose={closeLead}
+        type={leadModal.type}
+        isAr={R}
+        meta={{ icon: leadModal.icon, color: leadModal.color ?? "#D4A017", refName: leadModal.refName }}
+      />
     </PublicLayout>
   );
 }

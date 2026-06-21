@@ -1,5 +1,6 @@
 ﻿import { useState, useCallback, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { ArrowLeft, Shield, Layers, Bot, Plus, Trash2, Edit, RefreshCw, Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,6 +27,8 @@ const emptyAP = { agent_code: "", allowed_tables: "", allowed_actions: "read", m
 
 export default function Permissions() {
   const nav = useNavigate();
+  const { i18n } = useTranslation();
+  const R = i18n.language === "ar";
   const [brandId, setBrandId] = useState("");
   const [tab, setTab] = useState("roles");
   const [loading, setLoading] = useState(false);
@@ -68,51 +71,51 @@ export default function Permissions() {
 
   // ── Role Permissions CRUD ──────────────────────────────────────────
   const saveRP = async () => {
-    if (!rpForm.resource_type) return toast.error("Resource required");
+    if (!rpForm.resource_type) return toast.error(R ? "المورد مطلوب" : "Resource required");
     try {
       if (rpId) await extApi.update("role_permissions", rpId, { ...rpForm, brand_id: brandId });
       else      await extApi.create("role_permissions", { ...rpForm, brand_id: brandId });
-      toast.success("Saved"); setRpOpen(false); setRpId(null); setRpForm(emptyRP); loadAll();
+      toast.success(R ? "تم الحفظ" : "Saved"); setRpOpen(false); setRpId(null); setRpForm(emptyRP); loadAll();
     } catch (e: any) { toast.error(e.message); }
   };
 
   const deleteRP = async (id: string) => {
-    if (!confirm("Delete this permission?")) return;
-    try { await extApi.remove("role_permissions", id); toast.success("Deleted"); loadAll(); }
+    if (!confirm(R ? "حذف هذه الصلاحية؟" : "Delete this permission?")) return;
+    try { await extApi.remove("role_permissions", id); toast.success(R ? "تم الحذف" : "Deleted"); loadAll(); }
     catch (e: any) { toast.error(e.message); }
   };
 
   // ── Sector Permissions CRUD ────────────────────────────────────────
   const saveSP = async () => {
-    if (!spForm.sector) return toast.error("Sector required");
+    if (!spForm.sector) return toast.error(R ? "القطاع مطلوب" : "Sector required");
     const pl = { ...spForm, brand_id: brandId, ai_agent_codes: spForm.ai_agent_codes ? spForm.ai_agent_codes.split(",").map((s: string) => s.trim()).filter(Boolean) : [] };
     try {
       if (spId) await extApi.update("sector_permissions", spId, pl);
       else      await extApi.create("sector_permissions", pl);
-      toast.success("Saved"); setSpOpen(false); setSpId(null); setSpForm(emptySP); loadAll();
+      toast.success(R ? "تم الحفظ" : "Saved"); setSpOpen(false); setSpId(null); setSpForm(emptySP); loadAll();
     } catch (e: any) { toast.error(e.message); }
   };
 
   const deleteSP = async (id: string) => {
-    if (!confirm("Delete this sector permission?")) return;
-    try { await extApi.remove("sector_permissions", id); toast.success("Deleted"); loadAll(); }
+    if (!confirm(R ? "حذف صلاحية القطاع هذه؟" : "Delete this sector permission?")) return;
+    try { await extApi.remove("sector_permissions", id); toast.success(R ? "تم الحذف" : "Deleted"); loadAll(); }
     catch (e: any) { toast.error(e.message); }
   };
 
   // ── Agent Permissions CRUD ─────────────────────────────────────────
   const saveAP = async () => {
-    if (!apForm.agent_code) return toast.error("Agent code required");
+    if (!apForm.agent_code) return toast.error(R ? "كود الوكيل مطلوب" : "Agent code required");
     const pl = { ...apForm, brand_id: brandId, allowed_tables: apForm.allowed_tables ? apForm.allowed_tables.split(",").map((s: string) => s.trim()).filter(Boolean) : [], allowed_actions: apForm.allowed_actions ? apForm.allowed_actions.split(",").map((s: string) => s.trim()).filter(Boolean) : ["read"] };
     try {
       if (apId) await extApi.update("agent_permissions", apId, pl);
       else      await extApi.create("agent_permissions", pl);
-      toast.success("Saved"); setApOpen(false); setApId(null); setApForm(emptyAP); loadAll();
+      toast.success(R ? "تم الحفظ" : "Saved"); setApOpen(false); setApId(null); setApForm(emptyAP); loadAll();
     } catch (e: any) { toast.error(e.message); }
   };
 
   const deleteAP = async (id: string) => {
-    if (!confirm("Delete this agent permission?")) return;
-    try { await extApi.remove("agent_permissions", id); toast.success("Deleted"); loadAll(); }
+    if (!confirm(R ? "حذف صلاحية الوكيل هذه؟" : "Delete this agent permission?")) return;
+    try { await extApi.remove("agent_permissions", id); toast.success(R ? "تم الحذف" : "Deleted"); loadAll(); }
     catch (e: any) { toast.error(e.message); }
   };
 
@@ -120,12 +123,12 @@ export default function Permissions() {
     <div className="min-h-screen bg-background p-4 md:p-8">
       <div className="max-w-5xl mx-auto space-y-4">
         <button onClick={() => nav(-1)} className="flex items-center gap-2 text-muted-foreground hover:text-primary text-sm">
-          <ArrowLeft className="w-4 h-4"/>Back
+          <ArrowLeft className="w-4 h-4"/>{R ? "رجوع" : "Back"}
         </button>
 
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <h1 className="font-display text-xl text-primary flex items-center gap-2">
-            <Shield className="w-5 h-5"/>Permissions Manager
+            <Shield className="w-5 h-5"/>{R ? "مدير الصلاحيات" : "Permissions Manager"}
           </h1>
           <div className="flex items-center gap-2">
             <BrandSelector value={brandId} onChange={setBrandId}/>
@@ -136,40 +139,40 @@ export default function Permissions() {
         </div>
 
         {!brandId ? (
-          <Card className="p-12 text-center text-muted-foreground text-sm">Select a brand to manage its permissions.</Card>
+          <Card className="p-12 text-center text-muted-foreground text-sm">{R ? "اختر علامة تجارية لإدارة صلاحياتها." : "Select a brand to manage its permissions."}</Card>
         ) : (
           <Tabs value={tab} onValueChange={setTab}>
             <TabsList className="w-full grid grid-cols-3 h-auto">
-              <TabsTrigger value="roles"   className="text-xs py-2 flex items-center gap-1"><Shield className="w-3 h-3"/>Role Perms <Badge variant="outline" className="ml-1 text-[10px]">{rolePerms.length}</Badge></TabsTrigger>
-              <TabsTrigger value="sectors" className="text-xs py-2 flex items-center gap-1"><Layers className="w-3 h-3"/>Sector Perms <Badge variant="outline" className="ml-1 text-[10px]">{sectorPerms.length}</Badge></TabsTrigger>
-              <TabsTrigger value="agents"  className="text-xs py-2 flex items-center gap-1"><Bot className="w-3 h-3"/>Agent Perms <Badge variant="outline" className="ml-1 text-[10px]">{agentPerms.length}</Badge></TabsTrigger>
+              <TabsTrigger value="roles"   className="text-xs py-2 flex items-center gap-1"><Shield className="w-3 h-3"/>{R ? "صلاحيات الأدوار" : "Role Perms"} <Badge variant="outline" className="ml-1 text-[10px]">{rolePerms.length}</Badge></TabsTrigger>
+              <TabsTrigger value="sectors" className="text-xs py-2 flex items-center gap-1"><Layers className="w-3 h-3"/>{R ? "صلاحيات القطاعات" : "Sector Perms"} <Badge variant="outline" className="ml-1 text-[10px]">{sectorPerms.length}</Badge></TabsTrigger>
+              <TabsTrigger value="agents"  className="text-xs py-2 flex items-center gap-1"><Bot className="w-3 h-3"/>{R ? "صلاحيات الوكلاء" : "Agent Perms"} <Badge variant="outline" className="ml-1 text-[10px]">{agentPerms.length}</Badge></TabsTrigger>
             </TabsList>
 
             {/* ── ROLE PERMISSIONS ── */}
             <TabsContent value="roles">
               <Card>
                 <div className="p-3 border-b border-border flex justify-between items-center">
-                  <p className="text-sm font-medium">{rolePerms.length} rule(s)</p>
+                  <p className="text-sm font-medium">{rolePerms.length} {R ? "قاعدة" : "rule(s)"}</p>
                   <div className="flex gap-2">
-                    <ExportButton data={rolePerms} filename="role_permissions" title="Role Perms"/>
-                    <Button size="sm" onClick={() => { setRpId(null); setRpForm(emptyRP); setRpOpen(true); }}><Plus className="w-4 h-4 mr-1"/>Add Rule</Button>
+                    <ExportButton data={rolePerms} filename="role_permissions" title={R ? "صلاحيات الأدوار" : "Role Perms"}/>
+                    <Button size="sm" onClick={() => { setRpId(null); setRpForm(emptyRP); setRpOpen(true); }}><Plus className="w-4 h-4 mr-1"/>{R ? "إضافة قاعدة" : "Add Rule"}</Button>
                   </div>
                 </div>
                 {rolePerms.length === 0 ? (
-                  <p className="p-10 text-center text-sm text-muted-foreground">No role permissions defined yet.</p>
+                  <p className="p-10 text-center text-sm text-muted-foreground">{R ? "لم تُحدد صلاحيات أدوار بعد." : "No role permissions defined yet."}</p>
                 ) : (
                   <div className="overflow-x-auto">
                     <table className="w-full text-xs">
                       <thead className="bg-secondary/40">
                         <tr>
-                          <th className="text-left p-3">Role</th>
-                          <th className="text-left p-3">Resource</th>
-                          <th className="p-2 text-center">Read</th>
-                          <th className="p-2 text-center">Create</th>
-                          <th className="p-2 text-center">Update</th>
-                          <th className="p-2 text-center">Delete</th>
-                          <th className="p-2 text-center">Export</th>
-                          <th className="p-2 text-center">Approve</th>
+                          <th className="text-left p-3">{R?"الدور":"Role"}</th>
+                          <th className="text-left p-3">{R?"المورد":"Resource"}</th>
+                          <th className="p-2 text-center">{R?"قراءة":"Read"}</th>
+                          <th className="p-2 text-center">{R?"إنشاء":"Create"}</th>
+                          <th className="p-2 text-center">{R?"تعديل":"Update"}</th>
+                          <th className="p-2 text-center">{R?"حذف":"Delete"}</th>
+                          <th className="p-2 text-center">{R?"تصدير":"Export"}</th>
+                          <th className="p-2 text-center">{R?"موافقة":"Approve"}</th>
                           <th className="p-3 w-16"/>
                         </tr>
                       </thead>
@@ -203,25 +206,25 @@ export default function Permissions() {
             <TabsContent value="sectors">
               <Card>
                 <div className="p-3 border-b border-border flex justify-between items-center">
-                  <p className="text-sm font-medium">{sectorPerms.length} rule(s)</p>
+                  <p className="text-sm font-medium">{sectorPerms.length} {R ? "قاعدة" : "rule(s)"}</p>
                   <div className="flex gap-2">
-                    <ExportButton data={sectorPerms} filename="sector_permissions" title="Sector Perms"/>
-                    <Button size="sm" onClick={() => { setSpId(null); setSpForm(emptySP); setSpOpen(true); }}><Plus className="w-4 h-4 mr-1"/>Add Rule</Button>
+                    <ExportButton data={sectorPerms} filename="sector_permissions" title={R ? "صلاحيات القطاعات" : "Sector Perms"}/>
+                    <Button size="sm" onClick={() => { setSpId(null); setSpForm(emptySP); setSpOpen(true); }}><Plus className="w-4 h-4 mr-1"/>{R ? "إضافة قاعدة" : "Add Rule"}</Button>
                   </div>
                 </div>
                 {sectorPerms.length === 0 ? (
-                  <p className="p-10 text-center text-sm text-muted-foreground">No sector permissions defined yet.</p>
+                  <p className="p-10 text-center text-sm text-muted-foreground">{R ? "لم تُحدد صلاحيات قطاعات بعد." : "No sector permissions defined yet."}</p>
                 ) : (
                   <div className="overflow-x-auto">
                     <table className="w-full text-xs">
                       <thead className="bg-secondary/40">
                         <tr>
-                          <th className="text-left p-3">User ID</th>
-                          <th className="text-left p-3">Sector</th>
-                          <th className="p-2 text-center">Read</th>
-                          <th className="p-2 text-center">Write</th>
-                          <th className="p-2 text-center">Delete</th>
-                          <th className="p-2 text-center">Approve</th>
+                          <th className="text-left p-3">{R?"معرف المستخدم":"User ID"}</th>
+                          <th className="text-left p-3">{R?"القطاع":"Sector"}</th>
+                          <th className="p-2 text-center">{R?"قراءة":"Read"}</th>
+                          <th className="p-2 text-center">{R?"كتابة":"Write"}</th>
+                          <th className="p-2 text-center">{R?"حذف":"Delete"}</th>
+                          <th className="p-2 text-center">{R?"موافقة":"Approve"}</th>
                           <th className="p-2 text-center">AI</th>
                           <th className="p-3 w-16"/>
                         </tr>
@@ -255,25 +258,25 @@ export default function Permissions() {
             <TabsContent value="agents">
               <Card>
                 <div className="p-3 border-b border-border flex justify-between items-center">
-                  <p className="text-sm font-medium">{agentPerms.length} rule(s)</p>
+                  <p className="text-sm font-medium">{agentPerms.length} {R ? "قاعدة" : "rule(s)"}</p>
                   <div className="flex gap-2">
-                    <ExportButton data={agentPerms} filename="agent_permissions" title="Agent Perms"/>
-                    <Button size="sm" onClick={() => { setApId(null); setApForm(emptyAP); setApOpen(true); }}><Plus className="w-4 h-4 mr-1"/>Add Rule</Button>
+                    <ExportButton data={agentPerms} filename="agent_permissions" title={R ? "صلاحيات الوكلاء" : "Agent Perms"}/>
+                    <Button size="sm" onClick={() => { setApId(null); setApForm(emptyAP); setApOpen(true); }}><Plus className="w-4 h-4 mr-1"/>{R ? "إضافة قاعدة" : "Add Rule"}</Button>
                   </div>
                 </div>
                 {agentPerms.length === 0 ? (
-                  <p className="p-10 text-center text-sm text-muted-foreground">No agent permissions defined yet.</p>
+                  <p className="p-10 text-center text-sm text-muted-foreground">{R ? "لم تُحدد صلاحيات وكلاء بعد." : "No agent permissions defined yet."}</p>
                 ) : (
                   <div className="overflow-x-auto">
                     <table className="w-full text-xs">
                       <thead className="bg-secondary/40">
                         <tr>
-                          <th className="text-left p-3">Agent Code</th>
-                          <th className="text-left p-3">Tables</th>
-                          <th className="text-left p-3">Actions</th>
-                          <th className="p-2 text-center">Max Ops/d</th>
-                          <th className="p-2 text-center">Sandbox</th>
-                          <th className="p-2 text-center">Escalate</th>
+                          <th className="text-left p-3">{R?"كود الوكيل":"Agent Code"}</th>
+                          <th className="text-left p-3">{R?"الجداول":"Tables"}</th>
+                          <th className="text-left p-3">{R?"الإجراءات":"Actions"}</th>
+                          <th className="p-2 text-center">{R?"أقصى عمليات":"Max Ops/d"}</th>
+                          <th className="p-2 text-center">{R?"اختبار":"Sandbox"}</th>
+                          <th className="p-2 text-center">{R?"تصعيد":"Escalate"}</th>
                           <th className="p-3 w-16"/>
                         </tr>
                       </thead>
@@ -307,18 +310,18 @@ export default function Permissions() {
       {/* ── Role Perm Dialog ── */}
       <Dialog open={rpOpen} onOpenChange={setRpOpen}>
         <DialogContent className="max-w-md">
-          <DialogHeader><DialogTitle>{rpId ? "Edit" : "Add"} Role Permission</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{rpId ? (R?"تعديل":"إEdit") : (R?"إضافة":"Add")} {R ? "صلاحية دور" : "Role Permission"}</DialogTitle></DialogHeader>
           <div className="space-y-3 py-2">
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
-                <Label>Role</Label>
+                <Label>{R ? "الدور" : "Role"}</Label>
                 <Select value={rpForm.role} onValueChange={v => setRpForm((p: any) => ({ ...p, role: v }))}>
                   <SelectTrigger><SelectValue/></SelectTrigger>
                   <SelectContent>{ROLES.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
               <div className="space-y-1">
-                <Label>Resource</Label>
+                <Label>{R ? "المورد" : "Resource"}</Label>
                 <Select value={rpForm.resource_type} onValueChange={v => setRpForm((p: any) => ({ ...p, resource_type: v }))}>
                   <SelectTrigger><SelectValue/></SelectTrigger>
                   <SelectContent>{SECTORS.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
@@ -335,8 +338,8 @@ export default function Permissions() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setRpOpen(false)}>Cancel</Button>
-            <Button onClick={saveRP}>Save</Button>
+            <Button variant="outline" onClick={() => setRpOpen(false)}>{R ? "إلغاء" : "Cancel"}</Button>
+            <Button onClick={saveRP}>{R ? "حفظ" : "Save"}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -344,14 +347,14 @@ export default function Permissions() {
       {/* ── Sector Perm Dialog ── */}
       <Dialog open={spOpen} onOpenChange={setSpOpen}>
         <DialogContent className="max-w-md">
-          <DialogHeader><DialogTitle>{spId ? "Edit" : "Add"} Sector Permission</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{spId ? (R?"تعديل":"Edit") : (R?"إضافة":"Add")} {R ? "صلاحية قطاع" : "Sector Permission"}</DialogTitle></DialogHeader>
           <div className="space-y-3 py-2">
             <div className="space-y-1">
-              <Label>Target User ID</Label>
+              <Label>{R ? "معرف المستخدم المستهدف" : "Target User ID"}</Label>
               <Input value={spForm.target_user_id} onChange={e => setSpForm((p: any) => ({ ...p, target_user_id: e.target.value }))} placeholder="UUID of user"/>
             </div>
             <div className="space-y-1">
-              <Label>Sector</Label>
+              <Label>{R ? "القطاع" : "Sector"}</Label>
               <Select value={spForm.sector} onValueChange={v => setSpForm((p: any) => ({ ...p, sector: v }))}>
                 <SelectTrigger><SelectValue/></SelectTrigger>
                 <SelectContent>{SECTORS.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
@@ -366,17 +369,17 @@ export default function Permissions() {
               ))}
             </div>
             <div className="space-y-1">
-              <Label>AI Agent Codes (comma-separated)</Label>
+              <Label>{R ? "أكواد وكلاء الذكاء الاصطناعي (مفصولة بفواصل)" : "AI Agent Codes (comma-separated)"}</Label>
               <Input value={spForm.ai_agent_codes} onChange={e => setSpForm((p: any) => ({ ...p, ai_agent_codes: e.target.value }))} placeholder="anubis,horus"/>
             </div>
             <div className="space-y-1">
-              <Label>Notes</Label>
+              <Label>{R ? "ملاحظات" : "Notes"}</Label>
               <Textarea value={spForm.notes} onChange={e => setSpForm((p: any) => ({ ...p, notes: e.target.value }))} rows={2}/>
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setSpOpen(false)}>Cancel</Button>
-            <Button onClick={saveSP}>Save</Button>
+            <Button variant="outline" onClick={() => setSpOpen(false)}>{R ? "إلغاء" : "Cancel"}</Button>
+            <Button onClick={saveSP}>{R ? "حفظ" : "Save"}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -384,24 +387,24 @@ export default function Permissions() {
       {/* ── Agent Perm Dialog ── */}
       <Dialog open={apOpen} onOpenChange={setApOpen}>
         <DialogContent className="max-w-md">
-          <DialogHeader><DialogTitle>{apId ? "Edit" : "Add"} Agent Permission</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{apId ? (R?"تعديل":"Edit") : (R?"إضافة":"Add")} {R ? "صلاحية وكيل" : "Agent Permission"}</DialogTitle></DialogHeader>
           <div className="space-y-3 py-2">
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
-                <Label>Agent Code</Label>
+                <Label>{R ? "كود الوكيل" : "Agent Code"}</Label>
                 <Input value={apForm.agent_code} onChange={e => setApForm((p: any) => ({ ...p, agent_code: e.target.value }))} placeholder="ANUBIS"/>
               </div>
               <div className="space-y-1">
-                <Label>Max Daily Ops</Label>
+                <Label>{R ? "أقصى عمليات يومية" : "Max Daily Ops"}</Label>
                 <Input type="number" value={apForm.max_daily_ops} onChange={e => setApForm((p: any) => ({ ...p, max_daily_ops: +e.target.value }))}/>
               </div>
             </div>
             <div className="space-y-1">
-              <Label>Allowed Tables (comma-separated)</Label>
+              <Label>{R ? "الجداول المسموحة (مفصولة بفواصل)" : "Allowed Tables (comma-separated)"}</Label>
               <Input value={apForm.allowed_tables} onChange={e => setApForm((p: any) => ({ ...p, allowed_tables: e.target.value }))} placeholder="customers,invoices"/>
             </div>
             <div className="space-y-1">
-              <Label>Allowed Actions (comma-separated)</Label>
+              <Label>{R ? "الإجراءات المسموحة (مفصولة بفواصل)" : "Allowed Actions (comma-separated)"}</Label>
               <Input value={apForm.allowed_actions} onChange={e => setApForm((p: any) => ({ ...p, allowed_actions: e.target.value }))} placeholder="read,create"/>
             </div>
             <div className="grid grid-cols-3 gap-3">
@@ -413,13 +416,13 @@ export default function Permissions() {
               ))}
             </div>
             <div className="space-y-1">
-              <Label>Notes</Label>
+              <Label>{R ? "ملاحظات" : "Notes"}</Label>
               <Textarea value={apForm.notes} onChange={e => setApForm((p: any) => ({ ...p, notes: e.target.value }))} rows={2}/>
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setApOpen(false)}>Cancel</Button>
-            <Button onClick={saveAP}>Save</Button>
+            <Button variant="outline" onClick={() => setApOpen(false)}>{R ? "إلغاء" : "Cancel"}</Button>
+            <Button onClick={saveAP}>{R ? "حفظ" : "Save"}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

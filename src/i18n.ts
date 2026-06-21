@@ -615,7 +615,7 @@ const ar: typeof en = {
   request_deletion: "طلب حذف الحساب", gdpr_rights: "حقوق GDPR",
   // ── Help ────────────────────────────────────────────────────────
   help_getting_started: "البدء السريع", help_security: "الأمان",
-  help_billing: "الفواتير", help_data_api: "البيانات وAPI",
+  help_billing: "الفواتير", help_data_api: "البيانات وواجهة API",
   help_ai_features: "ميزات الذكاء الاصطناعي",
   search_help: "ابحث في موضوعات المساعدة…",
   // ── Employees ───────────────────────────────────────────────────
@@ -636,7 +636,7 @@ const ar: typeof en = {
   branch_type: "نوع الفرع", working_hours: "ساعات العمل",
   shifts: "الورديات", shift_name: "اسم الوردية",
   add_shift: "إضافة وردية", ai_tasks: "مهام الذكاء الاصطناعي",
-  branch_manager: "مدير الفرع",
+  branch_manager: "مدير/ة الفرع",
   // ── Projects ────────────────────────────────────────────────────
   add_project: "إضافة مشروع", edit_project: "تعديل مشروع",
   project_name: "اسم المشروع", project_brand: "العلامة التجارية",
@@ -672,7 +672,7 @@ const ar: typeof en = {
   hr_performance: "الأداء",
   // ── Procurement ─────────────────────────────────────────────────
   purchase_orders: "أوامر الشراء", vendor_contracts: "عقود الموردين",
-  rfq_requests: "طلبات عروض الأسعار", procurement_budget: "الميزانية",
+  rfq_requests: "طلبات عروض الأسعار", procurement_budget: "ميزانية المشتريات",
   // ── System Logs ─────────────────────────────────────────────────
   tab_audit: "المراجعة", tab_errors: "الأخطاء",
   tab_security: "الأمان", tab_integrations: "التكاملات",
@@ -714,7 +714,7 @@ const ar: typeof en = {
   try_it: "جرّبه", response_label: "الاستجابة",
   parameters: "المعلمات", copy_curl: "نسخ cURL",
   // ── Affiliates ──────────────────────────────────────────────────
-  affiliates_hub: "مركز الشركاء", overview: "نظرة عامة",
+  affiliates_hub: "مركز التسويق بالعمولة", overview: "نظرة عامة",
   payouts: "المدفوعات", commission_rate: "معدل العمولة",
   total_earnings: "إجمالي الأرباح", referral_link: "رابط الإحالة",
   click_count: "النقرات", conversion_rate: "معدل التحويل",
@@ -736,7 +736,7 @@ const ar: typeof en = {
   complete_payment: "إتمام الدفع", payment_processing: "جارِ المعالجة...",
   payment_success: "تم الدفع بنجاح", payment_failed: "فشل الدفع",
   upload_receipt: "ارفع الإيصال", bank_transfer: "تحويل بنكي",
-  crypto: "محفظة كريبتو", customer_portal: "بوابة العميل",
+  crypto: "محفظة العملات الرقمية", customer_portal: "بوابة العميل",
   my_subscriptions: "اشتراكاتي", my_invoices: "فواتيري",
   my_refunds: "طلبات الاسترداد",
   cancel_subscription: "إلغاء الاشتراك", request_refund: "طلب استرداد",
@@ -768,12 +768,12 @@ const ar: typeof en = {
   timeout: "المهلة", trigger: "المشغّل",
   // ── Digital Inheritance ─────────────────────────────────────────
   add_heir: "إضافة وارث", relationship: "صلة القرابة",
-  access_level: "مستوى الوصول", remove_heir: "إزالة الوارث",
+  access_level: "مستوى الوصول", remove_heir: "حذف الوارث",
   key_of_death: "مفتاح الموت",
   enable_2fa: "تفعيل المصادقة الثنائية",
   disable_2fa: "تعطيل المصادقة الثنائية",
   profile: "الملف الشخصي", language: "اللغة",
-  calendar: "التقويم", kanban: "كانبان",
+  calendar: "التقويم", kanban: "لوحة المهام",
   tasks: "المهام", chat: "المحادثات",
   vault: "الخزنة", heirs: "الورثة",
   webhooks: "Webhooks", api_keys: "مفاتيح API",
@@ -823,7 +823,7 @@ const ar: typeof en = {
   switch_disabled_msg: "المفتاح معطل",
   enable_from_emergency: "التفعيل من الإعدادات ← الطوارئ",
   dms_heartbeat_header: "نبضة مفتاح الرجل الميت:",
-  status_expired: "منتهٍ",
+  status_expired: "منتهية الصلاحية",
   email_alert_label: "تنبيه بريدي",
   disabled_label: "معطل",
   next_confirmation: "التأكيد التالي",
@@ -1019,7 +1019,7 @@ const ar: typeof en = {
   tab_employees_tab: "الموظفون",
   tab_services_tab: "الخدمات",
   tab_projects_tab: "المشاريع",
-  tab_affiliates_hub: "مركز الشركاء",
+  tab_affiliates_hub: "مركز التسويق",
   tab_developer_hub: "مركز المطورين",
   tab_referrals: "الإحالات",};
 
@@ -1030,18 +1030,21 @@ i18n.use(initReactI18next).init({
   lng: saved, fallbackLng: "en", interpolation: { escapeValue: false },
 });
 
-export const setLanguage = (lng: "en" | "ar") => {
-  i18n.changeLanguage(lng);
-  if (typeof document !== "undefined") {
-    document.documentElement.lang = lng;
-    document.documentElement.dir = lng === "ar" ? "rtl" : "ltr";
-  }
+// Sync <html dir lang> on EVERY changeLanguage call (direct or via setLanguage)
+i18n.on("languageChanged", (lng: string) => {
+  if (typeof document === "undefined") return;
+  const dir = lng === "ar" ? "rtl" : "ltr";
+  document.documentElement.setAttribute("dir", dir);
+  document.documentElement.setAttribute("lang", lng);
   if (typeof localStorage !== "undefined") localStorage.setItem("lang", lng);
-};
+});
 
+export const setLanguage = (lng: "en" | "ar") => i18n.changeLanguage(lng);
+
+// Apply on initial load
 if (typeof document !== "undefined") {
-  document.documentElement.lang = saved;
-  document.documentElement.dir = saved === "ar" ? "rtl" : "ltr";
+  document.documentElement.setAttribute("lang", saved);
+  document.documentElement.setAttribute("dir", saved === "ar" ? "rtl" : "ltr");
 }
 
 export default i18n;

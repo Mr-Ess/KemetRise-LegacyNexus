@@ -41,12 +41,20 @@ export default function PublicContact() {
       return;
     }
     setSending(true);
-    // Store in Supabase notifications or app_settings as a message log
     try {
-      await (supabase as any).from("app_settings").upsert({
-        user_id: "00000000-0000-0000-0000-000000000000",
-        key: `contact_form_${Date.now()}`,
-        value: { ...form, submitted_at: new Date().toISOString() },
+      // Call the email edge function
+      await supabase.functions.invoke("send-contact-email", {
+        body: {
+          section_en: form.topic ? `Contact — ${form.topic}` : "Contact Form",
+          section_ar: form.topic ? `تواصل — ${CONTACT_TOPICS.find(t => t.en === form.topic)?.ar ?? form.topic}` : "نموذج التواصل",
+          data: {
+            name:    form.name,
+            email:   form.email,
+            phone:   form.phone,
+            topic:   form.topic,
+            message: form.message,
+          },
+        },
       });
       setSent(true);
       toast.success(R ? "تم إرسال رسالتك بنجاح! سنتواصل معك قريباً." : "Message sent successfully! We'll be in touch soon.");

@@ -173,6 +173,9 @@ const Settings = () => {
   const [notifPush, setNotifPush] = useState(false);
   const [notifDeadline, setNotifDeadline] = useState(true);
   const [notifSecurity, setNotifSecurity] = useState(true);
+  const [adminNotifEmail, setAdminNotifEmail] = useState("the.one.behind.kemetrise@gmail.com");
+  const [adminNotifEmailInput, setAdminNotifEmailInput] = useState("the.one.behind.kemetrise@gmail.com");
+  const [savingAdminEmail, setSavingAdminEmail] = useState(false);
 
   // Legal
   const [showLegalEdit, setShowLegalEdit] = useState<string | null>(null);
@@ -226,6 +229,21 @@ const Settings = () => {
           setNotifDeadline(!!notif.deadline);
           setNotifSecurity(!!notif.security);
         }
+        // Load admin notification email
+        try {
+          const { data: adminEmailSetting } = await (supabase as any)
+            .from("app_settings")
+            .select("value")
+            .eq("key", "admin_notification_email")
+            .maybeSingle();
+          if (adminEmailSetting?.value) {
+            const v = typeof adminEmailSetting.value === "string"
+              ? adminEmailSetting.value
+              : adminEmailSetting.value.email ?? "the.one.behind.kemetrise@gmail.com";
+            setAdminNotifEmail(v);
+            setAdminNotifEmailInput(v);
+          }
+        } catch { /* use default */ }
         if (emerg) {
           setProtocolDays(emerg.protocolDays ?? 30);
           setEmailNotify(!!emerg.emailNotify);
@@ -663,6 +681,53 @@ const Settings = () => {
               <ToggleSwitch checked={notifPush} onToggle={() => { const v = !notifPush; setNotifPush(v); saveSetting("notifications", { email: notifEmail, push: v, deadline: notifDeadline, security: notifSecurity }, v ? "Push notifications on" : "Push notifications off"); }} label="Push Notifications" desc="Browser push notifications" />
               <ToggleSwitch checked={notifDeadline} onToggle={() => { const v = !notifDeadline; setNotifDeadline(v); saveSetting("notifications", { email: notifEmail, push: notifPush, deadline: v, security: notifSecurity }, v ? "Deadline reminders on" : "Deadline reminders off"); }} label="Deadline Reminders" desc="3 days before deadline" />
               <ToggleSwitch checked={notifSecurity} onToggle={() => { const v = !notifSecurity; setNotifSecurity(v); saveSetting("notifications", { email: notifEmail, push: notifPush, deadline: notifDeadline, security: v }, v ? "Security alerts on" : "Security alerts off"); }} label="Security Alerts" desc="Immediate threat notifications" />
+            </div>
+            {/* ── ADMIN NOTIFICATION EMAIL ─────────────────────── */}
+            <div className="pt-4 border-t border-border space-y-3">
+              <h3 className="font-display text-xs text-primary flex items-center gap-2">
+                <Bell className="w-4 h-4" /> ADMIN INQUIRY EMAIL / بريد استقبال الطلبات
+              </h3>
+              <p className="text-xs text-muted-foreground">
+                All contact forms &amp; product inquiries from the public site are sent to this email.
+                <br /><span dir="rtl" className="block mt-0.5">كل نماذج التواصل وطلبات المنتجات من الموقع تُرسل لهذا الإيميل.</span>
+              </p>
+              <div className="flex gap-2">
+                <Input
+                  type="email"
+                  value={adminNotifEmailInput}
+                  onChange={e => setAdminNotifEmailInput(e.target.value)}
+                  className="text-xs h-9 flex-1"
+                  placeholder="admin@example.com"
+                />
+                <Button
+                  size="sm"
+                  disabled={savingAdminEmail || adminNotifEmailInput === adminNotifEmail}
+                  onClick={async () => {
+                    if (!adminNotifEmailInput.includes("@")) {
+                      toast.error("Invalid email address");
+                      return;
+                    }
+                    setSavingAdminEmail(true);
+                    try {
+                      await (supabase as any).from("app_settings").upsert({
+                        user_id: user!.id,
+                        key: "admin_notification_email",
+                        value: adminNotifEmailInput,
+                      }, { onConflict: "key" });
+                      setAdminNotifEmail(adminNotifEmailInput);
+                      toast.success("Admin email updated / تم تحديث الإيميل");
+                    } catch { toast.error("Failed to save"); }
+                    finally { setSavingAdminEmail(false); }
+                  }}
+                >
+                  {savingAdminEmail ? "Saving..." : "Save"}
+                </Button>
+              </div>
+              {adminNotifEmail && (
+                <p className="text-[11px] text-muted-foreground">
+                  Current: <span className="text-primary font-mono">{adminNotifEmail}</span>
+                </p>
+              )}
             </div>
             <div className="pt-4 border-t border-border">
               <NotificationRulesManager />

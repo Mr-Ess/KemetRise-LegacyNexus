@@ -17,26 +17,30 @@ import { cn } from "@/lib/utils";
 import LeadCaptureModal from "@/components/shared/LeadCaptureModal";
 
 /* ─── Animated Counter ─────────────────────────────────────────── */
-function Counter({ to, suffix = "", duration = 2000 }: { to: number; suffix?: string; duration?: number }) {
+function Counter({ to, suffix = "", duration = 1800 }: { to: number; suffix?: string; duration?: number }) {
   const [count, setCount] = useState(0);
   const ref = useRef<HTMLSpanElement>(null);
-  const started = useRef(false);
+  const rafRef = useRef<number | null>(null);
   useEffect(() => {
     const obs = new IntersectionObserver(([e]) => {
-      if (e.isIntersecting && !started.current) {
-        started.current = true;
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      if (e.isIntersecting) {
+        setCount(0);
         const start = performance.now();
         const tick = (now: number) => {
           const p = Math.min((now - start) / duration, 1);
-          setCount(Math.floor(p * p * to));
-          if (p < 1) requestAnimationFrame(tick);
+          const eased = p < 1 ? p * p * (3 - 2 * p) : 1; // smoothstep
+          setCount(Math.round(eased * to));
+          if (p < 1) rafRef.current = requestAnimationFrame(tick);
           else setCount(to);
         };
-        requestAnimationFrame(tick);
+        rafRef.current = requestAnimationFrame(tick);
+      } else {
+        setCount(0);
       }
-    }, { threshold: 0.4 });
+    }, { threshold: 0.3 });
     if (ref.current) obs.observe(ref.current);
-    return () => obs.disconnect();
+    return () => { obs.disconnect(); if (rafRef.current) cancelAnimationFrame(rafRef.current); };
   }, [to, duration]);
   return <span ref={ref}>{count.toLocaleString()}{suffix}</span>;
 }
@@ -185,8 +189,8 @@ export default function PublicLanding() {
           </h1>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto mb-10 leading-relaxed animate-fade-in-up" style={{ animationDelay: "0.2s" }}>
             {R
-              ? "ثمانية بوابات متكاملة في نظام واحد — من الإدارة العليا إلى المستخدم النهائي، مع ذكاء اصطناعي وموارد بشرية وتحليلات فورية."
-              : "Eight interconnected portals in one system — from supreme admin to end user, with AI, HR, and real-time analytics."}
+              ? "أحد عشر بوابة متكاملة في نظام واحد — من الإدارة العليا إلى المستخدم النهائي، مع ذكاء اصطناعي وموارد بشرية وتحليلات فورية."
+              : "11 interconnected portals in one system — from supreme admin to end user, with AI, HR, and real-time analytics."}
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center animate-fade-in-up" style={{ animationDelay: "0.35s" }}>
             {user ? (
@@ -208,9 +212,9 @@ export default function PublicLanding() {
           {/* Stats */}
           <div className="mt-16 grid grid-cols-2 sm:grid-cols-4 gap-px bg-border/30 rounded-2xl overflow-hidden border border-border/30 max-w-2xl mx-auto">
             {[
-              { val: 8,   suffix: "",  labelEn: "Portals",   labelAr: "بوابات" },
-              { val: 25,  suffix: "+", labelEn: "DB Tables", labelAr: "جدول بيانات" },
-              { val: 10,  suffix: "",  labelEn: "Sectors",   labelAr: "قطاع" },
+              { val: 11,  suffix: "",  labelEn: "Portals",   labelAr: "بوابة" },
+              { val: 255, suffix: "+", labelEn: "DB Tables", labelAr: "جدول بيانات" },
+              { val: 12,  suffix: "+", labelEn: "Sectors",   labelAr: "قطاع" },
               { val: 100, suffix: "%", labelEn: "Bilingual", labelAr: "ثنائي اللغة" },
             ].map((s) => (
               <div key={s.labelEn} className="flex flex-col items-center justify-center py-6 px-4 bg-background hover:bg-secondary/20 transition-colors">

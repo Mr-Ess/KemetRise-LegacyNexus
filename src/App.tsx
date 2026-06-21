@@ -1,6 +1,6 @@
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -19,6 +19,13 @@ import { Skeleton } from "@/components/ui/skeleton";
 import Index from "./pages/Index.tsx";
 import Auth from "./pages/Auth.tsx";
 import NotFound from "./pages/NotFound.tsx";
+
+// Scroll to top on every route change
+function ScrollToTop() {
+  const { pathname } = useLocation();
+  useEffect(() => { window.scrollTo({ top: 0, behavior: "instant" }); }, [pathname]);
+  return null;
+}
 
 // Lazy-loaded routes (code splitting)
 const Sessions = lazy(() => import("./pages/Sessions"));
@@ -160,6 +167,7 @@ const App = () => (
       <Sonner />
       <ErrorBoundary>
         <BrowserRouter>
+          <ScrollToTop />
           <AuthProvider>
             <UserRoleProvider>
             <CartProvider>

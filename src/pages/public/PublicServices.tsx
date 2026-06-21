@@ -611,6 +611,7 @@ export default function PublicServices() {
 
   return (
     <PublicLayout>
+      <div dir={R ? "rtl" : "ltr"}>
       {/* Hero */}
       <section className="relative py-24 overflow-hidden">
         <div className="absolute inset-0 pointer-events-none">
@@ -883,6 +884,7 @@ export default function PublicServices() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      </div>
     </PublicLayout>
   );
 }

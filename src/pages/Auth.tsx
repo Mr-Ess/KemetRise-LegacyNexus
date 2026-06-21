@@ -16,6 +16,8 @@ import { tenantDb } from "@/lib/tenantDb";
 export default function Auth() {
   const nav = useNavigate();
   const { user } = useAuth();
+  const { i18n } = useTranslation();
+  const R = i18n.language === "ar";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
@@ -33,7 +35,8 @@ export default function Auth() {
         .eq("id", userId)
         .single();
       const role = (data as any)?.role ?? "user";
-      if (role === "superadmin" || role === "admin") return nav("/admin",     { replace: true });
+      if (role === "superadmin") return nav("/dashboard", { replace: true });
+      if (role === "admin")       return nav("/admin",     { replace: true });
       if (role === "partner")   return nav("/partner",    { replace: true });
       if (role === "agent")     return nav("/agent",      { replace: true });
       if (role === "vendor")    return nav("/vendor",     { replace: true });
@@ -55,7 +58,10 @@ export default function Auth() {
     const limit = await checkRateLimit(email);
     if (!limit.allowed) {
       setBusy(false);
-      toast.error(`تم تجاوز عدد المحاولات. حاول بعد ${limit.waitMin} دقيقة`);
+      toast.error(R
+        ? `تم تجاوز عدد المحاولات. حاول بعد ${limit.waitMin} دقيقة`
+        : `Too many attempts. Try again in ${limit.waitMin} minutes`
+      );
       return;
     }
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
@@ -79,7 +85,7 @@ export default function Auth() {
   const verify2fa = async () => {
     const totp = new OTPAuth.TOTP({ issuer: "KemetRise", label: email, secret: OTPAuth.Secret.fromBase32(pendingSecret) });
     const delta = totp.validate({ token: otp, window: 1 });
-    if (delta === null) { toast.error("كود خاطئ"); return; }
+    if (delta === null) { toast.error(R ? "كود خاطئ" : "Wrong code"); return; }
     const { data: { user: u } } = await supabase.auth.getUser();
     setNeeds2fa(false);
     if (u) await redirectByRole(u.id); else nav("/");
@@ -101,7 +107,7 @@ export default function Auth() {
     });
     setBusy(false);
     if (error) { toast.error(error.message); return; }
-    toast.success("Account created. Check your email to verify.");
+    toast.success(R ? "تم إنشاء الحساب. تحقق من بريدك للتحقق." : "Account created. Check your email to verify.");
 
     // Credit referrer if a valid code was provided
     if (refCode && signUpData.user) {
@@ -130,18 +136,18 @@ export default function Auth() {
       provider: "google",
       options: { redirectTo: window.location.origin },
     });
-    if (error) toast.error("Google sign-in failed: " + error.message);
+    if (error) toast.error((R ? "فشل تسجيل الدخول بجوجل: " : "Google sign-in failed: ") + error.message);
   };
 
   if (needs2fa) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background p-4">
         <Card className="w-full max-w-md p-6 space-y-4 border-primary/30">
-          <h1 className="text-xl font-bold text-primary text-center">🔐 Two-Factor Authentication</h1>
-          <p className="text-sm text-muted-foreground text-center">أدخل الكود من تطبيق المصادقة</p>
+          <h1 className="text-xl font-bold text-primary text-center">🔐 {R ? "المصادقة الثنائية" : "Two-Factor Authentication"}</h1>
+          <p className="text-sm text-muted-foreground text-center">{R ? "أدخل الكود من تطبيق المصادقة" : "Enter the code from your authenticator app"}</p>
           <Input value={otp} onChange={e=>setOtp(e.target.value)} maxLength={6} placeholder="123456" className="text-center text-2xl tracking-widest" />
-          <Button onClick={verify2fa} className="w-full">تحقق</Button>
-          <Button variant="ghost" onClick={cancel2fa} className="w-full">إلغاء</Button>
+          <Button onClick={verify2fa} className="w-full">{R ? "تحقق" : "Verify"}</Button>
+          <Button variant="ghost" onClick={cancel2fa} className="w-full">{R ? "إلغاء" : "Cancel"}</Button>
         </Card>
       </div>
     );
@@ -152,12 +158,12 @@ export default function Auth() {
       <Card className="w-full max-w-md p-6 space-y-4 border-primary/30">
         <div className="text-center">
           <h1 className="text-3xl font-bold text-primary" style={{ fontFamily: "Orbitron" }}>KemetRise</h1>
-          <p className="text-sm text-muted-foreground mt-1">Sign in to your command center</p>
+          <p className="text-sm text-muted-foreground mt-1">{R ? "سجّل دخولك إلى مركز قيادتك" : "Sign in to your command center"}</p>
         </div>
         <Tabs defaultValue="signin">
           <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="signin">Sign In</TabsTrigger>
-            <TabsTrigger value="signup">Sign Up</TabsTrigger>
+            <TabsTrigger value="signin">{R ? "تسجيل الدخول" : "Sign In"}</TabsTrigger>
+            <TabsTrigger value="signup">{R ? "إنشاء حساب" : "Sign Up"}</TabsTrigger>
           </TabsList>
           <TabsContent value="signin">
             <form onSubmit={signIn} className="space-y-3 mt-4">
@@ -165,23 +171,23 @@ export default function Auth() {
               <div><Label>Password</Label><Input type="password" required value={password} onChange={e => setPassword(e.target.value)} /></div>
               <Button type="submit" disabled={busy} className="w-full">{busy ? "..." : "Sign In"}</Button>
               <button type="button" onClick={async () => {
-                if (!email) { toast.error("أدخل البريد أولاً"); return; }
+                if (!email) { toast.error(R ? "أدخل البريد أولاً" : "Enter email first"); return; }
                 const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: `${window.location.origin}/reset-password` });
-                if (error) toast.error(error.message); else toast.success("تم إرسال رابط إعادة التعيين");
+                if (error) toast.error(error.message); else toast.success(R ? "تم إرسال رابط إعادة التعيين" : "Reset link sent");
               }} className="text-xs text-primary hover:underline w-full text-center">نسيت كلمة المرور؟</button>
             </form>
           </TabsContent>
           <TabsContent value="signup">
             <form onSubmit={signUp} className="space-y-3 mt-4">
-              <div><Label>Display Name</Label><Input value={name} onChange={e => setName(e.target.value)} /></div>
-              <div><Label>Email</Label><Input type="email" required value={email} onChange={e => setEmail(e.target.value)} /></div>
-              <div><Label>Password</Label><Input type="password" required minLength={6} value={password} onChange={e => setPassword(e.target.value)} /></div>
-              <Button type="submit" disabled={busy} className="w-full">{busy ? "..." : "Create Account"}</Button>
+              <div><Label>{R ? "اسم العرض" : "Display Name"}</Label><Input value={name} onChange={e => setName(e.target.value)} /></div>
+              <div><Label>{R ? "البريد الإلكتروني" : "Email"}</Label><Input type="email" required value={email} onChange={e => setEmail(e.target.value)} /></div>
+              <div><Label>{R ? "كلمة المرور" : "Password"}</Label><Input type="password" required minLength={6} value={password} onChange={e => setPassword(e.target.value)} /></div>
+              <Button type="submit" disabled={busy} className="w-full">{busy ? "..." : (R ? "إنشاء حساب" : "Create Account")}</Button>
             </form>
           </TabsContent>
         </Tabs>
-        <div className="relative"><div className="absolute inset-0 flex items-center"><span className="w-full border-t border-primary/20" /></div><div className="relative flex justify-center text-xs"><span className="bg-background px-2 text-muted-foreground">OR</span></div></div>
-        <Button variant="outline" onClick={google} className="w-full">Continue with Google</Button>
+        <div className="relative"><div className="absolute inset-0 flex items-center"><span className="w-full border-t border-primary/20" /></div><div className="relative flex justify-center text-xs"><span className="bg-background px-2 text-muted-foreground">{R ? "أو" : "OR"}</span></div></div>
+        <Button variant="outline" onClick={google} className="w-full">{R ? "المتابعة مع Google" : "Continue with Google"}</Button>
       </Card>
     </div>
   );

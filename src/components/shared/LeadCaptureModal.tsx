@@ -342,7 +342,7 @@ export default function LeadCaptureModal({ open, onClose, type, isAr, meta }: Pr
                 <>
                   <div className="grid grid-cols-2 gap-3">
                     <Field label={isAr ? "نوع الشراكة" : "Partner Type"} isAr={isAr}>
-                      <select value={form.partner_type} onChange={set("partner_type")} className={inputCls}>
+                      <select value={form.partner_type} onChange={set("partner_type")} className={selectCls}>
                         <option value="">{isAr ? "اختر..." : "Select..."}</option>
                         <option value="reseller">{isAr ? "موزع / وسيط" : "Reseller"}</option>
                         <option value="supplier">{isAr ? "مورد / منتج" : "Supplier / Manufacturer"}</option>
@@ -352,7 +352,7 @@ export default function LeadCaptureModal({ open, onClose, type, isAr, meta }: Pr
                       </select>
                     </Field>
                     <Field label={isAr ? "الإيرادات السنوية (تقديرية)" : "Approx. Annual Revenue"} isAr={isAr}>
-                      <select value={form.annual_revenue} onChange={set("annual_revenue")} className={inputCls}>
+                      <select value={form.annual_revenue} onChange={set("annual_revenue")} className={selectCls}>
                         <option value="">{isAr ? "اختر..." : "Select..."}</option>
                         <option value="<100k">{isAr ? "أقل من $100K" : "< $100K"}</option>
                         <option value="100k-500k">$100K – $500K</option>
@@ -380,7 +380,7 @@ export default function LeadCaptureModal({ open, onClose, type, isAr, meta }: Pr
                 <>
                   <div className="grid grid-cols-2 gap-3">
                     <Field label={isAr ? "المنطقة الجغرافية المستهدفة" : "Target Region"} isAr={isAr}>
-                      <select value={form.region} onChange={set("region")} className={inputCls}>
+                      <select value={form.region} onChange={set("region")} className={selectCls}>
                         <option value="">{isAr ? "اختر..." : "Select..."}</option>
                         <option value="الشام">{isAr ? "بلاد الشام" : "The Levant"}</option>
                         <option value="الخليج">{isAr ? "الخليج العربي" : "GCC"}</option>
@@ -391,7 +391,7 @@ export default function LeadCaptureModal({ open, onClose, type, isAr, meta }: Pr
                       </select>
                     </Field>
                     <Field label={isAr ? "سنوات الخبرة في التوزيع" : "Distribution Experience (years)"} isAr={isAr}>
-                      <select value={form.experience_years} onChange={set("experience_years")} className={inputCls}>
+                      <select value={form.experience_years} onChange={set("experience_years")} className={selectCls}>
                         <option value="">{isAr ? "اختر..." : "Select..."}</option>
                         <option value="<2">{isAr ? "أقل من سنتين" : "< 2 years"}</option>
                         <option value="2-5">{isAr ? "2 – 5 سنوات" : "2 – 5 years"}</option>
@@ -426,7 +426,7 @@ export default function LeadCaptureModal({ open, onClose, type, isAr, meta }: Pr
                 <>
                   <div className="grid grid-cols-2 gap-3">
                     <Field label={isAr ? "نوع المشروع" : "Project Type"} isAr={isAr}>
-                      <select value={form.project_type} onChange={set("project_type")} className={inputCls}>
+                      <select value={form.project_type} onChange={set("project_type")} className={selectCls}>
                         <option value="">{isAr ? "اختر..." : "Select..."}</option>
                         <option value="saas">{isAr ? "منصة SaaS / ERP" : "SaaS / ERP Platform"}</option>
                         <option value="ecommerce">{isAr ? "تجارة إلكترونية" : "E-Commerce"}</option>
@@ -437,7 +437,7 @@ export default function LeadCaptureModal({ open, onClose, type, isAr, meta }: Pr
                       </select>
                     </Field>
                     <Field label={isAr ? "الميزانية التقديرية" : "Estimated Budget"} isAr={isAr}>
-                      <select value={form.budget_range} onChange={set("budget_range")} className={inputCls}>
+                      <select value={form.budget_range} onChange={set("budget_range")} className={selectCls}>
                         <option value="">{isAr ? "اختر..." : "Select..."}</option>
                         <option value="<10k">{isAr ? "أقل من $10K" : "< $10K"}</option>
                         <option value="10k-50k">$10K – $50K</option>
@@ -449,7 +449,7 @@ export default function LeadCaptureModal({ open, onClose, type, isAr, meta }: Pr
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <Field label={isAr ? "الإطار الزمني المتوقع" : "Expected Timeline"} isAr={isAr}>
-                      <select value={form.timeline} onChange={set("timeline")} className={inputCls}>
+                      <select value={form.timeline} onChange={set("timeline")} className={selectCls}>
                         <option value="">{isAr ? "اختر..." : "Select..."}</option>
                         <option value="urgent">{isAr ? "عاجل — أقل من شهر" : "Urgent — < 1 month"}</option>
                         <option value="1-3m">{isAr ? "1 – 3 أشهر" : "1 – 3 months"}</option>
@@ -547,6 +547,9 @@ function Field({ label, isAr, children }: { label: string; isAr: boolean; childr
 // ─── Input class ─────────────────────────────────────────────────
 const inputCls =
   "w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-white placeholder:text-white/30 focus:outline-none focus:border-white/30 focus:bg-white/8 transition-colors";
+
+const selectCls =
+  "w-full bg-[#1a1f2e] border border-white/10 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-white/30 transition-colors [&>option]:bg-[#1a1f2e] [&>option]:text-white";
 
 // ─── Success state ────────────────────────────────────────────────
 function SuccessState({ isAr, onClose }: { isAr: boolean; onClose: () => void }) {

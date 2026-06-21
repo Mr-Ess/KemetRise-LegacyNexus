@@ -113,7 +113,7 @@ export default function PublicLayout({ children }: { children: ReactNode }) {
     href === "/" ? location.pathname === "/" : location.pathname.startsWith(href.split("#")[0]) && href.split("#")[0] !== "/";
 
   return (
-    <div className={cn("min-h-screen bg-background text-foreground", R && "rtl")}>
+    <div dir={R ? "rtl" : "ltr"} className={cn("min-h-screen bg-background text-foreground", R && "rtl")}>
       {/* Navbar */}
       <header className={cn(
         "sticky top-0 z-50 transition-all duration-300",
@@ -149,17 +149,17 @@ export default function PublicLayout({ children }: { children: ReactNode }) {
                 {R ? "من نحن" : "About"} <ChevronDown className={cn("w-3 h-3 transition-transform", aboutOpen && "rotate-180")} />
               </button>
               {aboutOpen && (
-                <div className="absolute top-full left-0 mt-1 w-64 bg-background/98 backdrop-blur-xl border border-border rounded-xl shadow-xl overflow-hidden z-50">
+                <div className="absolute top-full start-0 mt-1 w-64 bg-background border border-border rounded-xl shadow-2xl overflow-hidden z-[60]">
                   {ABOUT_ITEMS.map((item) => (
                     <button key={item.href}
                       onClick={() => { navigate(item.href); setAboutOpen(false); }}
-                      className="w-full flex items-start gap-3 px-4 py-3 hover:bg-secondary/50 transition-colors text-left group">
+                      className="w-full flex items-start gap-3 px-4 py-3 hover:bg-secondary/50 transition-colors text-start group">
                       <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0 group-hover:bg-primary/20 transition-colors mt-0.5">
                         <item.icon className="w-4 h-4 text-primary" />
                       </div>
-                      <div>
+                      <div className="flex-1 min-w-0">
                         <p className="text-xs font-semibold text-foreground group-hover:text-primary transition-colors">{R ? item.ar : item.en}</p>
-                        <p className="text-[10px] text-muted-foreground mt-0.5">{R ? item.descAr : item.descEn}</p>
+                        <p className="text-[10px] text-muted-foreground mt-0.5 leading-relaxed">{R ? item.descAr : item.descEn}</p>
                       </div>
                     </button>
                   ))}
@@ -183,17 +183,17 @@ export default function PublicLayout({ children }: { children: ReactNode }) {
                   {R ? "بوابتي" : "My Portals"} <ChevronDown className={cn("w-3 h-3 transition-transform", portalOpen && "rotate-180")} />
                 </button>
                 {portalOpen && (
-                  <div className="absolute top-full left-0 mt-1 w-60 bg-background/98 backdrop-blur-xl border border-border rounded-xl shadow-xl overflow-hidden z-50">
+                  <div className="absolute top-full start-0 mt-1 w-60 bg-background border border-border rounded-xl shadow-2xl overflow-hidden z-[60]">
                     {/* Accessible portals based on role(s) */}
                     {accessiblePortals.length > 0 ? accessiblePortals.map((p) => (
                       <button key={p.href + p.role} onClick={() => { navigate(p.href); setPortalOpen(false); }}
-                        className="w-full flex items-center gap-2 px-4 py-2.5 text-xs hover:bg-secondary/50 transition-colors text-left">
+                        className="w-full flex items-center gap-2 px-4 py-2.5 text-xs hover:bg-secondary/50 transition-colors text-start">
                         <span className="text-sm shrink-0">{p.icon}</span>
                         <span className={p.color}>{R ? p.ar : p.en}</span>
                       </button>
                     )) : (
                       <button onClick={() => { navigate("/portal"); setPortalOpen(false); }}
-                        className="w-full flex items-center gap-2 px-4 py-2.5 text-xs hover:bg-secondary/50 transition-colors text-left">
+                        className="w-full flex items-center gap-2 px-4 py-2.5 text-xs hover:bg-secondary/50 transition-colors text-start">
                         <span className="text-sm">👤</span>
                         <span className="text-blue-400">{R ? "بوابة المستخدم" : "User Portal"}</span>
                       </button>
@@ -201,14 +201,14 @@ export default function PublicLayout({ children }: { children: ReactNode }) {
                     {/* Central Dashboard only for non-superadmin staff roles */}
                     {userRole && userRole !== "superadmin" && DASHBOARD_ROLES.has(userRole) && (
                       <button onClick={() => { navigate("/dashboard"); setPortalOpen(false); }}
-                        className="w-full flex items-center gap-2 px-4 py-2.5 text-xs hover:bg-secondary/50 transition-colors text-left border-t border-border/50">
+                        className="w-full flex items-center gap-2 px-4 py-2.5 text-xs hover:bg-secondary/50 transition-colors text-start border-t border-border/50">
                         <span className="text-sm">🖥️</span>
                         <span className="text-primary">{R ? "لوحة التحكم المركزية" : "Central Dashboard"}</span>
                       </button>
                     )}
                     {/* AI Chat always */}
                     <button onClick={() => { navigate("/chat"); setPortalOpen(false); }}
-                      className="w-full flex items-center gap-2 px-4 py-2.5 text-xs hover:bg-secondary/50 transition-colors text-left border-t border-border/50">
+                      className="w-full flex items-center gap-2 px-4 py-2.5 text-xs hover:bg-secondary/50 transition-colors text-start border-t border-border/50">
                       <span className="text-sm">🤖</span>
                       <span className="text-cyan-400">AI Chat</span>
                     </button>
@@ -314,7 +314,7 @@ export default function PublicLayout({ children }: { children: ReactNode }) {
                 <span className="font-display text-sm font-black text-primary tracking-widest">KemetRise</span>
               </div>
               <p className="text-xs text-muted-foreground leading-relaxed mb-5 max-w-xs">
-                {R ? "منصة SaaS + ERP موحدة تجمع ثمانية بوابات في نظام واحد متكامل." : "Unified SaaS + ERP platform uniting eight portals in one integrated system."}
+                {R ? "منصة SaaS + ERP موحدة تجمع أحد عشر بوابة في نظام واحد متكامل." : "Unified SaaS + ERP platform uniting eleven portals in one integrated system."}
               </p>
               <div className="flex flex-col gap-2 text-xs text-muted-foreground">
                 <div className="flex items-center gap-2"><Phone className="w-3.5 h-3.5 text-primary" /><span>+20 100 000 0000</span></div>

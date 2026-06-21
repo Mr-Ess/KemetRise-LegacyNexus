@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+﻿import { useState, useMemo, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import PublicLayout from "@/layouts/PublicLayout";
@@ -16,10 +16,14 @@ import LeadCaptureModal from "@/components/shared/LeadCaptureModal";
 interface Project {
   id: string;
   title: string;
+  title_en?: string;
   brand_name: string;
   sector: string | null;
+  sector_en?: string;
+  sector_ar?: string;
   execution_type: string | null;
   description: string;
+  description_en?: string;
   image_url: string | null;
   project_order: number;
   is_active?: boolean;
@@ -145,65 +149,69 @@ const EXEC_CONFIG: Record<string, ExecCfg> = {
 const STATIC_PROJECTS: Project[] = [
   // FOR HER
   { id:"fh-001", title:"نظام إدارة مجموعات الأزياء المحتشمة", brand_name:"For Her", title_en:"Modest Fashion Collections Management System",
-    sector:"Fashion & Modest Styling", sector_en:"Fashion & Modest Styling", execution_type:"Hybrid", project_order:10, image_url:null,
+    sector:"الأزياء والأناقة المحتشمة", sector_en:"Fashion & Modest Styling", sector_ar:"الأزياء والأناقة المحتشمة", execution_type:"Hybrid", project_order:10, image_url:null,
     description:"نظام متكامل لإدارة مجموعات الأزياء المحتشمة يشمل إدارة المخزون بالمقاسات والألوان، تصنيف القطع الفنية، ونشر الكتالوجات تلقائياً عبر قنوات المبيعات المتعددة مع إشعارات النفاد الآني.", description_en:"A complete system for managing modest fashion collections including size/color inventory management, artistic piece classification, and automated catalog publishing across multiple sales channels with real-time stock alerts." },
   { id:"fh-002", title:"مساعد التنسيق الأزيائي بالذكاء الاصطناعي", brand_name:"For Her", title_en:"AI Fashion Styling Assistant",
-    sector:"AI Styling", sector_en:"AI Styling", execution_type:"AI Agents", project_order:20, image_url:null,
+    sector:"التنسيق بالذكاء الاصطناعي", sector_en:"AI Styling", sector_ar:"التنسيق بالذكاء الاصطناعي", execution_type:"AI Agents", project_order:20, image_url:null,
     description:"وكيل ذكاء اصطناعي مخصص يقدم توصيات تنسيق الأزياء بناءً على تفضيلات العميلة والمناسبة ومتطلبات اللباس المحتشم، يعمل عبر دردشة تفاعلية بالعربية والإنجليزية على مدار الساعة.", description_en:"A custom AI agent providing outfit coordination recommendations based on client preferences, occasion, and modest dress requirements. Operates via interactive chat in Arabic and English around the clock." },
   { id:"fh-003", title:"دليل المقاسات الديناميكي والذكي", brand_name:"For Her", title_en:"Smart Dynamic Size Guide",
-    sector:"Fashion & Modest Styling", sector_en:"Fashion & Modest Styling", execution_type:"Technical Infrastructure", project_order:30, image_url:null,
+    sector:"الأزياء والأناقة المحتشمة", sector_en:"Fashion & Modest Styling", sector_ar:"الأزياء والأناقة المحتشمة", execution_type:"Technical Infrastructure", project_order:30, image_url:null,
     description:"أداة تفاعلية ذكية لتوجيه العميلات نحو المقاس الأنسب وفق قياساتهن الحقيقية، مما يقلل معدل الإرجاع بنسبة تصل إلى 60% ويحسن رضا العملاء من خلال توصيات دقيقة ومحدّثة باستمرار.", description_en:"An intelligent interactive tool guiding customers to the best fit based on their actual measurements, reducing return rates by up to 60% and improving satisfaction through accurate, continuously updated recommendations." },
   // JUST CLICK STORE
   { id:"jcs-001", title:"منصة التجزئة متعددة البائعين", brand_name:"Just Click Store", title_en:"Multi-Vendor Retail Platform",
-    sector:"E-commerce & Smart Logistics", sector_en:"E-commerce & Smart Logistics", execution_type:"Technical Infrastructure", project_order:10, image_url:null,
+    sector:"التجارة الإلكترونية واللوجستيك الذكي", sector_en:"E-commerce & Smart Logistics", sector_ar:"التجارة الإلكترونية واللوجستيك الذكي", execution_type:"Technical Infrastructure", project_order:10, image_url:null,
     description:"متجر تجزئة مركزي يجمع شبكة موردين متعددين في واجهة عرض موحدة مع نظام إدارة المخزون الآني والتسعير التنافسي والمزامنة الكاملة مع أنظمة نقاط البيع وبوابات الدفع الإلكتروني.", description_en:"A centralized retail store aggregating multiple suppliers in a unified display with real-time inventory management, competitive pricing, and full synchronization with POS systems and payment gateways." },
   { id:"jcs-002", title:"محرك الشحن والتسليم الآلي", brand_name:"Just Click Store", title_en:"Automated Shipping & Delivery Engine",
-    sector:"E-commerce & Smart Logistics", sector_en:"E-commerce & Smart Logistics", execution_type:"AI Agents", project_order:20, image_url:null,
+    sector:"التجارة الإلكترونية واللوجستيك الذكي", sector_en:"E-commerce & Smart Logistics", sector_ar:"التجارة الإلكترونية واللوجستيك الذكي", execution_type:"AI Agents", project_order:20, image_url:null,
     description:"نظام ربط آلي متكامل مع شركات الشحن عبر Webhooks، يُنشئ بوليصات الشحن فور تأكيد الطلب ويتتبع الشحنات في الوقت الفعلي مع إشعارات تلقائية للعملاء عبر SMS والبريد الإلكتروني.", description_en:"An automated integration system with shipping companies via Webhooks, generating shipping labels upon order confirmation and tracking shipments in real time with automatic SMS and email notifications to customers." },
   { id:"jcs-003", title:"بوابة إدارة شبكة الموردين", brand_name:"Just Click Store", title_en:"Supplier Network Management Portal",
-    sector:"Supply Chain", sector_en:"Supply Chain", execution_type:"Hybrid", project_order:30, image_url:null,
+    sector:"سلسلة التوريد", sector_en:"Supply Chain", sector_ar:"سلسلة التوريد", execution_type:"Hybrid", project_order:30, image_url:null,
     description:"بوابة موردين متكاملة لرفع المنتجات والفواتير وتتبع الطلبات وإدارة العقود مع آليات تقييم الأداء وضمان الجودة وقنوات تواصل مباشرة مع فريق الشراء ومدير الحسابات.", description_en:"An integrated supplier portal for uploading products and invoices, tracking orders and managing contracts with performance evaluation mechanisms, quality assurance, and direct communication channels with the purchasing team." },
   // YOUKA'S CORE
   { id:"yc-001", title:"مسرّع الشركات الناشئة المتكامل", brand_name:"Youka's Core", title_en:"Integrated Startup Accelerator",
-    sector:"Business Incubators & Marketing Hub", sector_en:"Business Incubators & Marketing Hub", execution_type:"Hybrid", project_order:10, image_url:null,
+    sector:"حاضنات الأعمال ومحور التسويق", sector_en:"Business Incubators & Marketing Hub", sector_ar:"حاضنات الأعمال ومحور التسويق", execution_type:"Hybrid", project_order:10, image_url:null,
     description:"برنامج تسريع شامل للشركات الناشئة يشمل التقييم المبدئي والتوجيه الاستراتيجي وربط المشاريع بالممولين إلى جانب الدعم القانوني والمحاسبي من خلال شبكة خبراء مؤهلين ومعتمدين.", description_en:"A comprehensive startup acceleration program including initial assessment, strategic mentoring, connecting projects with investors, along with legal and accounting support through a qualified expert network." },
   { id:"yc-002", title:"منظومة تتبع دعوات HR Hub", brand_name:"Youka's Core", title_en:"HR Hub Invitation Tracking System",
-    sector:"HR Management", sector_en:"HR Management", execution_type:"Technical Infrastructure", project_order:20, image_url:null,
+    sector:"إدارة الموارد البشرية", sector_en:"HR Management", sector_ar:"إدارة الموارد البشرية", execution_type:"Technical Infrastructure", project_order:20, image_url:null,
     description:"نظام رقمي متكامل لإدارة وتتبع دعوات الانضمام لبوابة الموارد البشرية يشمل رموز الدعوة المخصصة ولوحات التتبع التفاعلية وتقارير قبول الدعوات مع ربط كامل بنظام ERP.", description_en:"An integrated digital system for managing and tracking HR portal join invitations, including custom invitation codes, interactive tracking dashboards, and invitation acceptance reports with full ERP integration." },
   { id:"yc-003", title:"مركز المنهجيات التسويقية الذكي", brand_name:"Youka's Core", title_en:"Smart Marketing Methodologies Hub",
-    sector:"Marketing Hub", sector_en:"Marketing Hub", execution_type:"Hybrid", project_order:30, image_url:null,
+    sector:"مركز التسويق", sector_en:"Marketing Hub", sector_ar:"مركز التسويق", execution_type:"Hybrid", project_order:30, image_url:null,
     description:"منصة تعليمية وتطبيقية للمنهجيات التسويقية الحديثة تدمج خطط التسويق المخصصة وتحليلات الأداء وأدوات إنشاء المحتوى وتتبع معدلات العائد على الاستثمار في بيئة عمل تعاونية.", description_en:"An educational and practical platform for modern marketing methodologies integrating customized marketing plans, performance analytics, content creation tools, and ROI tracking in a collaborative workspace." },
   // GROWVANCE
   { id:"gv-001", title:"منصة سير عمل الإنتاج الإعلامي", brand_name:"GrowVance", title_en:"Media Production Workflow Platform",
-    sector:"Media, Production & Arts Distribution", sector_en:"Media, Production & Arts Distribution", execution_type:"Technical Infrastructure", project_order:10, image_url:null,
+    sector:"الإعلام والإنتاج وتوزيع الفنون", sector_en:"Media, Production & Arts Distribution", sector_ar:"الإعلام والإنتاج وتوزيع الفنون", execution_type:"Technical Infrastructure", project_order:10, image_url:null,
     description:"نظام إدارة مشاريع الإنتاج الإعلامي من الفكرة حتى التوزيع يشمل جدولة التصوير وإدارة فريق الإنتاج ومراحل المراجعة والاعتماد وأرشفة المشاريع المكتملة وتتبع التكاليف التشغيلية.", description_en:"A media production project management system from concept to distribution, including shooting schedules, production team management, review and approval stages, completed project archiving, and operational cost tracking." },
   { id:"gv-002", title:"نظام إدارة التراخيص والحقوق الإعلامية", brand_name:"GrowVance", title_en:"Media Licensing & Rights Management System",
-    sector:"Media Licensing", sector_en:"Media Licensing", execution_type:"Hybrid", project_order:20, image_url:null,
+    sector:"تراخيص الإعلام", sector_en:"Media Licensing", sector_ar:"تراخيص الإعلام", execution_type:"Hybrid", project_order:20, image_url:null,
     description:"منظومة متكاملة لإدارة حقوق الملكية الفكرية والتراخيص الإعلامية تشمل تسجيل الأعمال وعقود التوزيع وتتبع الاستخدام وجمع المستحقات المالية من المنصات الرقمية المختلفة.", description_en:"An integrated system for managing intellectual property rights and media licenses, including work registration, distribution contracts, usage tracking, and collecting royalties from various digital platforms." },
   { id:"gv-003", title:"خط إنتاج الفيديو والمحتوى الصوتي", brand_name:"GrowVance", title_en:"Video & Audio Content Production Pipeline",
-    sector:"Production Pipeline", sector_en:"Production Pipeline", execution_type:"Hybrid", project_order:30, image_url:null,
+    sector:"خط الإنتاج", sector_en:"Production Pipeline", sector_ar:"خط الإنتاج", execution_type:"Hybrid", project_order:30, image_url:null,
     description:"خط إنتاج رقمي متكامل يربط فريق الإبداع بأدوات التحرير والمؤثرات البصرية والتوزيع مع نظام مراجعة ذكي يستخدم الذكاء الاصطناعي لاقتراح تحسينات على المحتوى الإعلامي قبل نشره.", description_en:"An integrated digital production pipeline connecting the creative team with editing tools, visual effects, and distribution, with an intelligent review system using AI to suggest content improvements before publication." },
   // AGENTIC
   { id:"ag-001", title:"شبكة وكلاء الذكاء الاصطناعي المخصصة", brand_name:"Agentic", title_en:"Custom AI Agents Network",
-    sector:"AI Operations & Digital Labor System", sector_en:"AI Operations & Digital Labor System", execution_type:"AI Agents", project_order:10, image_url:null,
+    sector:"عمليات AI ونظام العمالة الرقمية", sector_en:"AI Operations & Digital Labor System", sector_ar:"عمليات AI ونظام العمالة الرقمية", execution_type:"AI Agents", project_order:10, image_url:null,
     description:"بناء وتشغيل شبكة متكاملة من وكلاء الذكاء الاصطناعي المخصصين لأتمتة العمليات التشغيلية تشمل وكلاء خدمة العملاء والجدولة الذكية وتحليل البيانات وإدارة الطلبات دون أي تدخل بشري.", description_en:"Building and operating an integrated network of custom AI agents to automate operational processes, including customer service agents, smart scheduling, data analytics, and order management without human intervention." },
   { id:"ag-002", title:"محرر خرائط سير العمل التفاعلي", brand_name:"Agentic", title_en:"Interactive Workflow Map Editor",
-    sector:"Workflow Automation", sector_en:"Workflow Automation", execution_type:"AI Agents", project_order:20, image_url:null,
+    sector:"أتمتة سير العمل", sector_en:"Workflow Automation", sector_ar:"أتمتة سير العمل", execution_type:"AI Agents", project_order:20, image_url:null,
     description:"أداة بصرية متطورة بالسحب والإفلات لتصميم مسارات العمل الآلية تدعم الشروط المنطقية المتقدمة (condition_expr) والتكامل الكامل مع n8n وتصحيح الأخطاء الفوري في بيئة الإنتاج.", description_en:"An advanced drag-and-drop visual tool for designing automated workflows supporting advanced logical conditions (condition_expr), full n8n integration, and real-time debugging in production environments." },
   { id:"ag-003", title:"تنسيق وإدارة شبكات n8n المؤسسية", brand_name:"Agentic", title_en:"Enterprise n8n Network Orchestration & Management",
-    sector:"Digital Infrastructure", sector_en:"Digital Infrastructure", execution_type:"Technical Infrastructure", project_order:30, image_url:null,
+    sector:"البنية التحتية الرقمية", sector_en:"Digital Infrastructure", sector_ar:"البنية التحتية الرقمية", execution_type:"Technical Infrastructure", project_order:30, image_url:null,
     description:"تصميم وتشغيل ومراقبة شبكات أتمتة n8n الكاملة للمؤسسات تشمل ربط الأنظمة المختلفة ومعالجة البيانات الضخمة وتشغيل العمليات المعقدة متعددة الخطوات بموثوقية وأمان عاليين.", description_en:"Designing, operating, and monitoring complete enterprise n8n automation networks including system integrations, big data processing, and running complex multi-step processes with high reliability and security." },
   // COMMERCIAL AGENCIES
   { id:"ca-001", title:"نظام حوكمة عقود التوكيلات التجارية", brand_name:"Commercial Agencies", title_en:"Commercial Agency Contract Governance System",
-    sector:"Contract Governance", sector_en:"Contract Governance", execution_type:"Technical Infrastructure", project_order:10, image_url:null,
+    sector:"حوكمة العقود", sector_en:"Contract Governance", sector_ar:"حوكمة العقود", execution_type:"Technical Infrastructure", project_order:10, image_url:null,
     description:"منظومة قانونية تقنية متكاملة لإدارة عقود التوكيلات التجارية متعددة المستأجرين تشمل إنشاء العقود الرقمية والتوقيع الإلكتروني ومتابعة صلاحية البنود والتنبيهات التلقائية قبل انتهاء العقد.", description_en:"An integrated legal-tech system for managing multi-tenant commercial agency contracts, including digital contract creation, electronic signatures, clause validity tracking, and automatic alerts before contract expiry." },
   { id:"ca-002", title:"منصة شبكة الموردين الدوليين", brand_name:"Commercial Agencies", title_en:"International Supplier Network Platform",
-    sector:"International Trade", sector_en:"International Trade", execution_type:"Hybrid", project_order:20, image_url:null,
+    sector:"التجارة الدولية", sector_en:"International Trade", sector_ar:"التجارة الدولية", execution_type:"Hybrid", project_order:20, image_url:null,
     description:"منصة ربط احترافية بين الموردين الدوليين والسوق المحلية تشمل إجراءات التخليص الجمركي الرقمي وإدارة الفواتير الدولية وتتبع الشحنات عبر الحدود والامتثال للوائح الاستيراد والتصدير.", description_en:"A professional platform connecting international suppliers with the local market, including digital customs clearance procedures, international invoice management, cross-border shipment tracking, and import/export compliance." },
   { id:"ca-003", title:"نظام التوزيع اللوجستي العالمي", brand_name:"Commercial Agencies", title_en:"Global Logistics Distribution System",
-    sector:"Global Logistics", sector_en:"Global Logistics", execution_type:"Hybrid", project_order:30, image_url:null,
+    sector:"اللوجستيك العالمي", sector_en:"Global Logistics", sector_ar:"اللوجستيك العالمي", execution_type:"Hybrid", project_order:30, image_url:null,
     description:"شبكة توزيع عالمية متكاملة تدعم التخطيط اللوجستي المتقدم وإدارة المستودعات الموزعة وتحسين مسارات الشحن والتكامل مع شركاء التوزيع الدوليين لضمان وصول فعّال للأسواق المستهدفة.", description_en:"An integrated global distribution network supporting advanced logistics planning, distributed warehouse management, shipping route optimization, and integration with international distribution partners for efficient market access." },
 ];
+
+// Lookup maps for static bilingual fallback
+const STATIC_MAP          = Object.fromEntries(STATIC_PROJECTS.map(p => [p.id, p]));
+const STATIC_MAP_BY_TITLE = Object.fromEntries(STATIC_PROJECTS.map(p => [p.title, p]));
 
 // ─────────────────────────────────────────────────────────────────
 //  SKELETON CARD
@@ -297,7 +305,7 @@ function ProjectCard({ project, isAr }: { project: Project; isAr: boolean }) {
           {project.sector && (
             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-medium bg-slate-700/50 text-slate-300 border border-slate-600/30">
               <Layers className="w-2.5 h-2.5 shrink-0" />
-              {isAr ? project.sector : (project.sector_en || project.sector)}
+              {isAr ? (project.sector_ar || project.sector) : (project.sector_en || project.sector)}
             </span>
           )}
           {execCfg && ExecIcon && (
@@ -374,7 +382,37 @@ export default function PublicProjects() {
       .eq("is_active", true)
       .order("project_order", { ascending: true })
       .then(({ data, error }: { data: any; error: any }) => {
-        if (!error && data && data.length > 0) setProjects(data as Project[]);
+        if (!error && data && data.length > 0) {
+          // Step 1 — Deduplicate: DB has duplicate rows (old without EN, new with EN).
+          // Group by brand_name + Arabic title; prefer the row that has title_en set.
+          const dedupeMap = new Map<string, any>();
+          for (const p of data) {
+            const arabicTitle = p.title || (p as any).title_ar || '';
+            const key = `${p.brand_name}||${arabicTitle}`;
+            const cur = dedupeMap.get(key);
+            if (!cur || ((p as any).title_en && !(cur as any).title_en)) {
+              dedupeMap.set(key, p);
+            }
+          }
+          const deduped = [...dedupeMap.values()]
+            .sort((a, b) => (a.project_order ?? (a as any).sort_order ?? 0) - (b.project_order ?? (b as any).sort_order ?? 0));
+
+          // Step 2 — Enrich: map DB column names → Project interface + fill missing EN fields
+          const enriched = deduped.map(p => {
+            const arabicTitle = p.title || (p as any).title_ar || '';
+            const s = STATIC_MAP[p.id] ?? STATIC_MAP_BY_TITLE[arabicTitle];
+            return {
+              ...p,
+              title:          arabicTitle,
+              title_en:       (p as any).title_en  || s?.title_en,
+              description:    (p as any).desc_ar   || p.description,
+              description_en: (p as any).desc_en   || s?.description_en,
+              sector_en:      (p as any).sector_en || s?.sector_en,
+              sector_ar:      (p as any).sector_ar || s?.sector_ar,
+            };
+          });
+          setProjects(enriched as Project[]);
+        }
         setLoading(false);
       });
   }, []);
