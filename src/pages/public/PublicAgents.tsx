@@ -639,7 +639,16 @@ export default function PublicAgents() {
       .order("project_order", { ascending: true })
       .then(({ data, error }: any) => {
         if (cancelled) return;
-        if (!error && data && data.length > 0) setAgents(data);
+        if (!error && data && data.length > 0) {
+          // DB stores the English bio in `bio_en` — map it to coverage_scope_en
+          const mapped = data.map((a: any) => ({
+            ...a,
+            coverage_scope_en: a.bio_en || a.coverage_scope_en || null,
+            name_en: a.name_en || a.name,
+            country_en: a.country_en || a.country,
+          }));
+          setAgents(mapped);
+        }
         setLoading(false);
       })
       .catch(() => { if (!cancelled) setLoading(false); });
