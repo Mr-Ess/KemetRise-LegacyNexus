@@ -251,6 +251,26 @@ function ProjectsPanel({ R }: { R: boolean }) {
 function AgentsPanel({ R }: { R: boolean }) {
   const { rows, loading, remove, toggle, upsert, fetch } = useCrud("website_agents");
   const [editing, setEditing] = useState<Row | null>(null);
+
+  // Convert brand_activities JSONB array → editable text (one per line: "emoji | English | عربي")
+  const toText = (arr: any[]) =>
+    (arr ?? []).map((a: any) => `${a.icon ?? ""} | ${a.label_en ?? ""} | ${a.label_ar ?? ""}`).join("\n");
+
+  // Convert text back → JSONB array
+  const fromText = (text: string) =>
+    (text ?? "").split("\n").filter(l => l.trim()).map(l => {
+      const [icon = "", label_en = "", label_ar = ""] = l.split("|").map(p => p.trim());
+      return { icon, label_en, label_ar };
+    });
+
+  const openEdit = (r: Row) =>
+    setEditing({ ...r, brand_activities_text: toText(r.brand_activities ?? []) });
+
+  const handleSave = async (row: Row) => {
+    const { brand_activities_text, ...rest } = row;
+    await upsert({ ...rest, brand_activities: fromText(brand_activities_text ?? "") });
+  };
+
   const fields = [
     { key: "name_ar", label: "الاسم بالعربية" },
     { key: "name_en", label: "Name (English)" },
@@ -262,22 +282,24 @@ function AgentsPanel({ R }: { R: boolean }) {
     { key: "bio_en", label: "Bio", type: "textarea" as const },
     { key: "email", label: "Email" },
     { key: "phone", label: "Phone" },
+    { key: "brand_activities_text", label: "Brand Activities — سطر لكل نشاط: emoji | English | عربي", type: "textarea" as const },
     { key: "is_active", label: "Active", type: "switch" as const },
   ];
   return (
     <CrudPanel title={R ? "الوكلاء" : "Agents"} loading={loading} onAdd={() => setEditing({})} onRefresh={fetch}
-      columns={["الاسم / Name", "Region", "Country", "Email", "Active", "Actions"]}
+      columns={["الاسم / Name", "Region", "Country", "Email", "Activities", "Active", "Actions"]}
       rows={rows.map(r => [
         <span className="font-medium">{R ? r.name_ar : r.name_en}</span>,
         <Badge variant="outline" className="text-[10px]">{R ? r.region_ar : r.region_en}</Badge>,
         <span className="text-xs">{R ? r.country_ar : r.country_en}</span>,
         <span className="text-xs text-muted-foreground">{r.email}</span>,
+        <span className="text-xs text-muted-foreground">{(r.brand_activities ?? []).length} items</span>,
         <Switch checked={!!r.is_active} onCheckedChange={() => toggle(r.id, "is_active", r.is_active)} />,
-        <RowActions onEdit={() => setEditing(r)} onDelete={() => remove(r.id)} />,
+        <RowActions onEdit={() => openEdit(r)} onDelete={() => remove(r.id)} />,
       ])}
     >
       <RowDialog title={editing?.id ? "Edit Agent" : "New Agent"} open={!!editing} onClose={() => setEditing(null)}
-        fields={fields} initial={editing ?? {}} onSave={upsert} />
+        fields={fields} initial={editing ?? {}} onSave={handleSave} />
     </CrudPanel>
   );
 }

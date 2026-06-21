@@ -388,25 +388,21 @@ function ContactPane({ agent, isAr, onClose }: ContactPaneProps) {
           )}
 
           {/* Brand activities */}
+          {Array.isArray(agent.brand_activities) && agent.brand_activities.length > 0 && (
           <div>
             <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-3">
               {isAr ? "نشاطات العلامات التجارية" : "Brand Activities"}
             </p>
             <div className="space-y-2">
-              {[
-                { icon: "👗", label: isAr ? "For Her — الأزياء المحتشمة" : "For Her — Modest Fashion" },
-                { icon: "🛒", label: isAr ? "Just Click Store — التجارة الإلكترونية" : "Just Click Store — E-commerce" },
-                { icon: "🎬", label: isAr ? "GrowVance — الإعلام والإنتاج" : "GrowVance — Media Production" },
-                { icon: "🤖", label: isAr ? "Agentic — وكلاء الذكاء الاصطناعي" : "Agentic — AI Agents" },
-                { icon: "🤝", label: isAr ? "التوكيلات التجارية" : "Commercial Agencies" },
-              ].map(({ icon, label }) => (
-                <div key={label} className="flex items-center gap-2.5 text-xs text-muted-foreground">
-                  <span className="text-sm shrink-0">{icon}</span>
-                  <span>{label}</span>
+              {agent.brand_activities.map((act: { icon?: string; label_en?: string; label_ar?: string }, i: number) => (
+                <div key={i} className="flex items-center gap-2.5 text-xs text-muted-foreground">
+                  <span className="text-sm shrink-0">{act.icon}</span>
+                  <span>{isAr ? act.label_ar : act.label_en}</span>
                 </div>
               ))}
             </div>
           </div>
+          )}
 
           {/* Contact details */}
           <div>
