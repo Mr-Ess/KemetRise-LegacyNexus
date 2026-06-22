@@ -1,4 +1,5 @@
-import { Navigate } from "react-router-dom";
+import { useMemo } from "react";
+import { Navigate, useLocation } from "react-router-dom";
 import { useUserRole } from "@/context/UserRoleContext";
 import type { UserRole } from "@/context/UserRoleContext";
 
@@ -92,6 +93,14 @@ export function roleCanAccess(role: UserRole, path: string): boolean {
  */
 export const RoleProtectedRoute = ({ children, allowedRoles, redirectTo }: Props) => {
   const { role, loading } = useUserRole();
+  const location = useLocation();
+
+  // Memoize access check so it doesn't recompute on every render (only re-runs when role or path changes)
+  const hasAccess = useMemo(() => {
+    if (role === "superadmin") return true;
+    if (!allowedRoles) return true;
+    return allowedRoles.includes(role as UserRole);
+  }, [role, allowedRoles]);
 
   if (loading) {
     return (
@@ -102,12 +111,12 @@ export const RoleProtectedRoute = ({ children, allowedRoles, redirectTo }: Props
   }
 
   // Superadmin bypasses all role checks
-  if (role === "superadmin") return <>{children}</>;
+  if (hasAccess) return <>{children}</>;
 
   // If specific roles required, check membership
-  if (allowedRoles && !allowedRoles.includes(role)) {
-    const dest = redirectTo ?? ROLE_HOME[role] ?? "/portal";
-    return <Navigate to={dest} replace />;
+  if (!hasAccess) {
+    const dest = redirectTo ?? ROLE_HOME[role as UserRole] ?? "/portal";
+    return <Navigate to={dest} replace state={{ from: location }} />;
   }
 
   return <>{children}</>;

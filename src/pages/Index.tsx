@@ -14,6 +14,7 @@ import ExecutiveCockpit from "@/components/ExecutiveCockpit";
 import UserPortalAccess from "@/components/dashboard/UserPortalAccess";
 import SystemUsers from "@/components/dashboard/SystemUsers";
 import WebsiteDashboardCard from "@/components/dashboard/WebsiteDashboardCard";
+import PortalStatsOverview from "@/components/dashboard/PortalStatsOverview";
 
 const dashboardFilters = ["All", "Brands", "Customers", "Projects", "Affiliates", "Branches", "Success Partners"] as const;
 const statusFilters = ["All", "Active", "Inactive", "Maintenance"] as const;
@@ -83,6 +84,9 @@ const Index = () => {
             <div className="grid grid-cols-1 gap-3">
               <WebsiteDashboardCard />
             </div>
+
+            {/* Row 11 - All-Portal Live Statistics */}
+            <PortalStatsOverview />
           </div>
         </main>
       </div>

@@ -154,7 +154,7 @@ export function UserRoleProvider({ children }: { children: ReactNode }) {
     } finally {
       setLoading(false);
     }
-  }, [user, profile]);
+  }, [user]); // ← profile intentionally excluded: lastLoadedUserIdRef guards redundant loads
 
   useEffect(() => { load(); }, [load]);
 

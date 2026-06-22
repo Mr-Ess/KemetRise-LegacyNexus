@@ -21,8 +21,8 @@ interface OrderItem {
   id: string;
   listing_id: string;
   quantity: number;
-  unit_price_cents: number;
-  marketplace_listings?: { title: string; listing_type: string };
+  unit_price: number;
+  mp_listings?: { name: string; listing_type: string };
 }
 
 interface Order {
@@ -71,10 +71,10 @@ export default function UserOrders() {
       .from("mp_orders")
       .select(`
         id, order_number, status, total_cents, payment_method, created_at,
-        mp_order_items (id, listing_id, quantity, unit_price_cents,
-          marketplace_listings (title, listing_type))
+        mp_order_items (id, listing_id, quantity, unit_price,
+          mp_listings (name, listing_type))
       `)
-      .eq("buyer_user_id", user!.id)
+      .eq("user_id", user!.id)
       .order("created_at", { ascending: false });
     setOrders(data || []);
     setLoading(false);
@@ -207,9 +207,9 @@ export default function UserOrders() {
                         {order.mp_order_items.map(item => (
                           <div key={item.id} className="flex items-center justify-between text-xs">
                             <div>
-                              <p className="font-medium">{item.marketplace_listings?.title || "—"}</p>
+                              <p className="font-medium">{item.mp_listings?.name || "—"}</p>
                               <p className="text-muted-foreground text-[10px]">
-                                {isRTL ? "الكمية: " : "Qty: "}{item.quantity} × ${((item.unit_price_cents || 0) / 100).toFixed(2)}
+                                {isRTL ? "الكمية: " : "Qty: "}{item.quantity} × ${((item.unit_price || 0) / 100).toFixed(2)}
                               </p>
                             </div>
                             <p className="font-bold">

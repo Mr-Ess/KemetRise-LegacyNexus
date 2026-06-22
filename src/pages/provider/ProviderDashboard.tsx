@@ -46,22 +46,25 @@ export default function ProviderDashboard() {
     try {
       // Listings count
       const { count: totalListings } = await db
-        .from("marketplace_listings")
+        .from("mp_listings")
         .select("*", { count: "exact", head: true })
-        .eq("seller_id", profile!.id);
+        .eq("publisher_user_id", profile!.id);
       const { count: activeListings } = await db
-        .from("marketplace_listings")
+        .from("mp_listings")
         .select("*", { count: "exact", head: true })
-        .eq("seller_id", profile!.id)
-        .eq("status", "active");
+        .eq("publisher_user_id", profile!.id)
+        .eq("is_active", true);
 
-      // Orders stats scoped to this provider's listings
-      const { data: orders } = await db
-        .from("mp_orders")
-        .select("id, total_cents, status, created_at, buyer_name, buyer_email, order_number")
-        .eq("seller_user_id", profile!.id)
-        .order("created_at", { ascending: false })
-        .limit(10);
+      // Orders via join: mp_listings → mp_order_items → mp_orders
+      const { data: myListings } = await db.from("mp_listings").select("id").eq("publisher_user_id", profile!.id);
+      const listingIds = (myListings ?? []).map((l: any) => l.id);
+      const { data: orderItems } = listingIds.length
+        ? await db.from("mp_order_items").select("order_id").in("listing_id", listingIds)
+        : { data: [] };
+      const orderIds = [...new Set((orderItems ?? []).map((oi: any) => oi.order_id))];
+      const { data: orders } = orderIds.length
+        ? await db.from("mp_orders").select("id, total_cents, status, created_at, buyer_name, buyer_email, order_number").in("id", orderIds).order("created_at", { ascending: false }).limit(10)
+        : { data: [] };
 
       const recent = orders || [];
       const pending = recent.filter((o: any) => o.status === "pending").length;

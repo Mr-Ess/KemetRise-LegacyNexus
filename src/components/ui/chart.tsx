@@ -65,6 +65,11 @@ const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
     return null;
   }
 
+  // Sanitize color values to prevent CSS injection (only allow valid CSS color patterns)
+  const SAFE_COLOR = /^(#[0-9a-f]{3,8}|rgb\(|rgba\(|hsl\(|hsla\(|oklch\(|var\(--)/i;
+  const sanitizeColor = (c: string | undefined) =>
+    c && SAFE_COLOR.test(c.trim()) ? c.trim() : undefined;
+
   return (
     <style
       dangerouslySetInnerHTML={{
@@ -74,7 +79,8 @@ const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
 ${prefix} [data-chart=${id}] {
 ${colorConfig
   .map(([key, itemConfig]) => {
-    const color = itemConfig.theme?.[theme as keyof typeof itemConfig.theme] || itemConfig.color;
+    const raw = itemConfig.theme?.[theme as keyof typeof itemConfig.theme] || itemConfig.color;
+    const color = sanitizeColor(raw);
     return color ? `  --color-${key}: ${color};` : null;
   })
   .join("\n")}

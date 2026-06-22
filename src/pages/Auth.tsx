@@ -26,6 +26,9 @@ export default function Auth() {
   const [otp, setOtp] = useState("");
   const [pendingSecret, setPendingSecret] = useState("");
 
+  // Show suspended notice if redirected here with ?suspended=1
+  const isSuspended = new URLSearchParams(window.location.search).get("suspended") === "1";
+
   // Role-based redirect after login
   const redirectByRole = async (userId: string) => {
     try {
@@ -40,9 +43,11 @@ export default function Auth() {
       if (role === "partner")   return nav("/partner",    { replace: true });
       if (role === "agent")     return nav("/agent",      { replace: true });
       if (role === "vendor")    return nav("/vendor",     { replace: true });
-      if (role === "provider")  return nav("/vendor",     { replace: true });
+      if (role === "provider")  return nav("/provider",   { replace: true }); // fixed: was /vendor
       if (role === "marketing") return nav("/marketing",  { replace: true });
-      return nav("/dashboard", { replace: true });
+      if (role === "manager")   return nav("/manager",    { replace: true });
+      if (role === "staff")     return nav("/staff",      { replace: true });
+      return nav("/portal", { replace: true });
     } catch {
       nav("/dashboard", { replace: true });
     }
@@ -111,6 +116,9 @@ export default function Auth() {
 
     // Credit referrer if a valid code was provided
     if (refCode && signUpData.user) {
+      // Validate format before hitting DB (prevent unnecessary queries)
+      const REF_CODE_RE = /^[A-Z0-9]{4,32}$/;
+      if (!REF_CODE_RE.test(refCode)) return; // ignore invalid codes silently
       try {
         const { data: refs } = await supabase
           .from("referrals")
@@ -156,6 +164,11 @@ export default function Auth() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md p-6 space-y-4 border-primary/30">
+        {isSuspended && (
+          <div className="bg-red-500/10 border border-red-500/30 text-red-400 rounded-lg p-3 text-sm text-center">
+            {R ? "⛔ حسابك موقوف. تواصل مع المسؤول." : "⛔ Your account has been suspended. Contact an administrator."}
+          </div>
+        )}
         <div className="text-center">
           <h1 className="text-3xl font-bold text-primary" style={{ fontFamily: "Orbitron" }}>KemetRise</h1>
           <p className="text-sm text-muted-foreground mt-1">{R ? "سجّل دخولك إلى مركز قيادتك" : "Sign in to your command center"}</p>

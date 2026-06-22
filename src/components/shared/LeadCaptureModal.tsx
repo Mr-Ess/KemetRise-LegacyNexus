@@ -5,14 +5,17 @@ import { X, CheckCircle2, Loader2, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 // ─── n8n Webhook (configure via env or leave empty) ──────────────
-const N8N_WEBHOOK_URL = import.meta.env.VITE_N8N_WEBHOOK_URL ?? "";
+const N8N_WEBHOOK_URL    = import.meta.env.VITE_N8N_WEBHOOK_URL    ?? "";
+const N8N_WEBHOOK_SECRET = import.meta.env.VITE_N8N_WEBHOOK_SECRET ?? "";
 
 async function fireWebhook(payload: Record<string, unknown>) {
   if (!N8N_WEBHOOK_URL) return;
   try {
+    const headers: Record<string, string> = { "Content-Type": "application/json" };
+    if (N8N_WEBHOOK_SECRET) headers["Authorization"] = `Bearer ${N8N_WEBHOOK_SECRET}`;
     await fetch(N8N_WEBHOOK_URL, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers,
       body: JSON.stringify(payload),
     });
   } catch {

@@ -33,8 +33,8 @@ export default function RoleGuard({ allow, redirectTo, children }: Props) {
 
   const allowed = Array.isArray(allow) ? allow : [allow];
 
-  // Superadmin can access everything
-  if (role === "superadmin" || role === "admin" && allowed.includes("admin")) {
+  // Superadmin can access everything; admin bypasses role checks when admin is explicitly allowed
+  if (role === "superadmin" || (role === "admin" && allowed.includes("admin"))) {
     return <>{children}</>;
   }
 

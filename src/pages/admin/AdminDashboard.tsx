@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import AdminLayout from "@/layouts/AdminLayout";
+import PortalStatsOverview from "@/components/dashboard/PortalStatsOverview";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -243,6 +244,9 @@ export default function AdminDashboard() {
             </div>
           </CardContent>
         </Card>
+
+        {/* All-portal live statistics */}
+        <PortalStatsOverview />
       </div>
     </AdminLayout>
   );

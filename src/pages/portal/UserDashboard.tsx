@@ -54,7 +54,7 @@ export default function UserDashboard() {
       const { data } = await db
         .from("mp_orders")
         .select("id, order_number, status, total_cents, created_at, buyer_name")
-        .eq("buyer_user_id", user.id)
+        .eq("user_id", user.id)
         .order("created_at", { ascending: false })
         .limit(5);
       setOrders(data || []);
