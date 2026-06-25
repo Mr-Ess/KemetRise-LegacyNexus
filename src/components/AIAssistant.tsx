@@ -391,6 +391,9 @@ function SupportPanel() {
 export const AIAssistant = () => {
   const [open, setOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<"chat" | "support">("chat");
+  const location = useLocation();
+  const { role } = useUserRole();
+  const userRole = role ?? "guest";
 
   if (!open) {
     return (
