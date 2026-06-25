@@ -35,6 +35,7 @@ BEGIN
     RETURN;
   END IF;
 
+  -- Update / create user_profiles
   INSERT INTO public.user_profiles (
     id, role, full_name, preferred_lang, preferred_theme,
     is_verified, is_suspended, onboarding_done
@@ -46,6 +47,11 @@ BEGIN
     is_verified     = TRUE,
     is_suspended    = FALSE,
     onboarding_done = TRUE;
+
+  -- Insert into user_roles (new permissions system)
+  INSERT INTO public.user_roles (user_id, role)
+  VALUES (v_uid, 'superadmin')
+  ON CONFLICT (user_id, role) DO NOTHING;
 
   RAISE NOTICE 'superadmin granted to uid: %', v_uid;
 END;

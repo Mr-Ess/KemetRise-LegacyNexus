@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useBrands } from "@/context/BrandsContext";
 import { useAuth } from "@/hooks/useAuth";
+import { useUserRole } from "@/context/UserRoleContext";
 import {
   LayoutDashboard, Crown, Gem, Building2, Database, ShieldCheck,
   Briefcase, FolderOpen, Users, UserCheck, Handshake, Map, Scroll,
@@ -19,6 +20,7 @@ const Sidebar = ({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => 
   const { brands } = useBrands();
   const { t } = useTranslation();
   const { signOut } = useAuth();
+  const { isAdmin } = useUserRole();
   const [expanded, setExpanded] = useState<Record<string, boolean>>({ Brands: true });
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -53,6 +55,14 @@ const Sidebar = ({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => 
         { icon: FileText,        label: "News & Contact",   onClick: () => navigate("/admin/website") },
       ],
     },
+    ...(isAdmin ? [{
+      icon: Shield, label: t("system_section") || "System",
+      children: [
+        { icon: Shield,    label: t("permissions") || "Permissions", onClick: () => navigate("/permissions") },
+        { icon: FileText,  label: t("audit_logs")  || "Audit Logs",  onClick: () => navigate("/audit-logs") },
+        { icon: Users,     label: t("team")        || "Team",         onClick: () => navigate("/team") },
+      ],
+    }] as NavSection[] : []),
   ];
 
   

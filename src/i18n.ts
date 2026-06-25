@@ -496,7 +496,30 @@ const en = {
   tab_projects_tab: "Projects",
   tab_affiliates_hub: "Affiliates Hub",
   tab_developer_hub: "Developer Hub",
-  tab_referrals: "Referrals",};
+  tab_referrals: "Referrals",
+  // ── Roles & Permissions ──────────────────────────────────
+  perm_system_label: "System",
+  perm_page_title: "Permissions & User Management",
+  perm_page_subtitle: "Manage roles, users, and page access control",
+  perm_tab_users: "Users",
+  perm_tab_roles: "Roles",
+  perm_tab_assign: "Assignments",
+  perm_tab_pages: "Page Perms",
+  perm_add_user: "Add User",
+  perm_create_user: "Create User",
+  perm_user_created: "User created successfully",
+  perm_role_assigned: "Role assigned",
+  perm_role_revoked: "Role revoked",
+  perm_perms_saved: "Page permissions saved",
+  perm_no_roles: "No roles",
+  perm_current_roles: "Current Roles",
+  perm_assign_role: "Assign New Role",
+  perm_select_user: "Select User",
+  perm_available_roles: "Available platform roles",
+  perm_route_col: "Route",
+  perm_unauthorized_title: "Access Denied",
+  perm_unauthorized_msg: "You don't have permission to access this page.",
+};
 
 const ar: typeof en = {
   // ── Navigation ─────────────────────────────────────────────────
@@ -1021,7 +1044,30 @@ const ar: typeof en = {
   tab_projects_tab: "المشاريع",
   tab_affiliates_hub: "مركز التسويق",
   tab_developer_hub: "مركز المطورين",
-  tab_referrals: "الإحالات",};
+  tab_referrals: "الإحالات",
+  // ── Roles & Permissions ──────────────────────────────────
+  perm_system_label: "النظام",
+  perm_page_title: "الصلاحيات وإدارة المستخدمين",
+  perm_page_subtitle: "إدارة الأدوار والمستخدمين وصلاحيات الصفحات",
+  perm_tab_users: "المستخدمون",
+  perm_tab_roles: "الأدوار",
+  perm_tab_assign: "الإسناد",
+  perm_tab_pages: "صلاحيات الصفحات",
+  perm_add_user: "إضافة مستخدم",
+  perm_create_user: "إنشاء المستخدم",
+  perm_user_created: "تم إنشاء المستخدم بنجاح",
+  perm_role_assigned: "تم إسناد الدور",
+  perm_role_revoked: "تم إزالة الدور",
+  perm_perms_saved: "تم حفظ الصلاحيات",
+  perm_no_roles: "لا توجد أدوار",
+  perm_current_roles: "الأدوار الحالية",
+  perm_assign_role: "إسناد دور جديد",
+  perm_select_user: "اختر المستخدم",
+  perm_available_roles: "الأدوار المتاحة في المنصة",
+  perm_route_col: "المسار",
+  perm_unauthorized_title: "وصول مرفوض",
+  perm_unauthorized_msg: "ليس لديك صلاحية الوصول لهذه الصفحة.",
+};
 
 const saved = (typeof localStorage !== "undefined" && localStorage.getItem("lang")) || "en";
 

@@ -15,6 +15,7 @@ import UserPortalAccess from "@/components/dashboard/UserPortalAccess";
 import SystemUsers from "@/components/dashboard/SystemUsers";
 import WebsiteDashboardCard from "@/components/dashboard/WebsiteDashboardCard";
 import PortalStatsOverview from "@/components/dashboard/PortalStatsOverview";
+import PermissionsCard from "@/components/dashboard/PermissionsCard";
 
 const dashboardFilters = ["All", "Brands", "Customers", "Projects", "Affiliates", "Branches", "Success Partners"] as const;
 const statusFilters = ["All", "Active", "Inactive", "Maintenance"] as const;
@@ -85,7 +86,12 @@ const Index = () => {
               <WebsiteDashboardCard />
             </div>
 
-            {/* Row 11 - All-Portal Live Statistics */}
+            {/* Row 11 - Permissions & User Management */}
+            <div className="grid grid-cols-1 gap-3">
+              <PermissionsCard />
+            </div>
+
+            {/* Row 12 - All-Portal Live Statistics */}
             <PortalStatsOverview />
           </div>
         </main>

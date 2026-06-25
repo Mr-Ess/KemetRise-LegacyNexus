@@ -117,6 +117,7 @@ export default function AdminDashboard() {
           </div>
           <div className="flex gap-2">
             <Button size="sm" variant="outline" onClick={load} className="gap-2"><RefreshCw className="w-3.5 h-3.5" />{R ? "تحديث" : "Refresh"}</Button>
+            <Button size="sm" variant="outline" onClick={() => navigate("/permissions")} className="gap-2"><Shield className="w-3.5 h-3.5" />{R ? "الصلاحيات" : "Permissions"}</Button>
             <Button size="sm" variant="outline" onClick={() => navigate("/admin/website")} className="gap-2"><Globe className="w-3.5 h-3.5" />{R ? "إدارة الموقع" : "Website CMS"}</Button>
             <Button size="sm" onClick={() => navigate("/admin/sectors")} className="gap-2"><Layers className="w-3.5 h-3.5" />{R ? "إدارة القطاعات" : "Sector Factory"}</Button>
           </div>
@@ -227,13 +228,14 @@ export default function AdminDashboard() {
           <CardContent>
             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
               {[
-                { label: R ? "الشركاء"   : "Partners",  path: "/partner",   color: "text-indigo-400", bg: "bg-indigo-500/10 border-indigo-500/20",  icon: Building2  },
-                { label: R ? "الوكلاء"   : "Agents",    path: "/agent",     color: "text-emerald-400",bg: "bg-emerald-500/10 border-emerald-500/20", icon: UserCheck  },
-                { label: R ? "البائعون"  : "Vendors",   path: "/vendor",    color: "text-orange-400", bg: "bg-orange-500/10 border-orange-500/20",   icon: ShoppingBag},
-                { label: R ? "التسويق"   : "Marketing", path: "/marketing", color: "text-pink-400",   bg: "bg-pink-500/10 border-pink-500/20",       icon: TrendingUp },
-                { label: R ? "الدردشة"   : "AI Chat",   path: "/chat",      color: "text-cyan-400",   bg: "bg-cyan-500/10 border-cyan-500/20",       icon: Cpu        },
-                { label: R ? "الموارد البشرية" : "HR",  path: "/erp/hr",    color: "text-violet-400", bg: "bg-violet-500/10 border-violet-500/20",   icon: Users      },
-                { label: R ? "المنتجات"  : "Marketplace",path: "/",         color: "text-primary",    bg: "bg-primary/10 border-primary/20",         icon: Eye        },
+                { label: R ? "الشركاء"   : "Partners",    path: "/partner",     color: "text-indigo-400", bg: "bg-indigo-500/10 border-indigo-500/20",  icon: Building2   },
+                { label: R ? "الوكلاء"   : "Agents",      path: "/agent",       color: "text-emerald-400",bg: "bg-emerald-500/10 border-emerald-500/20", icon: UserCheck   },
+                { label: R ? "البائعون"  : "Vendors",     path: "/vendor",      color: "text-orange-400", bg: "bg-orange-500/10 border-orange-500/20",   icon: ShoppingBag },
+                { label: R ? "التسويق"   : "Marketing",   path: "/marketing",   color: "text-pink-400",   bg: "bg-pink-500/10 border-pink-500/20",       icon: TrendingUp  },
+                { label: R ? "الدردشة"   : "AI Chat",     path: "/chat",        color: "text-cyan-400",   bg: "bg-cyan-500/10 border-cyan-500/20",       icon: Cpu         },
+                { label: R ? "الموارد البشرية" : "HR",    path: "/erp/hr",      color: "text-violet-400", bg: "bg-violet-500/10 border-violet-500/20",   icon: Users       },
+                { label: R ? "الصلاحيات" : "Permissions", path: "/permissions", color: "text-yellow-400", bg: "bg-yellow-500/10 border-yellow-500/20",   icon: Shield      },
+                { label: R ? "المنتجات"  : "Marketplace", path: "/",            color: "text-primary",    bg: "bg-primary/10 border-primary/20",         icon: Eye         },
               ].map(p => (
                 <button key={p.path} onClick={() => navigate(p.path)}
                   className={cn("flex flex-col items-center gap-2 p-3 rounded-xl border transition-all hover:scale-105", p.bg)}>

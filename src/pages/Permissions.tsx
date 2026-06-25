@@ -1,429 +1,513 @@
-﻿import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { ArrowLeft, Shield, Layers, Bot, Plus, Trash2, Edit, RefreshCw, Check, X } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Switch } from "@/components/ui/switch";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
-import { toast } from "sonner";
-import { extApi } from "@/services/extended";
-import BrandSelector from "@/components/shared/BrandSelector";
-import ExportButton from "@/components/shared/ExportButton";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import {
+  Shield, Users, Key, Globe, Plus,
+  RefreshCw, Check, X, UserPlus, ArrowLeft,
+} from "lucide-react";
+import { Button }        from "@/components/ui/button";
+import { Input }         from "@/components/ui/input";
+import { Label }         from "@/components/ui/label";
+import { Card }          from "@/components/ui/card";
+import { Badge }         from "@/components/ui/badge";
+import { Switch }        from "@/components/ui/switch";
+import {
+  Tabs, TabsContent, TabsList, TabsTrigger,
+} from "@/components/ui/tabs";
+import {
+  Dialog, DialogContent, DialogFooter,
+  DialogHeader, DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Select, SelectContent, SelectItem,
+  SelectTrigger, SelectValue,
+} from "@/components/ui/select";
+import {
+  Table, TableBody, TableCell, TableHead,
+  TableHeader, TableRow,
+} from "@/components/ui/table";
+import { toast }         from "sonner";
+import { supabase }      from "@/integrations/supabase/client";
+import { useUserRole }   from "@/context/UserRoleContext";
+import { usePagePerms }  from "@/hooks/usePagePerms";
+import { ROLE_META, ROLE_MAP, PAGE_PERMS, type AppRole } from "@/lib/permissions";
 
-const ROLES    = ["superadmin","admin","manager","staff","provider","partner","agent","vendor","marketing","viewer","user"];
-const SECTORS  = ["brands","projects","services","employees","customers","branches","affiliates","success_partners","inventory","materials","logistics","legal","finance","marketing","ai_agents","settings","reports","payments","workflows","audit_logs"];
-const Dot = ({ v }: { v: boolean }) => <span className={`inline-block w-2.5 h-2.5 rounded-full ${v ? "bg-emerald-500" : "bg-secondary"}`}/>;
+// ─── Types ────────────────────────────────────────────────────────────────────
+interface UserRow {
+  id:           string;
+  email:        string;
+  full_name:    string;
+  phone?:       string;
+  role:         string;
+  is_verified:  boolean;
+  is_suspended: boolean;
+  created_at:   string;
+}
+interface UserRoleRow { user_id: string; role: string; }
 
-const emptyRP = { role: "staff", resource_type: "brands", can_read: true, can_create: false, can_update: false, can_delete: false, can_export: false, can_approve: false };
-const emptySP = { target_user_id: "", sector: "brands", can_read: true, can_write: false, can_delete: false, can_approve: false, can_export: false, ai_managed: false, ai_agent_codes: "", notes: "" };
-const emptyAP = { agent_code: "", allowed_tables: "", allowed_actions: "read", max_daily_ops: 1000, max_spend_eur: 0, can_escalate: true, requires_approval: false, sandbox_mode: false, notes: "" };
+// ─── Zod schema ───────────────────────────────────────────────────────────────
+const createUserSchema = z.object({
+  full_name: z.string().min(2),
+  email:     z.string().email(),
+  password:  z.string().min(8),
+  phone:     z.string().optional(),
+  role:      z.string().min(1),
+});
+type CreateUserForm = z.infer<typeof createUserSchema>;
 
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+const db = supabase as any;
+async function rpc(name: string, params: Record<string, unknown>) {
+  const { error } = await db.rpc(name, params);
+  if (error) throw new Error(error.message);
+}
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
 export default function Permissions() {
-  const nav = useNavigate();
-  const { i18n } = useTranslation();
-  const R = i18n.language === "ar";
-  const [brandId, setBrandId] = useState("");
-  const [tab, setTab] = useState("roles");
-  const [loading, setLoading] = useState(false);
+  const navigate         = useNavigate();
+  const { i18n }         = useTranslation();
+  const R                = i18n.language === "ar";
+  const { role: myRole } = useUserRole();
+  const { perms: dbPerms, reload: reloadPerms } = usePagePerms();
+  const isAdmin = myRole === "superadmin" || myRole === "admin";
 
-  const [rolePerms,   setRolePerms]   = useState<any[]>([]);
-  const [sectorPerms, setSectorPerms] = useState<any[]>([]);
-  const [agentPerms,  setAgentPerms]  = useState<any[]>([]);
+  useEffect(() => {
+    if (!isAdmin) navigate("/unauthorized", { replace: true });
+  }, [isAdmin, navigate]);
 
-  // Role perm form
-  const [rpOpen, setRpOpen] = useState(false);
-  const [rpId,   setRpId]   = useState<string | null>(null);
-  const [rpForm, setRpForm] = useState<any>(emptyRP);
+  const [tab,       setTab]       = useState("users");
+  const [loading,   setLoading]   = useState(false);
+  const [users,     setUsers]     = useState<UserRow[]>([]);
+  const [addOpen,   setAddOpen]   = useState(false);
+  const [selUser,   setSelUser]   = useState<UserRow | null>(null);
+  const [userRoles, setUserRoles] = useState<UserRoleRow[]>([]);
+  const [pageMtx,   setPageMtx]   = useState<Record<string, Set<string>>>({});
+  const [savingPP,  setSavingPP]  = useState(false);
 
-  // Sector perm form
-  const [spOpen, setSpOpen] = useState(false);
-  const [spId,   setSpId]   = useState<string | null>(null);
-  const [spForm, setSpForm] = useState<any>(emptySP);
+  const {
+    register, handleSubmit, setValue, reset,
+    formState: { errors, isSubmitting },
+  } = useForm<CreateUserForm>({ resolver: zodResolver(createUserSchema) });
 
-  // Agent perm form
-  const [apOpen, setApOpen] = useState(false);
-  const [apId,   setApId]   = useState<string | null>(null);
-  const [apForm, setApForm] = useState<any>(emptyAP);
-
-  const loadAll = useCallback(async () => {
-    if (!brandId) return;
+  // ── Load users ──────────────────────────────────────────────────────────────
+  const loadUsers = useCallback(async () => {
     setLoading(true);
     try {
-      const [rp, sp, ap] = await Promise.all([
-        extApi.list("role_permissions",   { eq: { brand_id: brandId } }).catch(() => []),
-        extApi.list("sector_permissions", { eq: { brand_id: brandId } }).catch(() => []),
-        extApi.list("agent_permissions",  { eq: { brand_id: brandId } }).catch(() => []),
-      ]);
-      setRolePerms(rp as any[]);
-      setSectorPerms(sp as any[]);
-      setAgentPerms(ap as any[]);
+      const { data, error } = await db.rpc("get_users_with_profiles");
+      if (error) throw new Error(error.message);
+      setUsers((data as UserRow[]) || []);
+    } catch (e: unknown) {
+      toast.error((e as Error).message);
     } finally { setLoading(false); }
-  }, [brandId]);
+  }, []);
 
-  useEffect(() => { loadAll(); }, [loadAll]);
+  useEffect(() => { if (isAdmin) loadUsers(); }, [isAdmin, loadUsers]);
 
-  // ── Role Permissions CRUD ──────────────────────────────────────────
-  const saveRP = async () => {
-    if (!rpForm.resource_type) return toast.error(R ? "المورد مطلوب" : "Resource required");
+  // ── Build page-perm matrix ──────────────────────────────────────────────────
+  useEffect(() => {
+    const mtx: Record<string, Set<string>> = {};
+    Object.keys(PAGE_PERMS).forEach(p => { mtx[p] = new Set(PAGE_PERMS[p]); });
+    dbPerms.forEach(p => { mtx[p.path] = new Set(p.allowed_roles); });
+    setPageMtx(mtx);
+  }, [dbPerms]);
+
+  // ── Load user roles ─────────────────────────────────────────────────────────
+  const loadUserRoles = useCallback(async (userId: string) => {
+    const { data } = await db.from("user_roles").select("user_id,role").eq("user_id", userId);
+    setUserRoles((data as UserRoleRow[]) || []);
+  }, []);
+
+  useEffect(() => {
+    if (selUser) loadUserRoles(selUser.id);
+    else setUserRoles([]);
+  }, [selUser, loadUserRoles]);
+
+  // ── Create user via Edge Function ───────────────────────────────────────────
+  const onCreateUser = async (form: CreateUserForm) => {
     try {
-      if (rpId) await extApi.update("role_permissions", rpId, { ...rpForm, brand_id: brandId });
-      else      await extApi.create("role_permissions", { ...rpForm, brand_id: brandId });
-      toast.success(R ? "تم الحفظ" : "Saved"); setRpOpen(false); setRpId(null); setRpForm(emptyRP); loadAll();
-    } catch (e: any) { toast.error(e.message); }
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-user`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type":  "application/json",
+            "Authorization": `Bearer ${session?.access_token}`,
+          },
+          body: JSON.stringify(form),
+        }
+      );
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Failed to create user");
+      toast.success(R ? "تم إنشاء المستخدم بنجاح" : "User created successfully");
+      setAddOpen(false); reset(); loadUsers();
+    } catch (e: unknown) { toast.error((e as Error).message); }
   };
 
-  const deleteRP = async (id: string) => {
-    if (!confirm(R ? "حذف هذه الصلاحية؟" : "Delete this permission?")) return;
-    try { await extApi.remove("role_permissions", id); toast.success(R ? "تم الحذف" : "Deleted"); loadAll(); }
-    catch (e: any) { toast.error(e.message); }
+  // ── Toggle page-perm matrix ─────────────────────────────────────────────────
+  const togglePP = (path: string, role: string) => {
+    setPageMtx(prev => {
+      const next = { ...prev };
+      const set  = new Set(next[path] || []);
+      if (set.has(role)) set.delete(role); else set.add(role);
+      next[path] = set;
+      return next;
+    });
   };
 
-  // ── Sector Permissions CRUD ────────────────────────────────────────
-  const saveSP = async () => {
-    if (!spForm.sector) return toast.error(R ? "القطاع مطلوب" : "Sector required");
-    const pl = { ...spForm, brand_id: brandId, ai_agent_codes: spForm.ai_agent_codes ? spForm.ai_agent_codes.split(",").map((s: string) => s.trim()).filter(Boolean) : [] };
+  // ── Save page permissions ───────────────────────────────────────────────────
+  const savePagePerms = async () => {
+    setSavingPP(true);
     try {
-      if (spId) await extApi.update("sector_permissions", spId, pl);
-      else      await extApi.create("sector_permissions", pl);
-      toast.success(R ? "تم الحفظ" : "Saved"); setSpOpen(false); setSpId(null); setSpForm(emptySP); loadAll();
-    } catch (e: any) { toast.error(e.message); }
+      for (const [path, roles] of Object.entries(pageMtx)) {
+        await rpc("update_page_permission", {
+          p_path:          path,
+          p_allowed_roles: Array.from(roles),
+          p_is_public:     false,
+        });
+      }
+      toast.success(R ? "تم حفظ الصلاحيات" : "Page permissions saved");
+      reloadPerms();
+    } catch (e: unknown) { toast.error((e as Error).message); }
+    finally { setSavingPP(false); }
   };
 
-  const deleteSP = async (id: string) => {
-    if (!confirm(R ? "حذف صلاحية القطاع هذه؟" : "Delete this sector permission?")) return;
-    try { await extApi.remove("sector_permissions", id); toast.success(R ? "تم الحذف" : "Deleted"); loadAll(); }
-    catch (e: any) { toast.error(e.message); }
-  };
-
-  // ── Agent Permissions CRUD ─────────────────────────────────────────
-  const saveAP = async () => {
-    if (!apForm.agent_code) return toast.error(R ? "كود الوكيل مطلوب" : "Agent code required");
-    const pl = { ...apForm, brand_id: brandId, allowed_tables: apForm.allowed_tables ? apForm.allowed_tables.split(",").map((s: string) => s.trim()).filter(Boolean) : [], allowed_actions: apForm.allowed_actions ? apForm.allowed_actions.split(",").map((s: string) => s.trim()).filter(Boolean) : ["read"] };
+  // ── Assign / Revoke ─────────────────────────────────────────────────────────
+  const assignRole = async (userId: string, role: string) => {
     try {
-      if (apId) await extApi.update("agent_permissions", apId, pl);
-      else      await extApi.create("agent_permissions", pl);
-      toast.success(R ? "تم الحفظ" : "Saved"); setApOpen(false); setApId(null); setApForm(emptyAP); loadAll();
-    } catch (e: any) { toast.error(e.message); }
+      await rpc("assign_user_role", { p_user_id: userId, p_role: role });
+      toast.success(R ? `تم إسناد دور ${role}` : `Role "${role}" assigned`);
+      loadUserRoles(userId); loadUsers();
+    } catch (e: unknown) { toast.error((e as Error).message); }
   };
 
-  const deleteAP = async (id: string) => {
-    if (!confirm(R ? "حذف صلاحية الوكيل هذه؟" : "Delete this agent permission?")) return;
-    try { await extApi.remove("agent_permissions", id); toast.success(R ? "تم الحذف" : "Deleted"); loadAll(); }
-    catch (e: any) { toast.error(e.message); }
+  const revokeRole = async (userId: string, role: string) => {
+    try {
+      await rpc("revoke_user_role", { p_user_id: userId, p_role: role });
+      toast.success(R ? `تم إزالة دور ${role}` : `Role "${role}" revoked`);
+      loadUserRoles(userId); loadUsers();
+    } catch (e: unknown) { toast.error((e as Error).message); }
   };
 
+  // ── Derived ─────────────────────────────────────────────────────────────────
+  const roleCounts: Record<string, number> = {};
+  users.forEach(u => { roleCounts[u.role] = (roleCounts[u.role] || 0) + 1; });
+  const pagePaths = Object.keys(pageMtx);
+  const colRoles  = ROLE_META.map(r => r.value);
+
+  // ────────────────────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-background p-4 md:p-8">
-      <div className="max-w-5xl mx-auto space-y-4">
-        <button onClick={() => nav(-1)} className="flex items-center gap-2 text-muted-foreground hover:text-primary text-sm">
-          <ArrowLeft className="w-4 h-4"/>{R ? "رجوع" : "Back"}
-        </button>
-
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <h1 className="font-display text-xl text-primary flex items-center gap-2">
-            <Shield className="w-5 h-5"/>{R ? "مدير الصلاحيات" : "Permissions Manager"}
-          </h1>
-          <div className="flex items-center gap-2">
-            <BrandSelector value={brandId} onChange={setBrandId}/>
-            <Button variant="outline" size="sm" onClick={loadAll} disabled={loading}>
-              <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`}/>
-            </Button>
+    <div className={`min-h-screen bg-background ${R ? "rtl" : "ltr"}`}>
+      {/* ── Header ── */}
+      <div className="border-b border-border bg-card px-6 py-4">
+        <div className="max-w-7xl mx-auto flex items-center gap-3">
+          <button
+            onClick={() => navigate(-1)}
+            className="p-1.5 rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" />
+          </button>
+          <div className="w-9 h-9 rounded-lg bg-primary/15 flex items-center justify-center">
+            <Shield className="w-5 h-5 text-primary" />
+          </div>
+          <div>
+            <h1 className="text-lg font-display font-bold text-foreground">
+              {R ? "الصلاحيات وإدارة المستخدمين" : "Permissions & User Management"}
+            </h1>
+            <p className="text-xs text-muted-foreground">
+              {R ? "إدارة الأدوار والمستخدمين وصلاحيات الصفحات" : "Manage roles, users, and page access control"}
+            </p>
           </div>
         </div>
-
-        {!brandId ? (
-          <Card className="p-12 text-center text-muted-foreground text-sm">{R ? "اختر علامة تجارية لإدارة صلاحياتها." : "Select a brand to manage its permissions."}</Card>
-        ) : (
-          <Tabs value={tab} onValueChange={setTab}>
-            <TabsList className="w-full grid grid-cols-3 h-auto">
-              <TabsTrigger value="roles"   className="text-xs py-2 flex items-center gap-1"><Shield className="w-3 h-3"/>{R ? "صلاحيات الأدوار" : "Role Perms"} <Badge variant="outline" className="ml-1 text-[10px]">{rolePerms.length}</Badge></TabsTrigger>
-              <TabsTrigger value="sectors" className="text-xs py-2 flex items-center gap-1"><Layers className="w-3 h-3"/>{R ? "صلاحيات القطاعات" : "Sector Perms"} <Badge variant="outline" className="ml-1 text-[10px]">{sectorPerms.length}</Badge></TabsTrigger>
-              <TabsTrigger value="agents"  className="text-xs py-2 flex items-center gap-1"><Bot className="w-3 h-3"/>{R ? "صلاحيات الوكلاء" : "Agent Perms"} <Badge variant="outline" className="ml-1 text-[10px]">{agentPerms.length}</Badge></TabsTrigger>
-            </TabsList>
-
-            {/* ── ROLE PERMISSIONS ── */}
-            <TabsContent value="roles">
-              <Card>
-                <div className="p-3 border-b border-border flex justify-between items-center">
-                  <p className="text-sm font-medium">{rolePerms.length} {R ? "قاعدة" : "rule(s)"}</p>
-                  <div className="flex gap-2">
-                    <ExportButton data={rolePerms} filename="role_permissions" title={R ? "صلاحيات الأدوار" : "Role Perms"}/>
-                    <Button size="sm" onClick={() => { setRpId(null); setRpForm(emptyRP); setRpOpen(true); }}><Plus className="w-4 h-4 mr-1"/>{R ? "إضافة قاعدة" : "Add Rule"}</Button>
-                  </div>
-                </div>
-                {rolePerms.length === 0 ? (
-                  <p className="p-10 text-center text-sm text-muted-foreground">{R ? "لم تُحدد صلاحيات أدوار بعد." : "No role permissions defined yet."}</p>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-xs">
-                      <thead className="bg-secondary/40">
-                        <tr>
-                          <th className="text-left p-3">{R?"الدور":"Role"}</th>
-                          <th className="text-left p-3">{R?"المورد":"Resource"}</th>
-                          <th className="p-2 text-center">{R?"قراءة":"Read"}</th>
-                          <th className="p-2 text-center">{R?"إنشاء":"Create"}</th>
-                          <th className="p-2 text-center">{R?"تعديل":"Update"}</th>
-                          <th className="p-2 text-center">{R?"حذف":"Delete"}</th>
-                          <th className="p-2 text-center">{R?"تصدير":"Export"}</th>
-                          <th className="p-2 text-center">{R?"موافقة":"Approve"}</th>
-                          <th className="p-3 w-16"/>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {rolePerms.map(r => (
-                          <tr key={r.id} className="border-t border-border hover:bg-secondary/20">
-                            <td className="p-3"><Badge variant="outline" className="text-[10px]">{r.role}</Badge></td>
-                            <td className="p-3 font-mono text-[10px]">{r.resource_type}</td>
-                            <td className="p-2 text-center"><Dot v={r.can_read}/></td>
-                            <td className="p-2 text-center"><Dot v={r.can_create}/></td>
-                            <td className="p-2 text-center"><Dot v={r.can_update}/></td>
-                            <td className="p-2 text-center"><Dot v={r.can_delete}/></td>
-                            <td className="p-2 text-center"><Dot v={r.can_export}/></td>
-                            <td className="p-2 text-center"><Dot v={r.can_approve}/></td>
-                            <td className="p-3">
-                              <div className="flex gap-1">
-                                <Button size="sm" variant="ghost" onClick={() => { setRpId(r.id); setRpForm({ role: r.role, resource_type: r.resource_type, can_read: r.can_read, can_create: r.can_create, can_update: r.can_update, can_delete: r.can_delete, can_export: r.can_export, can_approve: r.can_approve }); setRpOpen(true); }}><Edit className="w-3 h-3"/></Button>
-                                <Button size="sm" variant="ghost" onClick={() => deleteRP(r.id)}><Trash2 className="w-3 h-3 text-destructive"/></Button>
-                              </div>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </Card>
-            </TabsContent>
-
-            {/* ── SECTOR PERMISSIONS ── */}
-            <TabsContent value="sectors">
-              <Card>
-                <div className="p-3 border-b border-border flex justify-between items-center">
-                  <p className="text-sm font-medium">{sectorPerms.length} {R ? "قاعدة" : "rule(s)"}</p>
-                  <div className="flex gap-2">
-                    <ExportButton data={sectorPerms} filename="sector_permissions" title={R ? "صلاحيات القطاعات" : "Sector Perms"}/>
-                    <Button size="sm" onClick={() => { setSpId(null); setSpForm(emptySP); setSpOpen(true); }}><Plus className="w-4 h-4 mr-1"/>{R ? "إضافة قاعدة" : "Add Rule"}</Button>
-                  </div>
-                </div>
-                {sectorPerms.length === 0 ? (
-                  <p className="p-10 text-center text-sm text-muted-foreground">{R ? "لم تُحدد صلاحيات قطاعات بعد." : "No sector permissions defined yet."}</p>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-xs">
-                      <thead className="bg-secondary/40">
-                        <tr>
-                          <th className="text-left p-3">{R?"معرف المستخدم":"User ID"}</th>
-                          <th className="text-left p-3">{R?"القطاع":"Sector"}</th>
-                          <th className="p-2 text-center">{R?"قراءة":"Read"}</th>
-                          <th className="p-2 text-center">{R?"كتابة":"Write"}</th>
-                          <th className="p-2 text-center">{R?"حذف":"Delete"}</th>
-                          <th className="p-2 text-center">{R?"موافقة":"Approve"}</th>
-                          <th className="p-2 text-center">AI</th>
-                          <th className="p-3 w-16"/>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {sectorPerms.map(s => (
-                          <tr key={s.id} className="border-t border-border hover:bg-secondary/20">
-                            <td className="p-3 font-mono text-[10px] text-muted-foreground">{s.target_user_id?.slice(0,14)}…</td>
-                            <td className="p-3 font-mono text-[10px]">{s.sector}</td>
-                            <td className="p-2 text-center"><Dot v={s.can_read}/></td>
-                            <td className="p-2 text-center"><Dot v={s.can_write}/></td>
-                            <td className="p-2 text-center"><Dot v={s.can_delete}/></td>
-                            <td className="p-2 text-center"><Dot v={s.can_approve}/></td>
-                            <td className="p-2 text-center"><Dot v={s.ai_managed}/></td>
-                            <td className="p-3">
-                              <div className="flex gap-1">
-                                <Button size="sm" variant="ghost" onClick={() => { setSpId(s.id); setSpForm({ ...s, ai_agent_codes: Array.isArray(s.ai_agent_codes) ? s.ai_agent_codes.join(",") : (s.ai_agent_codes||"") }); setSpOpen(true); }}><Edit className="w-3 h-3"/></Button>
-                                <Button size="sm" variant="ghost" onClick={() => deleteSP(s.id)}><Trash2 className="w-3 h-3 text-destructive"/></Button>
-                              </div>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </Card>
-            </TabsContent>
-
-            {/* ── AGENT PERMISSIONS ── */}
-            <TabsContent value="agents">
-              <Card>
-                <div className="p-3 border-b border-border flex justify-between items-center">
-                  <p className="text-sm font-medium">{agentPerms.length} {R ? "قاعدة" : "rule(s)"}</p>
-                  <div className="flex gap-2">
-                    <ExportButton data={agentPerms} filename="agent_permissions" title={R ? "صلاحيات الوكلاء" : "Agent Perms"}/>
-                    <Button size="sm" onClick={() => { setApId(null); setApForm(emptyAP); setApOpen(true); }}><Plus className="w-4 h-4 mr-1"/>{R ? "إضافة قاعدة" : "Add Rule"}</Button>
-                  </div>
-                </div>
-                {agentPerms.length === 0 ? (
-                  <p className="p-10 text-center text-sm text-muted-foreground">{R ? "لم تُحدد صلاحيات وكلاء بعد." : "No agent permissions defined yet."}</p>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-xs">
-                      <thead className="bg-secondary/40">
-                        <tr>
-                          <th className="text-left p-3">{R?"كود الوكيل":"Agent Code"}</th>
-                          <th className="text-left p-3">{R?"الجداول":"Tables"}</th>
-                          <th className="text-left p-3">{R?"الإجراءات":"Actions"}</th>
-                          <th className="p-2 text-center">{R?"أقصى عمليات":"Max Ops/d"}</th>
-                          <th className="p-2 text-center">{R?"اختبار":"Sandbox"}</th>
-                          <th className="p-2 text-center">{R?"تصعيد":"Escalate"}</th>
-                          <th className="p-3 w-16"/>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {agentPerms.map(a => (
-                          <tr key={a.id} className="border-t border-border hover:bg-secondary/20">
-                            <td className="p-3 font-mono text-[10px] text-primary">{a.agent_code}</td>
-                            <td className="p-3 text-[10px] text-muted-foreground max-w-[120px] truncate">{Array.isArray(a.allowed_tables) ? a.allowed_tables.join(", ") : a.allowed_tables}</td>
-                            <td className="p-3 text-[10px]">{Array.isArray(a.allowed_actions) ? a.allowed_actions.join(", ") : a.allowed_actions}</td>
-                            <td className="p-2 text-center">{a.max_daily_ops}</td>
-                            <td className="p-2 text-center"><Dot v={a.sandbox_mode}/></td>
-                            <td className="p-2 text-center"><Dot v={a.can_escalate}/></td>
-                            <td className="p-3">
-                              <div className="flex gap-1">
-                                <Button size="sm" variant="ghost" onClick={() => { setApId(a.id); setApForm({ ...a, allowed_tables: Array.isArray(a.allowed_tables) ? a.allowed_tables.join(",") : (a.allowed_tables||""), allowed_actions: Array.isArray(a.allowed_actions) ? a.allowed_actions.join(",") : (a.allowed_actions||"read") }); setApOpen(true); }}><Edit className="w-3 h-3"/></Button>
-                                <Button size="sm" variant="ghost" onClick={() => deleteAP(a.id)}><Trash2 className="w-3 h-3 text-destructive"/></Button>
-                              </div>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </Card>
-            </TabsContent>
-          </Tabs>
-        )}
       </div>
 
-      {/* ── Role Perm Dialog ── */}
-      <Dialog open={rpOpen} onOpenChange={setRpOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader><DialogTitle>{rpId ? (R?"تعديل":"إEdit") : (R?"إضافة":"Add")} {R ? "صلاحية دور" : "Role Permission"}</DialogTitle></DialogHeader>
-          <div className="space-y-3 py-2">
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <Label>{R ? "الدور" : "Role"}</Label>
-                <Select value={rpForm.role} onValueChange={v => setRpForm((p: any) => ({ ...p, role: v }))}>
-                  <SelectTrigger><SelectValue/></SelectTrigger>
-                  <SelectContent>{ROLES.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}</SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1">
-                <Label>{R ? "المورد" : "Resource"}</Label>
-                <Select value={rpForm.resource_type} onValueChange={v => setRpForm((p: any) => ({ ...p, resource_type: v }))}>
-                  <SelectTrigger><SelectValue/></SelectTrigger>
-                  <SelectContent>{SECTORS.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
-                </Select>
+      {/* ── Tabs ── */}
+      <div className="max-w-7xl mx-auto p-6">
+        <Tabs value={tab} onValueChange={setTab} className="space-y-4">
+          <TabsList className="grid grid-cols-4 w-full max-w-xl">
+            <TabsTrigger value="users"  className="gap-1.5 text-xs"><Users    className="w-3.5 h-3.5"/>{R ? "المستخدمون" : "Users"}</TabsTrigger>
+            <TabsTrigger value="roles"  className="gap-1.5 text-xs"><Key      className="w-3.5 h-3.5"/>{R ? "الأدوار" : "Roles"}</TabsTrigger>
+            <TabsTrigger value="assign" className="gap-1.5 text-xs"><UserPlus className="w-3.5 h-3.5"/>{R ? "الإسناد" : "Assignments"}</TabsTrigger>
+            <TabsTrigger value="pages"  className="gap-1.5 text-xs"><Globe    className="w-3.5 h-3.5"/>{R ? "صلاحيات الصفحات" : "Page Perms"}</TabsTrigger>
+          </TabsList>
+
+          {/* ── USERS ── */}
+          <TabsContent value="users" className="space-y-4">
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-muted-foreground">{users.length} {R ? "مستخدم" : "users"}</p>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" onClick={loadUsers} className="gap-1.5 text-xs">
+                  <RefreshCw className="w-3.5 h-3.5"/>{R ? "تحديث" : "Refresh"}
+                </Button>
+                {isAdmin && (
+                  <Button size="sm" onClick={() => setAddOpen(true)} className="gap-1.5 text-xs">
+                    <Plus className="w-3.5 h-3.5"/>{R ? "إضافة مستخدم" : "Add User"}
+                  </Button>
+                )}
               </div>
             </div>
-            <div className="grid grid-cols-3 gap-3">
-              {(["can_read","can_create","can_update","can_delete","can_export","can_approve"] as const).map(k => (
-                <div key={k} className="flex items-center gap-2">
-                  <Switch checked={rpForm[k]} onCheckedChange={v => setRpForm((p: any) => ({ ...p, [k]: v }))}/>
-                  <Label className="text-xs">{k.replace("can_","")}</Label>
-                </div>
+            <Card className="bg-card border-border overflow-hidden">
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="border-border">
+                      <TableHead className="text-xs text-muted-foreground">{R ? "الاسم / البريد" : "Name / Email"}</TableHead>
+                      <TableHead className="text-xs text-muted-foreground">{R ? "الدور" : "Role"}</TableHead>
+                      <TableHead className="text-xs text-muted-foreground">{R ? "الهاتف" : "Phone"}</TableHead>
+                      <TableHead className="text-xs text-muted-foreground">{R ? "الحالة" : "Status"}</TableHead>
+                      <TableHead className="text-xs text-muted-foreground">{R ? "تاريخ الإنشاء" : "Created"}</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {loading
+                      ? Array.from({ length: 4 }).map((_, i) => (
+                          <TableRow key={i} className="border-border">
+                            {Array.from({ length: 5 }).map((_, j) => (
+                              <TableCell key={j}><div className="h-4 bg-muted rounded animate-pulse"/></TableCell>
+                            ))}
+                          </TableRow>
+                        ))
+                      : users.map(u => {
+                          const meta = ROLE_MAP[u.role as AppRole];
+                          return (
+                            <TableRow key={u.id} className="border-border hover:bg-secondary/30">
+                              <TableCell>
+                                <p className="text-sm font-medium text-foreground">{u.full_name}</p>
+                                <p className="text-xs text-muted-foreground">{u.email}</p>
+                              </TableCell>
+                              <TableCell>
+                                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium ${meta?.color || "bg-muted text-muted-foreground"}`}>
+                                  {R ? (meta?.labelAr || u.role) : (meta?.labelEn || u.role)}
+                                </span>
+                              </TableCell>
+                              <TableCell className="text-sm text-muted-foreground">{u.phone || "—"}</TableCell>
+                              <TableCell>
+                                {u.is_suspended
+                                  ? <Badge variant="destructive" className="text-[10px]">{R ? "موقوف" : "Suspended"}</Badge>
+                                  : u.is_verified
+                                    ? <Badge className="bg-green-500/20 text-green-400 border-green-500/30 text-[10px]">{R ? "موثق" : "Verified"}</Badge>
+                                    : <Badge variant="outline" className="text-[10px]">{R ? "بانتظار" : "Pending"}</Badge>
+                                }
+                              </TableCell>
+                              <TableCell className="text-xs text-muted-foreground">
+                                {new Date(u.created_at).toLocaleDateString(R ? "ar-EG" : "en-US")}
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })
+                    }
+                  </TableBody>
+                </Table>
+              </div>
+            </Card>
+          </TabsContent>
+
+          {/* ── ROLES ── */}
+          <TabsContent value="roles" className="space-y-4">
+            <p className="text-sm text-muted-foreground">{R ? "الأدوار المتاحة في المنصة" : "Available platform roles"}</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {ROLE_META.map(meta => (
+                <Card key={meta.value} className="bg-card border-border p-4 space-y-2 hover:border-primary/40 transition-colors">
+                  <div className="flex items-center justify-between">
+                    <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${meta.color}`}>
+                      {R ? meta.labelAr : meta.labelEn}
+                    </span>
+                    <span className="text-lg font-display font-bold text-foreground">{roleCounts[meta.value] ?? 0}</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground leading-relaxed">{R ? meta.descAr : meta.descEn}</p>
+                  <p className="text-[10px] font-mono text-muted-foreground/60">{meta.value}</p>
+                </Card>
               ))}
             </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setRpOpen(false)}>{R ? "إلغاء" : "Cancel"}</Button>
-            <Button onClick={saveRP}>{R ? "حفظ" : "Save"}</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </TabsContent>
 
-      {/* ── Sector Perm Dialog ── */}
-      <Dialog open={spOpen} onOpenChange={setSpOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader><DialogTitle>{spId ? (R?"تعديل":"Edit") : (R?"إضافة":"Add")} {R ? "صلاحية قطاع" : "Sector Permission"}</DialogTitle></DialogHeader>
-          <div className="space-y-3 py-2">
-            <div className="space-y-1">
-              <Label>{R ? "معرف المستخدم المستهدف" : "Target User ID"}</Label>
-              <Input value={spForm.target_user_id} onChange={e => setSpForm((p: any) => ({ ...p, target_user_id: e.target.value }))} placeholder="UUID of user"/>
-            </div>
-            <div className="space-y-1">
-              <Label>{R ? "القطاع" : "Sector"}</Label>
-              <Select value={spForm.sector} onValueChange={v => setSpForm((p: any) => ({ ...p, sector: v }))}>
-                <SelectTrigger><SelectValue/></SelectTrigger>
-                <SelectContent>{SECTORS.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+          {/* ── ASSIGNMENTS ── */}
+          <TabsContent value="assign" className="space-y-4">
+            <p className="text-sm text-muted-foreground">{R ? "اختر مستخدماً لإدارة أدواره" : "Select a user to manage their roles"}</p>
+            <Card className="bg-card border-border p-4 space-y-3">
+              <Label className="text-xs text-muted-foreground">{R ? "اختر المستخدم" : "Select User"}</Label>
+              <Select value={selUser?.id ?? ""} onValueChange={id => setSelUser(users.find(u => u.id === id) ?? null)}>
+                <SelectTrigger className="bg-secondary/50 border-border text-sm">
+                  <SelectValue placeholder={R ? "اختر..." : "Select user..."} />
+                </SelectTrigger>
+                <SelectContent>
+                  {users.map(u => (
+                    <SelectItem key={u.id} value={u.id}>
+                      {u.full_name} — {u.email}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
               </Select>
-            </div>
-            <div className="grid grid-cols-3 gap-3">
-              {(["can_read","can_write","can_delete","can_approve","can_export","ai_managed"] as const).map(k => (
-                <div key={k} className="flex items-center gap-2">
-                  <Switch checked={spForm[k]} onCheckedChange={v => setSpForm((p: any) => ({ ...p, [k]: v }))}/>
-                  <Label className="text-xs">{k.replace("can_","").replace("ai_managed","ai")}</Label>
-                </div>
-              ))}
-            </div>
-            <div className="space-y-1">
-              <Label>{R ? "أكواد وكلاء الذكاء الاصطناعي (مفصولة بفواصل)" : "AI Agent Codes (comma-separated)"}</Label>
-              <Input value={spForm.ai_agent_codes} onChange={e => setSpForm((p: any) => ({ ...p, ai_agent_codes: e.target.value }))} placeholder="anubis,horus"/>
-            </div>
-            <div className="space-y-1">
-              <Label>{R ? "ملاحظات" : "Notes"}</Label>
-              <Textarea value={spForm.notes} onChange={e => setSpForm((p: any) => ({ ...p, notes: e.target.value }))} rows={2}/>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setSpOpen(false)}>{R ? "إلغاء" : "Cancel"}</Button>
-            <Button onClick={saveSP}>{R ? "حفظ" : "Save"}</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            </Card>
 
-      {/* ── Agent Perm Dialog ── */}
-      <Dialog open={apOpen} onOpenChange={setApOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader><DialogTitle>{apId ? (R?"تعديل":"Edit") : (R?"إضافة":"Add")} {R ? "صلاحية وكيل" : "Agent Permission"}</DialogTitle></DialogHeader>
-          <div className="space-y-3 py-2">
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <Label>{R ? "كود الوكيل" : "Agent Code"}</Label>
-                <Input value={apForm.agent_code} onChange={e => setApForm((p: any) => ({ ...p, agent_code: e.target.value }))} placeholder="ANUBIS"/>
-              </div>
-              <div className="space-y-1">
-                <Label>{R ? "أقصى عمليات يومية" : "Max Daily Ops"}</Label>
-                <Input type="number" value={apForm.max_daily_ops} onChange={e => setApForm((p: any) => ({ ...p, max_daily_ops: +e.target.value }))}/>
-              </div>
-            </div>
-            <div className="space-y-1">
-              <Label>{R ? "الجداول المسموحة (مفصولة بفواصل)" : "Allowed Tables (comma-separated)"}</Label>
-              <Input value={apForm.allowed_tables} onChange={e => setApForm((p: any) => ({ ...p, allowed_tables: e.target.value }))} placeholder="customers,invoices"/>
-            </div>
-            <div className="space-y-1">
-              <Label>{R ? "الإجراءات المسموحة (مفصولة بفواصل)" : "Allowed Actions (comma-separated)"}</Label>
-              <Input value={apForm.allowed_actions} onChange={e => setApForm((p: any) => ({ ...p, allowed_actions: e.target.value }))} placeholder="read,create"/>
-            </div>
-            <div className="grid grid-cols-3 gap-3">
-              {(["can_escalate","requires_approval","sandbox_mode"] as const).map(k => (
-                <div key={k} className="flex items-center gap-2">
-                  <Switch checked={apForm[k]} onCheckedChange={v => setApForm((p: any) => ({ ...p, [k]: v }))}/>
-                  <Label className="text-xs">{k.replace(/_/g," ")}</Label>
+            {selUser && (
+              <Card className="bg-card border-border p-4 space-y-4">
+                <div>
+                  <p className="text-sm font-semibold text-foreground">{selUser.full_name}</p>
+                  <p className="text-xs text-muted-foreground">{selUser.email}</p>
                 </div>
-              ))}
+                <div>
+                  <p className="text-xs text-muted-foreground mb-2">{R ? "الأدوار الحالية" : "Current Roles"}</p>
+                  <div className="flex flex-wrap gap-2">
+                    {userRoles.length === 0 && (
+                      <span className="text-xs text-muted-foreground">{R ? "لا توجد أدوار" : "No roles"}</span>
+                    )}
+                    {userRoles.map(ur => {
+                      const meta = ROLE_MAP[ur.role as AppRole];
+                      return (
+                        <span key={ur.role} className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs ${meta?.color || "bg-muted text-muted-foreground"}`}>
+                          {R ? (meta?.labelAr || ur.role) : (meta?.labelEn || ur.role)}
+                          {ur.role !== "superadmin" && (
+                            <button onClick={() => revokeRole(selUser.id, ur.role)} className="opacity-60 hover:opacity-100">
+                              <X className="w-3 h-3"/>
+                            </button>
+                          )}
+                        </span>
+                      );
+                    })}
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <p className="text-xs text-muted-foreground">{R ? "إسناد دور جديد" : "Assign New Role"}</p>
+                  <div className="flex flex-wrap gap-2">
+                    {ROLE_META.filter(m => m.value !== "superadmin").map(meta => {
+                      const hasRole = userRoles.some(ur => ur.role === meta.value);
+                      return (
+                        <button
+                          key={meta.value}
+                          onClick={() => hasRole ? revokeRole(selUser.id, meta.value) : assignRole(selUser.id, meta.value)}
+                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs border transition-all ${hasRole ? meta.color : "bg-transparent text-muted-foreground border-border hover:border-primary/50"}`}
+                        >
+                          {hasRole ? <Check className="w-3 h-3"/> : <Plus className="w-3 h-3"/>}
+                          {R ? meta.labelAr : meta.labelEn}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </Card>
+            )}
+          </TabsContent>
+
+          {/* ── PAGE PERMISSIONS ── */}
+          <TabsContent value="pages" className="space-y-4">
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-muted-foreground">
+                {R ? "حدد الأدوار المسموح لها بالوصول لكل صفحة" : "Toggle role access per page"}
+              </p>
+              <Button size="sm" onClick={savePagePerms} disabled={savingPP} className="gap-1.5 text-xs">
+                {savingPP ? <RefreshCw className="w-3.5 h-3.5 animate-spin"/> : <Check className="w-3.5 h-3.5"/>}
+                {R ? "حفظ التغييرات" : "Save Changes"}
+              </Button>
             </div>
-            <div className="space-y-1">
-              <Label>{R ? "ملاحظات" : "Notes"}</Label>
-              <Textarea value={apForm.notes} onChange={e => setApForm((p: any) => ({ ...p, notes: e.target.value }))} rows={2}/>
+            <Card className="bg-card border-border overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="border-b border-border">
+                      <th className="sticky left-0 bg-card px-4 py-3 text-left text-muted-foreground font-medium w-48 min-w-[192px]">
+                        {R ? "المسار" : "Route"}
+                      </th>
+                      {colRoles.map(r => {
+                        const meta = ROLE_MAP[r];
+                        return (
+                          <th key={r} className="px-2 py-3 text-center">
+                            <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-medium ${meta.badge}`}>
+                              {R ? meta.labelAr : meta.labelEn}
+                            </span>
+                          </th>
+                        );
+                      })}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {pagePaths.map((path, idx) => {
+                      const rowRoles = pageMtx[path] ?? new Set();
+                      return (
+                        <tr key={path} className={`border-b border-border/50 hover:bg-secondary/20 ${idx % 2 === 0 ? "" : "bg-muted/20"}`}>
+                          <td className="sticky left-0 bg-inherit px-4 py-2 font-mono text-muted-foreground text-[11px]">{path}</td>
+                          {colRoles.map(r => {
+                            const checked = rowRoles.has(r);
+                            return (
+                              <td key={r} className="px-2 py-2 text-center">
+                                <Switch
+                                  checked={checked}
+                                  onCheckedChange={() => togglePP(path, r)}
+                                  disabled={r === "superadmin"}
+                                  className="scale-75"
+                                />
+                              </td>
+                            );
+                          })}
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </Card>
+          </TabsContent>
+        </Tabs>
+      </div>
+
+      {/* ── Add User Dialog ── */}
+      <Dialog open={addOpen} onOpenChange={setAddOpen}>
+        <DialogContent className="bg-card border-border max-w-md">
+          <DialogHeader>
+            <DialogTitle className="font-display text-foreground flex items-center gap-2">
+              <UserPlus className="w-5 h-5 text-primary"/>
+              {R ? "إضافة مستخدم جديد" : "Add New User"}
+            </DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSubmit(onCreateUser)} className="space-y-4 pt-2">
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground">{R ? "الاسم الكامل" : "Full Name"} *</Label>
+              <Input {...register("full_name")} placeholder={R ? "محمد أحمد" : "John Doe"} className="bg-secondary/50 border-border text-sm"/>
+              {errors.full_name && <p className="text-xs text-destructive">{errors.full_name.message}</p>}
             </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setApOpen(false)}>{R ? "إلغاء" : "Cancel"}</Button>
-            <Button onClick={saveAP}>{R ? "حفظ" : "Save"}</Button>
-          </DialogFooter>
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground">{R ? "البريد الإلكتروني" : "Email"} *</Label>
+              <Input {...register("email")} type="email" placeholder="user@example.com" className="bg-secondary/50 border-border text-sm" dir="ltr"/>
+              {errors.email && <p className="text-xs text-destructive">{errors.email.message}</p>}
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground">{R ? "كلمة المرور" : "Password"} *</Label>
+              <Input {...register("password")} type="password" placeholder="••••••••" className="bg-secondary/50 border-border text-sm" dir="ltr"/>
+              {errors.password && <p className="text-xs text-destructive">{errors.password.message}</p>}
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground">{R ? "رقم الهاتف" : "Phone"}</Label>
+              <Input {...register("phone")} placeholder="+966 5xx xxx xxxx" className="bg-secondary/50 border-border text-sm" dir="ltr"/>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground">{R ? "الدور" : "Role"} *</Label>
+              <Select onValueChange={v => setValue("role", v)} defaultValue="user">
+                <SelectTrigger className="bg-secondary/50 border-border text-sm">
+                  <SelectValue placeholder={R ? "اختر الدور" : "Select role"}/>
+                </SelectTrigger>
+                <SelectContent>
+                  {ROLE_META.filter(m => m.value !== "superadmin").map(meta => (
+                    <SelectItem key={meta.value} value={meta.value}>
+                      {R ? meta.labelAr : meta.labelEn}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {errors.role && <p className="text-xs text-destructive">{errors.role.message}</p>}
+            </div>
+            <DialogFooter className="gap-2 pt-2">
+              <Button type="button" variant="outline" onClick={() => { setAddOpen(false); reset(); }} className="text-xs">
+                {R ? "إلغاء" : "Cancel"}
+              </Button>
+              <Button type="submit" disabled={isSubmitting} className="text-xs gap-1.5">
+                {isSubmitting ? <RefreshCw className="w-3.5 h-3.5 animate-spin"/> : <UserPlus className="w-3.5 h-3.5"/>}
+                {R ? "إنشاء المستخدم" : "Create User"}
+              </Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
     </div>

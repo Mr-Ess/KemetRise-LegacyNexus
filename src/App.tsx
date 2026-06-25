@@ -203,6 +203,7 @@ const LoginHistory = lazy(() => import("./pages/LoginHistory.tsx"));
 const AgentLogs = lazy(() => import("./pages/AgentLogs.tsx"));
 const WorkflowMap = lazy(() => import("./pages/WorkflowMap.tsx"));
 const Permissions = lazy(() => import("./pages/Permissions.tsx"));
+const Unauthorized = lazy(() => import("./pages/Unauthorized.tsx"));
 const UserManagement = lazy(() => import("./pages/UserManagement.tsx"));
 
 const queryClient = new QueryClient({
@@ -430,6 +431,7 @@ const App = () => (
                 <Route path="/agent-logs" element={<Navigate to="/audit-logs" replace />} />
                 <Route path="/workflow-map" element={<Protected><WorkflowMap /></Protected>} />
                 <Route path="/permissions" element={<Protected><Permissions /></Protected>} />
+                <Route path="/unauthorized" element={<Unauthorized />} />
                 <Route path="/user-management" element={<Protected><UserManagement /></Protected>} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
