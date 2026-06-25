@@ -5,35 +5,117 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// ── Platform knowledge injected into every system prompt ──────────────────
+const PLATFORM_KNOWLEDGE = `
+## KemetRise Legacy Nexus — دليل المنصة
+
+### الأقسام الرئيسية
+- لوحة التحكم (/): KPIs، التحليلات، المهام، نظرة عامة على كل شيء
+- ERP Cockpit (/erp): موارد المؤسسة — HR، المخزون، اللوجستيات، الحسابات
+- مركز العلامات التجارية (/brands): إنشاء وإدارة العلامات التجارية المتعددة
+- مركز العمليات (/operations): الإدارة التشغيلية اليومية
+- السوق الرقمي (/marketplace): تجارة B2C للمنتجات والخدمات
+- المول الرقمي (/digital-mall): مول متعدد البائعين
+
+### بوابات المستخدمين
+- بوابة الأدمن (/admin): مركز القيادة العليا — إدارة كاملة
+- بوابة الشركاء (/partner): التحليلات، العلامات، الإيرادات
+- بوابة الوكلاء (/agent): العملاء، العمولات، التحويلات، المناطق
+- بوابة البائعين (/vendor): المنتجات، الطلبات، المحفظة
+- بوابة مزودي الخدمة (/provider): القوائم، الطلبات، العملاء
+- بوابة التسويق (/marketing): الحملات، الليدز، العائد على الاستثمار
+- بوابة المديرين (/manager): الجداول، المهام، الأداء
+- بوابة الموظفين (/staff): المهام، الحضور، الجدول
+- بوابة المستخدم (/portal): الطلبات، قائمة الأمنيات، الفواتير
+
+### الوحدات الإدارية
+- العملاء (/customers): CRM — ملفات تعريف العملاء
+- المشاريع (/projects): إدارة المشاريع
+- الفروع (/branches): إدارة الفروع المتعددة
+- الخدمات (/services): كتالوج الخدمات
+- الموظفون (/employees): الموارد البشرية
+- الصلاحيات (/permissions): الأدوار والمستخدمون والتحكم في الوصول
+- الفريق (/team): إدارة الفريق الداخلي
+
+### المالية والتجارة
+- لوحة الإيرادات (/revenue): تحليلات الإيرادات
+- بوابات الدفع (/payment-gateways): تكاملات الدفع
+- الكوبونات (/coupons) | المستردات (/refunds) | التحليلات المالية (/finance)
+
+### التقنية والنظام
+- سجلات التدقيق (/audit-logs) | توثيق API (/api-docs) | مركز المطورين (/developer)
+- النسخ الاحتياطية (/backups) | SSO (/sso) | الويب هوك (/webhooks)
+
+### الذكاء الاصطناعي والإنتاجية
+- دردشة AI (/chat) | المساعد الصوتي (/voice) | بناء الأتمتة (/automation)
+- لوحة المفاتيح السريعة: Ctrl+K للتنقل السريع بين الأقسام
+
+### الأدوار المتاحة
+superadmin: وصول كامل | admin: إدارة المنصة والمستخدمين | manager: إدارة الفريق
+staff: مهام تشغيلية | partner: شريك أعمال | agent: مندوب مبيعات
+vendor: بائع منتجات | provider: مزود خدمة | marketing: فريق التسويق | user: عميل
+`;
+
+const ROLE_GUIDE: Record<string, string> = {
+  superadmin: "لديك صلاحية وصول كاملة لجميع أقسام المنصة.",
+  admin: "تدير المستخدمين والصلاحيات والإعدادات وكل أقسام المنصة.",
+  manager: "تركّز على إدارة الفريق والعمليات والتقارير والجداول الزمنية.",
+  staff: "تركّز على المهام اليومية والحضور والجدول الزمني والرسائل.",
+  partner: "تركّز على تحليلات الأعمال والعلامات التجارية والإيرادات.",
+  agent: "تركّز على إدارة العملاء والعمولات والتحويلات والمناطق.",
+  vendor: "تركّز على إدارة المنتجات والطلبات والمحفظة المالية.",
+  provider: "تركّز على القوائم والطلبات وإدارة عملائك.",
+  marketing: "تركّز على الحملات والليدز والتحليلات والعائد على الاستثمار.",
+  user: "يمكنك متابعة طلباتك وفواتيرك والتواصل مع الدعم.",
+  viewer: "لديك وصول للقراءة فقط — يمكنك عرض التقارير والتحليلات.",
+  guest: "مرحباً بك في KemetRise — يمكنك التسجيل للوصول لكامل المنصة.",
+};
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
-  // Verify JWT — reject unauthenticated callers
+  // Optional auth — read role from token if present, else treat as guest
+  let userRole = "guest";
   const authHeader = req.headers.get("Authorization") ?? "";
-  if (!authHeader.startsWith("Bearer ")) {
-    return new Response(JSON.stringify({ error: "Missing authorization token" }), {
-      status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  }
-  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-  const supabaseAnon = Deno.env.get("SUPABASE_ANON_KEY")!;
-  const userClient = createClient(supabaseUrl, supabaseAnon, {
-    global: { headers: { Authorization: authHeader } },
-  });
-  const { data: userData, error: authError } = await userClient.auth.getUser();
-  if (authError || !userData.user) {
-    return new Response(JSON.stringify({ error: "Unauthorized" }), {
-      status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+  if (authHeader.startsWith("Bearer ")) {
+    try {
+      const supabaseUrl  = Deno.env.get("SUPABASE_URL")!;
+      const supabaseAnon = Deno.env.get("SUPABASE_ANON_KEY")!;
+      const userClient = createClient(supabaseUrl, supabaseAnon, {
+        global: { headers: { Authorization: authHeader } },
+      });
+      const { data } = await userClient
+        .from("user_profiles")
+        .select("role")
+        .single();
+      if (data?.role) userRole = data.role;
+    } catch { /* fallback to guest */ }
   }
 
   try {
-    const { messages, model = "google/gemini-2.5-flash", system } = await req.json();
+    const { messages, model = "google/gemini-2.5-flash", system, currentPage = "/" } = await req.json();
     if (!Array.isArray(messages)) {
       return new Response(JSON.stringify({ error: "messages must be an array" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    // Build rich system prompt combining platform knowledge + role + page context
+    const platformSystem = `أنت KEMET AI — المساعد الذكي لمنصة KemetRise Legacy Nexus.
+مهمتك: مساعدة أي مستخدم في التنقل والفهم والاستخدام الأمثل للمنصة.
+
+الدور الحالي: ${userRole}
+الصفحة الحالية: ${currentPage}
+${ROLE_GUIDE[userRole] || ROLE_GUIDE.guest}
+
+## قواعد أساسية
+- رد بنفس لغة المستخدم (عربي إذا كتب عربي، إنجليزي إذا كتب إنجليزي)
+- كن موجزاً ومفيداً ومحترفاً
+- عند الإشارة للصفحات اذكر المسار مثل: اذهب إلى /permissions
+- استخدم النقاط والفقرات القصيرة
+- كن متحمساً ومشجعاً
+${PLATFORM_KNOWLEDGE}
+${system ?? ""}`;
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
@@ -42,9 +124,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const fullMessages = system
-      ? [{ role: "system", content: system }, ...messages]
-      : messages;
+    const fullMessages = [{ role: "system", content: platformSystem }, ...messages];
 
     const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",

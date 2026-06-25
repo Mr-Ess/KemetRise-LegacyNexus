@@ -223,7 +223,7 @@ const PageFallback = () => (
 );
 
 const Protected = ({ children }: { children: React.ReactNode }) => (
-  <ProtectedRoute><TenantProvider><BrandsProvider><OnboardingTour /><CommandPalette />{children}<AIAssistant /></BrandsProvider></TenantProvider></ProtectedRoute>
+  <ProtectedRoute><TenantProvider><BrandsProvider><OnboardingTour /><CommandPalette />{children}</BrandsProvider></TenantProvider></ProtectedRoute>
 );
 
 const App = () => (
@@ -238,6 +238,7 @@ const App = () => (
             <UserRoleProvider>
             <CartProvider>
             <Suspense fallback={<PageFallback />}>
+              <AIAssistant />
               <Routes>
                 <Route path="/auth" element={<Auth />} />
                 <Route path="/reset-password" element={<ResetPassword />} />

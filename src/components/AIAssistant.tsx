@@ -1,16 +1,33 @@
 import { useState, useRef, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import {
   MessageCircle, X, Send, Sparkles, Loader2, Ticket,
   Plus, ChevronLeft, CheckCircle, Clock,
-  Circle, RefreshCw,
+  Circle, RefreshCw, Bot,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { tenantDb } from "@/lib/tenantDb";
 import { toast } from "sonner";
+import { useUserRole } from "@/context/UserRoleContext";
 
 type Msg = { role: "user" | "assistant"; content: string };
+
+const ROLE_SUGGESTIONS: Record<string, string[]> = {
+  superadmin: ["كيف أدير صلاحيات المستخدمين?", "دلّني على أهم أقسام المنصة", "What can I do as superadmin?"],
+  admin: ["كيف أضيف مستخدم جديد?", "أين صفحة الصلاحيات?", "Show me platform stats"],
+  manager: ["كيف أتابع أداء الفريق?", "أين جداول الموظفين?", "How to create a report?"],
+  staff: ["كيف أسجل حضوري?", "أين مهامي اليومية?", "How do I view my schedule?"],
+  partner: ["كيف أتابع إيراداتي?", "أين بوابة الشركاء?", "Show me my analytics"],
+  agent: ["كيف أتابع عمولاتي?", "أين عملائي?", "How to log a conversion?"],
+  vendor: ["كيف أضيف منتج جديد?", "أين طلباتي?", "How to manage my wallet?"],
+  provider: ["كيف أضيف خدمة جديدة?", "أين طلباتي?", "How to manage listings?"],
+  marketing: ["كيف أنشئ حملة تسويقية?", "أين خط أنابيب الليدز?", "Show marketing ROI"],
+  user: ["كيف أتابع طلباتي?", "كيف أتواصل مع الدعم?", "Where is my wishlist?"],
+  guest: ["ماذا تقدم KemetRise?", "كيف أسجل دخول?", "What is this platform?"],
+  default: ["دلّني على المنصة", "ماذا يمكنني فعله هنا?", "Help me get started"],
+};
 
 /* ─── Ticket Types ───────────────────────────────────────────────────────── */
 type TicketStatus = "open" | "in_progress" | "resolved" | "closed";
@@ -42,7 +59,7 @@ Help the user manage brands, projects, employees, customers, finances, and tasks
 Be concise, professional, and respond in the user's language (Arabic or English).`;
 
 /* ─── AI Chat Panel ──────────────────────────────────────────────────────── */
-function ChatPanel() {
+function ChatPanel({ userRole, currentPage }: { userRole: string; currentPage: string }) {
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -63,7 +80,7 @@ function ChatPanel() {
       const resp = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json", ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}) },
-        body: JSON.stringify({ messages: next, system: SYSTEM }),
+        body: JSON.stringify({ messages: next, system: SYSTEM, currentPage }),
       });
       if (!resp.ok || !resp.body) throw new Error("AI request failed");
       const reader = resp.body.getReader();
@@ -94,9 +111,26 @@ function ChatPanel() {
     <>
       <div className="flex-1 overflow-auto p-3 space-y-2">
         {messages.length === 0 && (
-          <div className="text-center py-8 text-xs text-muted-foreground">
-            <MessageCircle className="w-6 h-6 mx-auto mb-2 opacity-40" />
-            Ask me anything about your empire
+          <div className="py-6 px-2 space-y-3">
+            <div className="text-center">
+              <div className="w-10 h-10 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center mx-auto mb-2">
+                <Bot className="w-5 h-5 text-primary" />
+              </div>
+              <p className="text-xs font-semibold text-foreground">
+                {userRole === "guest" ? "مرحباً! أنا KEMET AI" : `أهلاً! أنا KEMET AI`}
+              </p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">
+                كيف يمكنني مساعدتك اليوم؟
+              </p>
+            </div>
+            <div className="grid grid-cols-1 gap-1.5">
+              {(ROLE_SUGGESTIONS[userRole] ?? ROLE_SUGGESTIONS.default).map((s, i) => (
+                <button key={i} onClick={() => { setInput(s); }}
+                  className="text-right text-[11px] px-3 py-2 rounded-lg bg-secondary/50 hover:bg-secondary border border-border/50 hover:border-primary/30 text-foreground/80 hover:text-foreground transition-all text-start">
+                  {s}
+                </button>
+              ))}
+            </div>
           </div>
         )}
         {messages.map((m, i) => (
@@ -110,7 +144,7 @@ function ChatPanel() {
       </div>
       <div className="p-3 border-t border-border flex gap-2">
         <input value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>e.key==="Enter"&&send()}
-          placeholder="Type a message..." disabled={loading}
+          placeholder="اسألني أي شيء... / Ask me anything..." disabled={loading}
           className="flex-1 bg-secondary/50 border border-border rounded-md px-3 py-1.5 text-sm font-body focus:outline-none focus:ring-1 focus:ring-primary/50"/>
         <Button size="sm" onClick={send} disabled={loading||!input.trim()}>
           {loading?<Loader2 className="w-3.5 h-3.5 animate-spin"/>:<Send className="w-3.5 h-3.5"/>}
@@ -379,11 +413,11 @@ export const AIAssistant = () => {
         <div className="flex items-center gap-1 bg-secondary/50 rounded-md p-0.5">
           <button onClick={() => setActiveTab("chat")}
             className={`text-[11px] px-2.5 py-1 rounded transition-colors flex items-center gap-1 ${activeTab==="chat"?"bg-primary text-primary-foreground":"text-muted-foreground hover:text-foreground"}`}>
-            <MessageCircle className="w-3 h-3"/>Chat
+            <Sparkles className="w-3 h-3"/>دردشة AI
           </button>
           <button onClick={() => setActiveTab("support")}
             className={`text-[11px] px-2.5 py-1 rounded transition-colors flex items-center gap-1 ${activeTab==="support"?"bg-primary text-primary-foreground":"text-muted-foreground hover:text-foreground"}`}>
-            <Ticket className="w-3 h-3"/>Support
+            <Ticket className="w-3 h-3"/>دعم فني
           </button>
         </div>
         <button onClick={() => setOpen(false)} className="text-muted-foreground hover:text-foreground"><X className="w-4 h-4" /></button>
@@ -391,7 +425,9 @@ export const AIAssistant = () => {
 
       {/* Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        {activeTab === "chat" ? <ChatPanel /> : <SupportPanel />}
+        {activeTab === "chat"
+          ? <ChatPanel userRole={userRole} currentPage={location.pathname} />
+          : <SupportPanel />}
       </div>
     </div>
   );
