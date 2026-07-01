@@ -205,6 +205,8 @@ const WorkflowMap = lazy(() => import("./pages/WorkflowMap.tsx"));
 const Permissions = lazy(() => import("./pages/Permissions.tsx"));
 const Unauthorized = lazy(() => import("./pages/Unauthorized.tsx"));
 const UserManagement = lazy(() => import("./pages/UserManagement.tsx"));
+const AIAgentControlPanelPage = lazy(() => import("./pages/AIAgentControlPanel.tsx"));
+const AdminAIAgentPanel = lazy(() => import("./pages/admin/AdminAIAgentPanel.tsx"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -246,6 +248,7 @@ const App = () => (
                 <Route path="/b/:id" element={<PublicBrand />} />
                 <Route path="/" element={<PublicLanding />} />
                 <Route path="/dashboard" element={<Protected><Index /></Protected>} />
+                <Route path="/dashboard/ai-agent" element={<Protected><AIAgentControlPanelPage /></Protected>} />
                 <Route path="/about" element={<PublicAbout />} />
                 <Route path="/contact" element={<PublicContact />} />
                 <Route path="/services" element={<PublicServices />} />
@@ -357,6 +360,7 @@ const App = () => (
                 <Route path="/admin/finance" element={<Protected><RoleProtectedRoute allowedRoles={["superadmin","admin"]}><FinancialHub /></RoleProtectedRoute></Protected>} />
                 {/* ── Admin Portal ── */}
                 <Route path="/admin" element={<Protected><RoleProtectedRoute allowedRoles={["superadmin","admin"]}><AdminDashboard /></RoleProtectedRoute></Protected>} />
+                <Route path="/admin/ai-agent" element={<Protected><RoleProtectedRoute allowedRoles={["superadmin","admin"]}><AdminAIAgentPanel /></RoleProtectedRoute></Protected>} />
                 <Route path="/admin/sectors" element={<Protected><RoleProtectedRoute allowedRoles={["superadmin","admin"]}><SectorFactory /></RoleProtectedRoute></Protected>} />
                 <Route path="/admin/users" element={<Protected><RoleProtectedRoute allowedRoles={["superadmin","admin"]}><AdminUsers /></RoleProtectedRoute></Protected>} />
                 <Route path="/admin/analytics" element={<Protected><RoleProtectedRoute allowedRoles={["superadmin","admin"]}><AdminAnalytics /></RoleProtectedRoute></Protected>} />
