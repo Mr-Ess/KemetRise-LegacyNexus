@@ -76,7 +76,7 @@ function ChatPanel({ userRole, currentPage }: { userRole: string; currentPage: s
     setLoading(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      const url = `https://${import.meta.env.VITE_SUPABASE_PROJECT_ID}.supabase.co/functions/v1/chat-ai`;
+      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat-ai`;
       const resp = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json", ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}) },

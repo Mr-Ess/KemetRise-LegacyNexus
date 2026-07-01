@@ -117,33 +117,30 @@ ${ROLE_GUIDE[userRole] || ROLE_GUIDE.guest}
 ${PLATFORM_KNOWLEDGE}
 ${system ?? ""}`;
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
-      return new Response(JSON.stringify({ error: "LOVABLE_API_KEY not configured" }), {
+    const GOOGLE_AI_API_KEY = Deno.env.get("GOOGLE_AI_API_KEY");
+    if (!GOOGLE_AI_API_KEY) {
+      return new Response(JSON.stringify({ error: "GOOGLE_AI_API_KEY not configured" }), {
         status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
+    // Use gemini-2.5-flash via OpenAI-compatible endpoint
+    const geminiModel = "gemini-2.5-flash";
     const fullMessages = [{ role: "system", content: platformSystem }, ...messages];
 
-    const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/openai/chat/completions`, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        Authorization: `Bearer ${GOOGLE_AI_API_KEY}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ model, messages: fullMessages, stream: true }),
+      body: JSON.stringify({ model: geminiModel, messages: fullMessages, stream: true }),
     });
 
     if (!resp.ok) {
       if (resp.status === 429) {
         return new Response(JSON.stringify({ error: "Rate limit reached. Try later." }), {
           status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      if (resp.status === 402) {
-        return new Response(JSON.stringify({ error: "AI credits exhausted. Add funds in Lovable settings." }), {
-          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
       const errText = await resp.text();
