@@ -33,7 +33,7 @@ import { toast }         from "sonner";
 import { supabase }      from "@/integrations/supabase/client";
 import { useUserRole }   from "@/context/UserRoleContext";
 import { usePagePerms }  from "@/hooks/usePagePerms";
-import { ROLE_META, ROLE_MAP, PAGE_PERMS, type AppRole } from "@/lib/permissions";
+import { ROLE_META, ROLE_MAP, PAGE_PERMS, type AppRole, type RoleMeta } from "@/lib/permissions";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface UserRow {
@@ -87,6 +87,49 @@ export default function Permissions() {
   const [pageMtx,   setPageMtx]   = useState<Record<string, Set<string>>>({});
   const [savingPP,  setSavingPP]  = useState(false);
 
+  // ─── Custom items states ────────────────────────────────────────────────────
+  const [customRoles, setCustomRoles] = useState<RoleMeta[]>(() => {
+    try {
+      const stored = localStorage.getItem("custom_roles");
+      if (stored) return JSON.parse(stored);
+    } catch { /* ignore */ }
+    return [];
+  });
+
+  const [customPages, setCustomPages] = useState<string[]>(() => {
+    try {
+      const stored = localStorage.getItem("custom_pages");
+      if (stored) return JSON.parse(stored);
+    } catch { /* ignore */ }
+    return [];
+  });
+
+  // Dialog triggers
+  const [addRoleOpen, setAddRoleOpen] = useState(false);
+  const [addPageOpen, setAddPageOpen] = useState(false);
+  const [addAssignOpen, setAddAssignOpen] = useState(false);
+
+  // Add Role Form State
+  const [newRoleVal, setNewRoleVal] = useState("");
+  const [newRoleLabelEn, setNewRoleLabelEn] = useState("");
+  const [newRoleLabelAr, setNewRoleLabelAr] = useState("");
+  const [newRoleDescEn, setNewRoleDescEn] = useState("");
+  const [newRoleDescAr, setNewRoleDescAr] = useState("");
+
+  // Add Page Form State
+  const [newPath, setNewPath] = useState("");
+
+  // Add Assignment Form State
+  const [assignUser, setAssignUser] = useState("");
+  const [assignRoleVal, setAssignRoleVal] = useState("");
+
+  // Combine static and custom roles
+  const rolesList = [...ROLE_META, ...customRoles];
+  const dynamicRoleMap = {
+    ...ROLE_MAP,
+    ...Object.fromEntries(customRoles.map(r => [r.value, r])),
+  } as Record<string, RoleMeta>;
+
   const {
     register, handleSubmit, setValue, reset,
     formState: { errors, isSubmitting },
@@ -110,9 +153,10 @@ export default function Permissions() {
   useEffect(() => {
     const mtx: Record<string, Set<string>> = {};
     Object.keys(PAGE_PERMS).forEach(p => { mtx[p] = new Set(PAGE_PERMS[p]); });
+    customPages.forEach(p => { if (!mtx[p]) mtx[p] = new Set(); });
     dbPerms.forEach(p => { mtx[p.path] = new Set(p.allowed_roles); });
     setPageMtx(mtx);
-  }, [dbPerms]);
+  }, [dbPerms, customPages]);
 
   // ── Load user roles ─────────────────────────────────────────────────────────
   const loadUserRoles = useCallback(async (userId: string) => {
@@ -180,7 +224,8 @@ export default function Permissions() {
     try {
       await rpc("assign_user_role", { p_user_id: userId, p_role: role });
       toast.success(R ? `تم إسناد دور ${role}` : `Role "${role}" assigned`);
-      loadUserRoles(userId); loadUsers();
+      if (selUser?.id === userId) loadUserRoles(userId);
+      loadUsers();
     } catch (e: unknown) { toast.error((e as Error).message); }
   };
 
@@ -188,15 +233,80 @@ export default function Permissions() {
     try {
       await rpc("revoke_user_role", { p_user_id: userId, p_role: role });
       toast.success(R ? `تم إزالة دور ${role}` : `Role "${role}" revoked`);
-      loadUserRoles(userId); loadUsers();
+      if (selUser?.id === userId) loadUserRoles(userId);
+      loadUsers();
     } catch (e: unknown) { toast.error((e as Error).message); }
+  };
+
+  // ── Add Custom Page Path ────────────────────────────────────────────────────
+  const handleAddPage = () => {
+    const cleanPath = newPath.trim();
+    if (!cleanPath.startsWith("/")) {
+      toast.error(R ? "يجب أن يبدأ المسار بـ /" : "Path must start with /");
+      return;
+    }
+    if (pagePaths.includes(cleanPath)) {
+      toast.error(R ? "المسار موجود بالفعل" : "Path already exists");
+      return;
+    }
+    const next = [...customPages, cleanPath];
+    setCustomPages(next);
+    localStorage.setItem("custom_pages", JSON.stringify(next));
+    setNewPath("");
+    setAddPageOpen(false);
+    toast.success(R ? "تمت إضافة مسار الصفحة بنجاح" : "Page route added successfully");
+  };
+
+  // ── Add Custom Role ─────────────────────────────────────────────────────────
+  const handleAddRole = () => {
+    const cleanVal = newRoleVal.trim().toLowerCase().replace(/\s+/g, "_");
+    if (!cleanVal || !newRoleLabelEn || !newRoleLabelAr) {
+      toast.error(R ? "الرجاء تعبئة الحقول المطلوبة" : "Please fill required fields");
+      return;
+    }
+    if (rolesList.some(r => r.value === cleanVal)) {
+      toast.error(R ? "هذا الدور موجود بالفعل" : "Role already exists");
+      return;
+    }
+    const newRole: RoleMeta = {
+      value: cleanVal as AppRole,
+      labelEn: newRoleLabelEn.trim(),
+      labelAr: newRoleLabelAr.trim(),
+      descEn: newRoleDescEn.trim(),
+      descAr: newRoleDescAr.trim(),
+      color: "bg-teal-500/15 text-teal-400 border border-teal-500/30",
+      badge: "bg-teal-500/20 text-teal-300",
+    };
+    const next = [...customRoles, newRole];
+    setCustomRoles(next);
+    localStorage.setItem("custom_roles", JSON.stringify(next));
+
+    setNewRoleVal("");
+    setNewRoleLabelEn("");
+    setNewRoleLabelAr("");
+    setNewRoleDescEn("");
+    setNewRoleDescAr("");
+    setAddRoleOpen(false);
+    toast.success(R ? "تم إضافة الدور بنجاح" : "Role added successfully");
+  };
+
+  // ── Add Custom Assignment ───────────────────────────────────────────────────
+  const handleAddAssignment = () => {
+    if (!assignUser || !assignRoleVal) {
+      toast.error(R ? "الرجاء اختيار المستخدم والدور" : "Please select both user and role");
+      return;
+    }
+    assignRole(assignUser, assignRoleVal);
+    setAssignUser("");
+    setAssignRoleVal("");
+    setAddAssignOpen(false);
   };
 
   // ── Derived ─────────────────────────────────────────────────────────────────
   const roleCounts: Record<string, number> = {};
   users.forEach(u => { roleCounts[u.role] = (roleCounts[u.role] || 0) + 1; });
   const pagePaths = Object.keys(pageMtx);
-  const colRoles  = ROLE_META.map(r => r.value);
+  const colRoles  = rolesList.map(r => r.value);
 
   // ────────────────────────────────────────────────────────────────────────────
   return (
@@ -271,7 +381,7 @@ export default function Permissions() {
                           </TableRow>
                         ))
                       : users.map(u => {
-                          const meta = ROLE_MAP[u.role as AppRole];
+                          const meta = dynamicRoleMap[u.role];
                           return (
                             <TableRow key={u.id} className="border-border hover:bg-secondary/30">
                               <TableCell>
@@ -307,9 +417,16 @@ export default function Permissions() {
 
           {/* ── ROLES ── */}
           <TabsContent value="roles" className="space-y-4">
-            <p className="text-sm text-muted-foreground">{R ? "الأدوار المتاحة في المنصة" : "Available platform roles"}</p>
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-muted-foreground">{R ? "الأدوار المتاحة في المنصة" : "Available platform roles"}</p>
+              {isAdmin && (
+                <Button size="sm" onClick={() => setAddRoleOpen(true)} className="gap-1.5 text-xs">
+                  <Plus className="w-3.5 h-3.5"/>{R ? "إضافة دور جديد" : "Add New Role"}
+                </Button>
+              )}
+            </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {ROLE_META.map(meta => (
+              {rolesList.map(meta => (
                 <Card key={meta.value} className="bg-card border-border p-4 space-y-2 hover:border-primary/40 transition-colors">
                   <div className="flex items-center justify-between">
                     <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${meta.color}`}>
@@ -326,7 +443,14 @@ export default function Permissions() {
 
           {/* ── ASSIGNMENTS ── */}
           <TabsContent value="assign" className="space-y-4">
-            <p className="text-sm text-muted-foreground">{R ? "اختر مستخدماً لإدارة أدواره" : "Select a user to manage their roles"}</p>
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-muted-foreground">{R ? "اختر مستخدماً لإدارة أدواره أو أضف إسناداً جديداً" : "Select a user or create a new assignment"}</p>
+              {isAdmin && (
+                <Button size="sm" onClick={() => setAddAssignOpen(true)} className="gap-1.5 text-xs">
+                  <Plus className="w-3.5 h-3.5"/>{R ? "إضافة إسناد جديد" : "Add New Assignment"}
+                </Button>
+              )}
+            </div>
             <Card className="bg-card border-border p-4 space-y-3">
               <Label className="text-xs text-muted-foreground">{R ? "اختر المستخدم" : "Select User"}</Label>
               <Select value={selUser?.id ?? ""} onValueChange={id => setSelUser(users.find(u => u.id === id) ?? null)}>
@@ -356,7 +480,7 @@ export default function Permissions() {
                       <span className="text-xs text-muted-foreground">{R ? "لا توجد أدوار" : "No roles"}</span>
                     )}
                     {userRoles.map(ur => {
-                      const meta = ROLE_MAP[ur.role as AppRole];
+                      const meta = dynamicRoleMap[ur.role];
                       return (
                         <span key={ur.role} className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs ${meta?.color || "bg-muted text-muted-foreground"}`}>
                           {R ? (meta?.labelAr || ur.role) : (meta?.labelEn || ur.role)}
@@ -373,7 +497,7 @@ export default function Permissions() {
                 <div className="space-y-2">
                   <p className="text-xs text-muted-foreground">{R ? "إسناد دور جديد" : "Assign New Role"}</p>
                   <div className="flex flex-wrap gap-2">
-                    {ROLE_META.filter(m => m.value !== "superadmin").map(meta => {
+                    {rolesList.filter(m => m.value !== "superadmin").map(meta => {
                       const hasRole = userRoles.some(ur => ur.role === meta.value);
                       return (
                         <button
@@ -398,10 +522,18 @@ export default function Permissions() {
               <p className="text-sm text-muted-foreground">
                 {R ? "حدد الأدوار المسموح لها بالوصول لكل صفحة" : "Toggle role access per page"}
               </p>
-              <Button size="sm" onClick={savePagePerms} disabled={savingPP} className="gap-1.5 text-xs">
-                {savingPP ? <RefreshCw className="w-3.5 h-3.5 animate-spin"/> : <Check className="w-3.5 h-3.5"/>}
-                {R ? "حفظ التغييرات" : "Save Changes"}
-              </Button>
+              <div className="flex gap-2">
+                {isAdmin && (
+                  <Button variant="outline" size="sm" onClick={() => setAddPageOpen(true)} className="gap-1.5 text-xs">
+                    <Plus className="w-3.5 h-3.5"/>
+                    {R ? "إضافة مسار صفحة" : "Add Page Route"}
+                  </Button>
+                )}
+                <Button size="sm" onClick={savePagePerms} disabled={savingPP} className="gap-1.5 text-xs">
+                  {savingPP ? <RefreshCw className="w-3.5 h-3.5 animate-spin"/> : <Check className="w-3.5 h-3.5"/>}
+                  {R ? "حفظ التغييرات" : "Save Changes"}
+                </Button>
+              </div>
             </div>
             <Card className="bg-card border-border overflow-hidden">
               <div className="overflow-x-auto">
@@ -412,11 +544,11 @@ export default function Permissions() {
                         {R ? "المسار" : "Route"}
                       </th>
                       {colRoles.map(r => {
-                        const meta = ROLE_MAP[r];
+                        const meta = dynamicRoleMap[r];
                         return (
                           <th key={r} className="px-2 py-3 text-center">
-                            <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-medium ${meta.badge}`}>
-                              {R ? meta.labelAr : meta.labelEn}
+                            <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-medium ${meta?.badge || "bg-muted text-muted-foreground"}`}>
+                              {R ? meta?.labelAr : meta?.labelEn}
                             </span>
                           </th>
                         );
@@ -489,7 +621,7 @@ export default function Permissions() {
                   <SelectValue placeholder={R ? "اختر الدور" : "Select role"}/>
                 </SelectTrigger>
                 <SelectContent>
-                  {ROLE_META.filter(m => m.value !== "superadmin").map(meta => (
+                  {rolesList.filter(m => m.value !== "superadmin").map(meta => (
                     <SelectItem key={meta.value} value={meta.value}>
                       {R ? meta.labelAr : meta.labelEn}
                     </SelectItem>
@@ -508,6 +640,164 @@ export default function Permissions() {
               </Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Add Page Route Dialog ── */}
+      <Dialog open={addPageOpen} onOpenChange={setAddPageOpen}>
+        <DialogContent className="bg-card border-border max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="font-display text-foreground flex items-center gap-2">
+              <Globe className="w-5 h-5 text-primary"/>
+              {R ? "إضافة مسار صفحة جديد" : "Add New Page Route"}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 pt-2">
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground">{R ? "المسار" : "Route"} *</Label>
+              <Input
+                value={newPath}
+                onChange={e => setNewPath(e.target.value)}
+                placeholder="/dashboard/reports"
+                className="bg-secondary/50 border-border text-sm"
+                dir="ltr"
+              />
+              <p className="text-[10px] text-muted-foreground">{R ? "يجب أن يبدأ بـ /" : "Must start with /"}</p>
+            </div>
+          </div>
+          <DialogFooter className="gap-2 pt-2">
+            <Button variant="outline" onClick={() => setAddPageOpen(false)} className="text-xs">
+              {R ? "إلغاء" : "Cancel"}
+            </Button>
+            <Button onClick={handleAddPage} className="text-xs gap-1.5">
+              <Plus className="w-3.5 h-3.5"/>
+              {R ? "إضافة" : "Add"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Add Role Dialog ── */}
+      <Dialog open={addRoleOpen} onOpenChange={setAddRoleOpen}>
+        <DialogContent className="bg-card border-border max-w-md">
+          <DialogHeader>
+            <DialogTitle className="font-display text-foreground flex items-center gap-2">
+              <Key className="w-5 h-5 text-primary"/>
+              {R ? "إضافة دور جديد" : "Add New Role"}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground">{R ? "معرف الدور (قيمة برمجية)" : "Role Key (value)"} *</Label>
+              <Input
+                value={newRoleVal}
+                onChange={e => setNewRoleVal(e.target.value)}
+                placeholder="supervisor"
+                className="bg-secondary/50 border-border text-sm"
+                dir="ltr"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs text-muted-foreground">{R ? "الاسم (إنجليزي)" : "Label (English)"} *</Label>
+                <Input
+                  value={newRoleLabelEn}
+                  onChange={e => setNewRoleLabelEn(e.target.value)}
+                  placeholder="Supervisor"
+                  className="bg-secondary/50 border-border text-sm"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs text-muted-foreground">{R ? "الاسم (عربي)" : "Label (Arabic)"} *</Label>
+                <Input
+                  value={newRoleLabelAr}
+                  onChange={e => setNewRoleLabelAr(e.target.value)}
+                  placeholder="مشرف"
+                  className="bg-secondary/50 border-border text-sm"
+                />
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground">{R ? "الوصف (إنجليزي)" : "Description (English)"}</Label>
+              <Input
+                value={newRoleDescEn}
+                onChange={e => setNewRoleDescEn(e.target.value)}
+                placeholder="Manage operations and reviews"
+                className="bg-secondary/50 border-border text-sm"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground">{R ? "الوصف (عربي)" : "Description (Arabic)"}</Label>
+              <Input
+                value={newRoleDescAr}
+                onChange={e => setNewRoleDescAr(e.target.value)}
+                placeholder="إدارة العمليات والمراجعات"
+                className="bg-secondary/50 border-border text-sm"
+              />
+            </div>
+          </div>
+          <DialogFooter className="gap-2 pt-2">
+            <Button variant="outline" onClick={() => setAddRoleOpen(false)} className="text-xs">
+              {R ? "إلغاء" : "Cancel"}
+            </Button>
+            <Button onClick={handleAddRole} className="text-xs gap-1.5">
+              <Plus className="w-3.5 h-3.5"/>
+              {R ? "إضافة" : "Add"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Add Assignment Dialog ── */}
+      <Dialog open={addAssignOpen} onOpenChange={setAddAssignOpen}>
+        <DialogContent className="bg-card border-border max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="font-display text-foreground flex items-center gap-2">
+              <UserPlus className="w-5 h-5 text-primary"/>
+              {R ? "إضافة إسناد جديد" : "Add New Assignment"}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground">{R ? "المستخدم" : "User"} *</Label>
+              <Select value={assignUser} onValueChange={setAssignUser}>
+                <SelectTrigger className="bg-secondary/50 border-border text-sm">
+                  <SelectValue placeholder={R ? "اختر المستخدم" : "Select user..."} />
+                </SelectTrigger>
+                <SelectContent>
+                  {users.map(u => (
+                    <SelectItem key={u.id} value={u.id}>
+                      {u.full_name} — {u.email}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground">{R ? "الدور" : "Role"} *</Label>
+              <Select value={assignRoleVal} onValueChange={setAssignRoleVal}>
+                <SelectTrigger className="bg-secondary/50 border-border text-sm">
+                  <SelectValue placeholder={R ? "اختر الدور" : "Select role..."} />
+                </SelectTrigger>
+                <SelectContent>
+                  {rolesList.filter(m => m.value !== "superadmin").map(meta => (
+                    <SelectItem key={meta.value} value={meta.value}>
+                      {R ? meta.labelAr : meta.labelEn}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter className="gap-2 pt-2">
+            <Button variant="outline" onClick={() => setAddAssignOpen(false)} className="text-xs">
+              {R ? "إلغاء" : "Cancel"}
+            </Button>
+            <Button onClick={handleAddAssignment} className="text-xs gap-1.5">
+              <Plus className="w-3.5 h-3.5"/>
+              {R ? "إسناد الدور" : "Assign Role"}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

@@ -1,4 +1,4 @@
-﻿-- ══════════════════════════════════════════════════════════════════════
+-- ══════════════════════════════════════════════════════════════════════
 -- Migration: 20260621100000_partners_tech_stack_cms.sql
 -- 1. Extend website_partners with category_ar + specialization icon
 -- 2. Create website_tech_stack table

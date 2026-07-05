@@ -1,4 +1,4 @@
-﻿-- ═══════════════════════════════════════════════════════════════════
+-- ═══════════════════════════════════════════════════════════════════
 --  KemetRise Website CMS — Schema Fix + Full Data Seed
 --  Migration: 20260620200000
 --  Fixes column mismatches between DB tables and WebsiteManager CMS

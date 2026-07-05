@@ -25,6 +25,8 @@ export interface AIAgentState {
     topQuestions: Array<{ question: string; count: number }>;
     escalationRate: number;
   };
+  n8nEnabled?: boolean;
+  n8nWebhookUrl?: string;
 }
 
 const DEFAULT_STATE: AIAgentState = {
@@ -107,6 +109,8 @@ const DEFAULT_STATE: AIAgentState = {
     ],
     escalationRate: 12,
   },
+  n8nEnabled: false,
+  n8nWebhookUrl: "",
 };
 
 export const useAIAgentState = () => {

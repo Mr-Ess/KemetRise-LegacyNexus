@@ -54,6 +54,7 @@ CREATE POLICY "up_suspend_block_write"
 -- Restrict to service_role only
 -- =============================================================================
 DROP POLICY IF EXISTS "retry_queue_all" ON public.webhook_retry_queue;
+DROP POLICY IF EXISTS "retry_queue_service_only" ON public.webhook_retry_queue;
 CREATE POLICY "retry_queue_service_only"
   ON public.webhook_retry_queue FOR ALL
   TO service_role
@@ -64,6 +65,7 @@ CREATE POLICY "retry_queue_service_only"
 -- SECURITY FIX: webhook_deliveries open UPDATE policy
 -- =============================================================================
 DROP POLICY IF EXISTS "webhook_deliveries_update" ON public.webhook_deliveries;
+DROP POLICY IF EXISTS "webhook_deliveries_update_service" ON public.webhook_deliveries;
 CREATE POLICY "webhook_deliveries_update_service"
   ON public.webhook_deliveries FOR UPDATE
   TO service_role
