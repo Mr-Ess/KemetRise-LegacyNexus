@@ -37,7 +37,7 @@ export const ROLE_ACCESS: Record<UserRole, string[]> = {
     "/api-docs", "/referrals", "/digital-inheritance", "/legendary-journey",
     "/automations", "/backups", "/changelog", "/help", "/workflow-map",
     "/permissions", "/user-management", "/chat", "/marketplace", "/digital-mall",
-    "/admin/website", "/admin/website-services",
+    "/admin/website", "/admin/website-services", "/admin/ai-agent", "/dashboard/ai-agent",
   ],
   manager: [
     "/dashboard", "/manager", "/staff", "/partner", "/agent", "/vendor",

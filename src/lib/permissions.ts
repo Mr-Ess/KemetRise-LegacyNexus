@@ -122,6 +122,8 @@ export const PAGE_PERMS: Record<string, AppRole[]> = {
   "/admin/monitor":       ["superadmin","admin"],
   "/admin/providers":     ["superadmin","admin"],
   "/admin/orders":        ["superadmin","admin"],
+  "/admin/ai-agent":      ["superadmin","admin"],
+  "/dashboard/ai-agent":  ["superadmin","admin"],
   "/operations":          ["superadmin","admin","manager"],
   "/audit-logs":          ["superadmin","admin"],
   "/employees":           ["superadmin","admin","manager"],

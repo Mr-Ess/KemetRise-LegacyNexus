@@ -8,7 +8,7 @@ import {
   Settings, LogOut, Menu, Bell, Shield, Cpu, Layers, FileText,
   DollarSign, Package, UserCheck, Building2, Globe, Key, Tag,
   Boxes, RefreshCw, ChevronDown, Sun, Moon, Languages, Crown,
-  AlertTriangle, Activity, Webhook, Code, Newspaper,
+  AlertTriangle, Activity, Webhook, Code, Newspaper, Sparkles,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -23,6 +23,7 @@ const NAV_ITEMS = [
     { icon: Layers,          label: "القطاعات",        labelEn: "Sectors",           path: "/admin/sectors"          },
     { icon: Activity,        label: "المراقبة الآنية", labelEn: "Live Monitor",      path: "/admin/monitor"          },
     { icon: Cpu,             label: "ERP",             labelEn: "ERP Cockpit",       path: "/erp"                    },
+    { icon: Sparkles,        label: "لوحة تحكم الإيجنت",labelEn: "AI Agent Control",  path: "/admin/ai-agent"         },
   ]},
   { group: "Users & Providers", items: [
     { icon: Users,     label: "المستخدمون",      labelEn: "Users",             path: "/admin/users"            },
