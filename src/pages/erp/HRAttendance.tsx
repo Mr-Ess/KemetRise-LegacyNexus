@@ -13,6 +13,7 @@ import {
   Activity, AlertCircle, Fingerprint, Wifi,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { toAppUrl } from "@/lib/appUrl";
 import { toast } from "sonner";
 import { format, differenceInHours } from "date-fns";
 
@@ -95,7 +96,7 @@ export default function HRAttendance() {
     if (error) { toast.error(error.message); return; }
 
     // Generate QR URL
-    const qrData = `${window.location.origin}/hr/scan/${data.token}`;
+    const qrData = toAppUrl(`hr/scan/${encodeURIComponent(data.token)}`);
     const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&bgcolor=1a1a2e&color=D4A017&format=svg&data=${encodeURIComponent(qrData)}`;
 
     setActiveQR({ employee: emp, session: data, qrUrl });

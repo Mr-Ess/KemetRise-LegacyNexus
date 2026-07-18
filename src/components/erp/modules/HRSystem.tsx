@@ -12,6 +12,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
+import { toAppUrl } from "@/lib/appUrl";
 import { Users, QrCode, Clock, Plus, Pencil, Trash2, RefreshCw, Fingerprint, Copy } from "lucide-react";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -322,7 +323,7 @@ function QRTab({ sessions, isLoading, tenantId, onRefresh }: {
   });
 
   const copyLink = (token: string) => {
-    const url = `${window.location.origin}/qr-scan?token=${token}`;
+    const url = toAppUrl(`qr-scan?token=${encodeURIComponent(token)}`);
     navigator.clipboard.writeText(url).then(() => toast.success('Link copied!'));
   };
 
