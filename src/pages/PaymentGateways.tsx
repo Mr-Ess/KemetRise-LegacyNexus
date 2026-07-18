@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { extApi } from "@/services/extended";
 import { tenantDb } from "@/lib/tenantDb";
 import ExportButton from "@/components/shared/ExportButton";
+import { toAppUrl } from "@/lib/appUrl";
 import BrandSelector from "@/components/shared/BrandSelector";
 
 const GATEWAY_TYPES = ["card", "bank_transfer", "e_wallet", "crypto", "pos"];
@@ -166,7 +167,7 @@ export default function PaymentGateways() {
   };
 
   const copyWebhookUrl = (g: Gateway) => {
-    const url = `${window.location.origin}/api/webhooks/payment/${g.id}`;
+    const url = toAppUrl(`api/webhooks/payment/${g.id}`);
     navigator.clipboard.writeText(url);
     toast.success("Webhook URL copied");
   };
@@ -316,7 +317,7 @@ export default function PaymentGateways() {
                       )}
                       <div className="flex items-center gap-2">
                         <Globe className="w-3 h-3 text-muted-foreground shrink-0"/>
-                        <code className="text-[11px] font-mono text-muted-foreground truncate">{window.location.origin}/api/webhooks/payment/{g.id}</code>
+                        <code className="text-[11px] font-mono text-muted-foreground truncate">{toAppUrl(`api/webhooks/payment/${g.id}`)}</code>
                         <button onClick={() => copyWebhookUrl(g)} className="text-muted-foreground hover:text-primary transition-colors"><Copy className="w-3 h-3"/></button>
                       </div>
                     </div>
@@ -386,7 +387,7 @@ export default function PaymentGateways() {
                 <div className="space-y-1.5">
                   <Label className="text-xs flex items-center gap-1"><Webhook className="w-3 h-3"/>Webhook URL <span className="text-[10px] text-muted-foreground">(register this in your gateway dashboard)</span></Label>
                   <div className="flex items-center gap-2 bg-secondary rounded-md border border-border px-3 py-2">
-                    <code className="text-[11px] font-mono text-muted-foreground flex-1 truncate">{window.location.origin}/api/webhooks/payment/{apiGateway.id}</code>
+                    <code className="text-[11px] font-mono text-muted-foreground flex-1 truncate">{toAppUrl(`api/webhooks/payment/${apiGateway.id}`)}</code>
                     <button onClick={() => copyWebhookUrl(apiGateway)} className="text-muted-foreground hover:text-primary shrink-0">
                       <Copy className="w-3.5 h-3.5"/>
                     </button>

@@ -15,6 +15,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
 import { tenantDb } from "@/lib/tenantDb";
 import { toast } from "sonner";
+import { toAppUrl } from "@/lib/appUrl";
 
 /* ─────────────────────────────────────────────── VOICE TAB ──── */
 function VoiceTab() {  const { t } = useTranslation();  const [listening, setListening] = useState(false);
@@ -144,7 +145,7 @@ function VideoTab() {  const { t } = useTranslation();  const [room, setRoom] = 
   const toggleCam = () => { streamRef.current?.getVideoTracks().forEach(t=>{t.enabled = !camOn;}); setCamOn(v=>!v); };
   const toggleMic = () => { streamRef.current?.getAudioTracks().forEach(t=>{t.enabled = !micOn;}); setMicOn(v=>!v); };
 
-  const copyLink = () => { navigator.clipboard.writeText(`${window.location.origin}/voice?room=${room}`); toast.success("Room link copied"); };
+  const copyLink = () => { navigator.clipboard.writeText(toAppUrl(`voice?room=${encodeURIComponent(room)}`)); toast.success("Room link copied"); };
 
   return (
     <div className="max-w-3xl mx-auto space-y-4">
@@ -164,7 +165,7 @@ function VideoTab() {  const { t } = useTranslation();  const [room, setRoom] = 
           </div>
           {room && (
             <div className="flex items-center gap-2 p-2 bg-secondary/30 rounded text-xs font-mono">
-              <span className="truncate flex-1">{window.location.origin}/voice?room={room}</span>
+              <span className="truncate flex-1">{toAppUrl(`voice?room=${encodeURIComponent(room)}`)}</span>
               <Button size="icon" variant="ghost" className="h-6 w-6" onClick={copyLink}><Copy className="w-3 h-3"/></Button>
             </div>
           )}

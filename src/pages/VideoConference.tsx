@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import { toAppUrl } from "@/lib/appUrl";
 
 export default function VideoConference() {
   const nav = useNavigate();
@@ -52,7 +53,7 @@ export default function VideoConference() {
   };
 
   const copyLink = () => {
-    navigator.clipboard.writeText(`${window.location.origin}/video?room=${room}`);
+    navigator.clipboard.writeText(toAppUrl(`video?room=${encodeURIComponent(room)}`));
     toast.success("Link copied");
   };
 

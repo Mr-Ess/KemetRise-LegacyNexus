@@ -12,13 +12,14 @@ import { toast } from "sonner";
 import * as OTPAuth from "otpauth";
 import { trackLoginSuccess, trackFailedLogin, checkRateLimit } from "@/lib/authTracking";
 import { tenantDb } from "@/lib/tenantDb";
+import { getAppBaseUrl } from "@/lib/appUrl";
 
 export default function Auth() {
   const nav = useNavigate();
   const { user } = useAuth();
   const { i18n } = useTranslation();
   const R = i18n.language === "ar";
-  const appBaseUrl = new URL(import.meta.env.BASE_URL, window.location.origin).toString();
+  const appBaseUrl = getAppBaseUrl();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");

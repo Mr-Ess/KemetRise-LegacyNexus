@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { tenantDb } from "@/lib/tenantDb";
 import { toast } from "sonner";
+import { toAppUrl } from "@/lib/appUrl";
 
 export default function Referrals() {
   const nav = useNavigate();
@@ -26,7 +27,7 @@ export default function Referrals() {
     })();
   }, []);
 
-  const link = ref ? `${window.location.origin}/auth?ref=${ref.code}` : "";
+  const link = ref ? toAppUrl(`auth?ref=${ref.code}`) : "";
 
   const copy = () => {
     navigator.clipboard.writeText(link); setCopied(true);

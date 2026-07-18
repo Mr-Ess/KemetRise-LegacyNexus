@@ -27,6 +27,7 @@ import ExportButton from "@/components/shared/ExportButton";
 import { dmsApi, heirsApi, type Heir } from "@/services/system";
 import { tenantDb } from "@/lib/tenantDb";
 import { toast } from "sonner";
+import { toAppUrl } from "@/lib/appUrl";
 
 /* ─── Generic field / column types ───────────────────────────────────────── */
 type FieldDef  = { key: string; label: string; type?: "text"|"number"|"date"|"textarea"|"boolean" };
@@ -774,7 +775,7 @@ function LegacyProtocolPanel() {
             <Button size="sm" className="w-full gap-2" onClick={sendHeartbeat}>
               <Heart className="w-4 h-4"/>Send Heartbeat Now
             </Button>
-            <Button size="sm" variant="outline" className="w-full gap-2" onClick={() => window.location.href = "/settings?section=emergency"}>
+            <Button size="sm" variant="outline" className="w-full gap-2" onClick={() => window.location.href = toAppUrl("settings?section=emergency")}>
               <Shield className="w-4 h-4"/>Configure Protocol
             </Button>
           </CardContent>
@@ -879,7 +880,7 @@ function LegacyProtocolPanel() {
         </CardHeader>
         <CardContent>
           {legalDocs.length === 0 ? (
-            <p className="text-xs text-muted-foreground text-center py-6">No legal documents in vault. <button className="text-primary underline" onClick={() => window.location.href = "/legal-vault"}>Add documents →</button></p>
+            <p className="text-xs text-muted-foreground text-center py-6">No legal documents in vault. <button className="text-primary underline" onClick={() => window.location.href = toAppUrl("legal-vault")}>Add documents →</button></p>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-xs">
@@ -937,7 +938,7 @@ function LegacyProtocolPanel() {
         </CardHeader>
         <CardContent>
           {assets.length === 0 ? (
-            <p className="text-xs text-muted-foreground text-center py-6">No assets registered. <button className="text-primary underline" onClick={() => window.location.href = "/assets"}>Add assets →</button></p>
+            <p className="text-xs text-muted-foreground text-center py-6">No assets registered. <button className="text-primary underline" onClick={() => window.location.href = toAppUrl("assets")}>Add assets →</button></p>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-xs">

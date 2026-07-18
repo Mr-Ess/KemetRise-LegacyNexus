@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { teamApi } from "@/services/system";
 import { supabase } from "@/integrations/supabase/client";
 import { Trash2, Mail, Copy } from "lucide-react";
+import { toAppUrl } from "@/lib/appUrl";
 
 interface Props { brandId: string }
 
@@ -24,7 +25,7 @@ export default function TeamInvites({ brandId }: Props) {
   const invite = async () => {
     if (!email.trim()) return;
     const inv: any = await teamApi.invite(brandId, email.trim(), role);
-    const url = `${window.location.origin}/accept-invite/${inv.token}`;
+    const url = toAppUrl(`accept-invite/${inv.token}`);
     await navigator.clipboard.writeText(url).catch(() => {});
     toast.success("Invite link copied");
     setEmail(""); await load();
@@ -61,7 +62,7 @@ export default function TeamInvites({ brandId }: Props) {
           <div key={i.id} className="flex justify-between items-center p-2 border border-primary/20 rounded mb-1 text-sm">
             <span>{i.email} · {i.role}</span>
             <div className="flex gap-1">
-              <Button size="sm" variant="ghost" onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/accept-invite/${i.token}`); toast.success("Copied"); }}><Copy className="w-4 h-4"/></Button>
+              <Button size="sm" variant="ghost" onClick={() => { navigator.clipboard.writeText(toAppUrl(`accept-invite/${i.token}`)); toast.success("Copied"); }}><Copy className="w-4 h-4"/></Button>
               <Button size="sm" variant="ghost" onClick={async () => { await teamApi.revoke(i.id); load(); }}><Trash2 className="w-4 h-4 text-blood-red"/></Button>
             </div>
           </div>

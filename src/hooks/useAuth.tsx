@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import { getAppBaseUrl } from "@/lib/appUrl";
 
 type AuthCtx = {
   user: User | null;
@@ -52,7 +53,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setSession(null);
     setUser(null);
     try { await supabase.auth.signOut(); } catch { /* ignore */ }
-    window.location.href = import.meta.env.BASE_URL;
+    window.location.href = getAppBaseUrl();
   };
 
   return <Ctx.Provider value={{ user, session, loading, signOut }}>{children}</Ctx.Provider>;

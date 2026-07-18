@@ -40,6 +40,7 @@ import EntityApiHub from "@/components/shared/EntityApiHub";
 import ResponsiblePerson, { summarizeKeyPersons } from "@/components/shared/ResponsiblePerson";
 import { SavedViews } from "@/components/shared/SavedViews";
 import { toast } from "sonner";
+import { toAppUrl } from "@/lib/appUrl";
 import { tenantDb } from "@/lib/tenantDb";
 import { apiKeysApi } from "@/services/entities";
 import { getTenantScope } from "@/lib/tenantScope";
@@ -1046,7 +1047,7 @@ function ReferralsTab({ activeBrandId, brands }: { activeBrandId: string|null; b
     })();
   }, []);
 
-  const link = ref ? `${window.location.origin}/auth?ref=${ref.code}` : "";
+  const link = ref ? toAppUrl(`auth?ref=${ref.code}`) : "";
   const copy = () => {
     navigator.clipboard.writeText(link);
     setCopied(true);
