@@ -9,7 +9,7 @@ import {
   Briefcase, FolderOpen, Users, UserCheck, Handshake, Map, Scroll,
   GitBranch, Lock, Heart, AlertTriangle, ChevronDown, ChevronRight,
   Menu, Settings, LogOut, Plus, Search, Layers, Bell, FileText, BarChart3, Tag, RotateCcw, Webhook, Code, DollarSign,
-  Store, Globe, Share2, Chrome, Shield, Package, Boxes, MessageCircle, Megaphone, Truck, ScrollText, Building, CreditCard, Palette, Plane, UserCircle, TrendingUp, BellRing, BookOpen, Mic, Video, Cpu, ShoppingBag, Sparkles,
+  Store, Globe, Share2, Chrome, Shield, Package, Boxes, MessageCircle, Megaphone, Truck, ScrollText, Building, CreditCard, Palette, Plane, UserCircle, TrendingUp, BellRing, BookOpen, Mic, Video, Cpu, ShoppingBag, Factory, Sparkles,
 } from "lucide-react";
 
 const iconMap: Record<string, any> = { Gem, Building2, Database, ShieldCheck };
@@ -36,6 +36,7 @@ const Sidebar = ({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => 
     { icon: LayoutDashboard, label: t("dashboard"), path: "/dashboard" },
     { icon: Cpu, label: "ERP Cockpit", path: "/erp" },
     { icon: Sparkles, label: "AI Agent Control", path: "/dashboard/ai-agent" },
+    { icon: Factory, label: "AI Product Factory", path: "/ai-factory" },
     { icon: Crown, label: t("brands_hub"), path: "/brands" },
     { icon: Lock, label: t("digital_inheritance"), path: "/digital-inheritance" },
     { icon: Scroll, label: t("legendary_journey"), path: "/legendary-journey" },

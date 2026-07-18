@@ -208,6 +208,7 @@ const Unauthorized = lazy(() => import("./pages/Unauthorized.tsx"));
 const UserManagement = lazy(() => import("./pages/UserManagement.tsx"));
 const AIAgentControlPanelPage = lazy(() => import("./pages/AIAgentControlPanel.tsx"));
 const AdminAIAgentPanel = lazy(() => import("./pages/admin/AdminAIAgentPanel.tsx"));
+const AIProductFactoryPage = lazy(() => import("./pages/AIProductFactory"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -437,6 +438,10 @@ const App = () => (
                 <Route path="/security/login-history" element={<Protected><LoginHistory /></Protected>} />
                 <Route path="/agent-logs" element={<Navigate to="/audit-logs" replace />} />
                 <Route path="/workflow-map" element={<Protected><WorkflowMap /></Protected>} />
+                <Route path="/permissions" element={<Protected><Permissions /></Protected>} />
+                <Route path="/unauthorized" element={<Unauthorized />} />
+                <Route path="/user-management" element={<Protected><UserManagement /></Protected>} />
+                <Route path="/ai-factory" element={<Protected><AIProductFactoryPage /></Protected>} />
                 <Route path="/permissions" element={<Protected><Permissions /></Protected>} />
                 <Route path="/unauthorized" element={<Unauthorized />} />
                 <Route path="/user-management" element={<Protected><UserManagement /></Protected>} />
