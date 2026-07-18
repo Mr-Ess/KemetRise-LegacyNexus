@@ -18,6 +18,7 @@ export default function Auth() {
   const { user } = useAuth();
   const { i18n } = useTranslation();
   const R = i18n.language === "ar";
+  const appBaseUrl = new URL(import.meta.env.BASE_URL, window.location.origin).toString();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
@@ -108,7 +109,7 @@ export default function Auth() {
     const refCode = new URLSearchParams(window.location.search).get("ref");
     const { data: signUpData, error } = await supabase.auth.signUp({
       email, password,
-      options: { emailRedirectTo: `${window.location.origin}/`, data: { display_name: name } },
+      options: { emailRedirectTo: appBaseUrl, data: { display_name: name } },
     });
     setBusy(false);
     if (error) { toast.error(error.message); return; }
@@ -142,7 +143,7 @@ export default function Auth() {
   const google = async () => {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: window.location.origin },
+      options: { redirectTo: appBaseUrl },
     });
     if (error) toast.error((R ? "فشل تسجيل الدخول بجوجل: " : "Google sign-in failed: ") + error.message);
   };
@@ -185,7 +186,8 @@ export default function Auth() {
               <Button type="submit" disabled={busy} className="w-full">{busy ? "..." : "Sign In"}</Button>
               <button type="button" onClick={async () => {
                 if (!email) { toast.error(R ? "أدخل البريد أولاً" : "Enter email first"); return; }
-                const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: `${window.location.origin}/reset-password` });
+                const resetUrl = new URL("reset-password", appBaseUrl).toString();
+                const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: resetUrl });
                 if (error) toast.error(error.message); else toast.success(R ? "تم إرسال رابط إعادة التعيين" : "Reset link sent");
               }} className="text-xs text-primary hover:underline w-full text-center">نسيت كلمة المرور؟</button>
             </form>

@@ -52,7 +52,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setSession(null);
     setUser(null);
     try { await supabase.auth.signOut(); } catch { /* ignore */ }
-    window.location.href = "/";
+    window.location.href = import.meta.env.BASE_URL;
   };
 
   return <Ctx.Provider value={{ user, session, loading, signOut }}>{children}</Ctx.Provider>;
