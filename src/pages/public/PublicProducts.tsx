@@ -165,10 +165,21 @@ function RequestDialog({
     setSubmitting(true);
     try {
       const { error: insertError } = await (supabase as any).from("service_requests").insert({
-        service_name: item.name, service_name_ar: item.name_ar,
-        customer_name: form.name, customer_email: form.email,
-        customer_phone: form.phone || null, company: form.company || null,
-        message: form.message || null, status: "pending",
+        service_name: item.name,
+        service_name_ar: item.name_ar,
+        service_name_en: item.name,
+        full_name: form.name,
+        email: form.email,
+        phone: form.phone || null,
+        company: form.company || null,
+        message: form.message || null,
+        status: "pending",
+        source: "website",
+        // Compatibility columns for environments that still consume legacy naming.
+        customer_name: form.name,
+        customer_email: form.email,
+        customer_phone: form.phone || null,
+        company_name: form.company || null,
       });
       if (insertError) throw insertError;
 
