@@ -236,7 +236,7 @@ const App = () => (
       <Toaster />
       <Sonner />
       <ErrorBoundary>
-        <BrowserRouter>
+        <BrowserRouter basename={import.meta.env.BASE_URL}>
           <ScrollToTop />
           <AuthProvider>
             <UserRoleProvider>
