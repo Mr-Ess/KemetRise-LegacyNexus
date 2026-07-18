@@ -87,6 +87,7 @@ const ERPCockpit = lazy(() => import("./pages/ERPCockpit.tsx"));
 // Enterprise portal pages
 const AdminDashboard    = lazy(() => import("./pages/admin/AdminDashboard"));
 const SectorFactory     = lazy(() => import("./pages/admin/SectorFactory"));
+const AIProductFactory  = lazy(() => import("./pages/admin/AIProductFactory"));
 const PartnerDashboard   = lazy(() => import("./pages/partner/PartnerDashboard"));
 const PartnerAnalytics  = lazy(() => import("./pages/partner/PartnerAnalytics"));
 const PartnerBrands     = lazy(() => import("./pages/partner/PartnerBrands"));
@@ -362,6 +363,7 @@ const App = () => (
                 <Route path="/admin" element={<Protected><RoleProtectedRoute allowedRoles={["superadmin","admin"]}><AdminDashboard /></RoleProtectedRoute></Protected>} />
                 <Route path="/admin/ai-agent" element={<Protected><RoleProtectedRoute allowedRoles={["superadmin","admin"]}><AdminAIAgentPanel /></RoleProtectedRoute></Protected>} />
                 <Route path="/admin/sectors" element={<Protected><RoleProtectedRoute allowedRoles={["superadmin","admin"]}><SectorFactory /></RoleProtectedRoute></Protected>} />
+                <Route path="/admin/ai-factory" element={<Protected><RoleProtectedRoute allowedRoles={["superadmin","admin"]}><AIProductFactory /></RoleProtectedRoute></Protected>} />
                 <Route path="/admin/users" element={<Protected><RoleProtectedRoute allowedRoles={["superadmin","admin"]}><AdminUsers /></RoleProtectedRoute></Protected>} />
                 <Route path="/admin/analytics" element={<Protected><RoleProtectedRoute allowedRoles={["superadmin","admin"]}><AdminAnalytics /></RoleProtectedRoute></Protected>} />
                 <Route path="/admin/website-services" element={<Protected><RoleProtectedRoute allowedRoles={["superadmin","admin"]}><WebsiteServicesAdmin /></RoleProtectedRoute></Protected>} />

@@ -214,6 +214,11 @@ function DigitalCard({ item, cfg, onDetails, onWishlist, wishlisted }: {
           <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
             {item.is_featured && <Badge className="text-[9px] px-1.5 py-0 bg-amber-500/20 text-amber-400 border-amber-500/40">Featured</Badge>}
             {item.is_new && <Badge className="text-[9px] px-1.5 py-0 bg-emerald-500/20 text-emerald-400 border-emerald-500/40">New</Badge>}
+            {item.meta?.source === "ai_factory" && (
+              <Badge className="text-[9px] px-1.5 py-0 bg-violet-500/20 text-violet-400 border-violet-500/40">
+                <Sparkles className="w-2.5 h-2.5 mr-1" />AI Generated
+              </Badge>
+            )}
             <Badge className={`text-[9px] px-1.5 py-0 ${cfg.badgeClass}`}>{item.category}</Badge>
           </div>
         </div>
@@ -400,10 +405,11 @@ function SubscriptionCard({ item, cfg, onDetails, onWishlist, wishlisted }: {
 /* ═══════════════════════════════════════════════════════════════════════════
    LISTING DETAIL DIALOG
 ═══════════════════════════════════════════════════════════════════════════ */
-function ListingDetailDialog({ item, cfg, open, onClose, onAddToCart, isPurchased, isInCart, onWishlist, wishlisted }: {
+function ListingDetailDialog({ item, cfg, open, onClose, onAddToCart, isPurchased, isInCart, onWishlist, wishlisted, onSecureDownload }: {
   item: Listing | null; cfg: TypeCfg; open: boolean; onClose: () => void;
   onAddToCart: (i: Listing) => void; isPurchased: boolean; isInCart: boolean;
   onWishlist: (id: string) => void; wishlisted: boolean;
+  onSecureDownload: (listingId: string) => Promise<void>;
 }) {
   if (!item) return null;
   const price = formatPrice(item.price_cents, item.pricing_model);
@@ -531,6 +537,11 @@ function ListingDetailDialog({ item, cfg, open, onClose, onAddToCart, isPurchase
                : item.listing_type === "subscription" ? <><Repeat className="w-3 h-3" />Add to Cart</>
                : <><ShoppingCart className="w-3 h-3" />Add to Cart</>}
             </Button>
+            {isPurchased && item.listing_type === "digital" && item.meta?.source === "ai_factory" && (
+              <Button size="sm" className="gap-1 text-xs" onClick={() => onSecureDownload(item.id)}>
+                <Download className="w-3 h-3" />Download
+              </Button>
+            )}
           </div>
         </div>
       </DialogContent>
@@ -752,6 +763,24 @@ export default function Marketplace() {
     // Refresh purchased list after order is placed
     load();
     refreshCart();
+  };
+
+  const handleSecureDownload = async (listingId: string) => {
+    const { data: { session } } = await supabase.auth.getSession();
+    const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-factory-download`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${session?.access_token}`,
+      },
+      body: JSON.stringify({ listing_id: listingId }),
+    });
+    const json = await res.json();
+    if (json.error) {
+      toast.error(json.error);
+      return;
+    }
+    window.open(json.url, "_blank", "noopener,noreferrer");
   };
 
   const handleWishlist = async (id: string) => {
@@ -1119,6 +1148,7 @@ export default function Marketplace() {
         isInCart={detailItem ? isInCart(detailItem.id) : false}
         onWishlist={handleWishlist}
         wishlisted={detailItem ? wishlist.includes(detailItem.id) : false}
+        onSecureDownload={handleSecureDownload}
       />
       <CartDrawer
         open={cartOpen}
