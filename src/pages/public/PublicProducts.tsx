@@ -9,8 +9,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import RequestReceivedMessage from "@/components/shared/RequestReceivedMessage";
 import {
-  Search, Star, ChevronDown, X, CheckCircle, ChevronRight,
+  Search, Star, ChevronDown, X, ChevronRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -150,6 +151,12 @@ function RequestDialog({
   const set = (k: keyof ReqForm) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
     setForm(f => ({ ...f, [k]: e.target.value }));
 
+  const acknowledgeSuccess = () => {
+    setSuccess(false);
+    onClose();
+    setForm({ name: "", email: "", phone: "", company: "", message: "" });
+  };
+
   const handleSubmit = async () => {
     if (!form.name.trim() || !form.email.trim()) {
       toast.error(isAr ? "الاسم والبريد الإلكتروني مطلوبان" : "Name and email are required");
@@ -186,11 +193,7 @@ function RequestDialog({
       }
 
       setSuccess(true);
-      toast.success(isAr ? "تم إرسال طلبك بنجاح!" : "Request submitted successfully!");
-      setTimeout(() => {
-        setSuccess(false); onClose();
-        setForm({ name: "", email: "", phone: "", company: "", message: "" });
-      }, 2000);
+      toast.success(isAr ? "تم استلام طلبك بنجاح." : "Your request was received successfully.");
     } catch {
       toast.error(isAr ? "حدث خطأ، يرجى المحاولة لاحقاً" : "Something went wrong, please try again.");
     } finally { setSubmitting(false); }
@@ -206,10 +209,7 @@ function RequestDialog({
           </DialogTitle>
         </DialogHeader>
         {success ? (
-          <div className="flex flex-col items-center gap-3 py-8">
-            <CheckCircle className="w-12 h-12 text-emerald-400" />
-            <p className="text-emerald-300 text-lg font-medium">{isAr ? "\u062a\u0645 \u0627\u0644\u0625\u0631\u0633\u0627\u0644 \u0628\u0646\u062c\u0627\u062d!" : "Request Sent!"}</p>
-          </div>
+          <RequestReceivedMessage isAr={isAr} onAcknowledge={acknowledgeSuccess} className="flex flex-col items-center gap-5 py-8 text-center px-2" />
         ) : (
           <div className="grid gap-3">
             <div className="grid grid-cols-2 gap-3">

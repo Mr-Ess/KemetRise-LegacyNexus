@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
+import RequestReceivedMessage from "@/components/shared/RequestReceivedMessage";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
@@ -542,6 +543,7 @@ export default function PublicServices() {
   const [selectedSvc, setSelectedSvc] = useState<WsService | null>(null);
   const [form, setForm] = useState<RequestForm>({ fullName: "", email: "", phone: "", company: "", message: "" });
   const [submitting, setSubmitting] = useState(false);
+  const [requestSent, setRequestSent] = useState(false);
   const [expandedEx, setExpandedEx] = useState<string | null>(null);
   const toggleEx = (id: string) => setExpandedEx(p => p === id ? null : id);
 
@@ -580,6 +582,7 @@ export default function PublicServices() {
   const openRequest = (svc: WsService) => {
     setSelectedSvc(svc);
     setForm({ fullName: "", email: "", phone: "", company: "", message: "" });
+    setRequestSent(false);
     setReqOpen(true);
   };
 
@@ -601,8 +604,8 @@ export default function PublicServices() {
         message: form.message.trim() || null,
       });
       if (error) throw error;
-      toast.success(R ? "تم إرسال طلبك بنجاح! سنتواصل معك قريباً." : "Request sent! We'll contact you soon.");
-      setReqOpen(false);
+      setRequestSent(true);
+      toast.success(R ? "تم استلام طلبك بنجاح." : "Your request was received successfully.");
     } catch {
       toast.error(R ? "حدث خطأ، حاول مرة أخرى" : "Something went wrong, please try again");
     }
@@ -803,85 +806,106 @@ export default function PublicServices() {
       </section>
 
       {/* Request Service Dialog */}
-      <Dialog open={reqOpen} onOpenChange={setReqOpen}>
+      <Dialog
+        open={reqOpen}
+        onOpenChange={(open) => {
+          setReqOpen(open);
+          if (!open) {
+            setRequestSent(false);
+          }
+        }}
+      >
         <DialogContent className="max-w-md" dir={R ? "rtl" : "ltr"}>
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-sm">
-              {selectedSvc && (
-                <>
-                  {(() => { const Icon = ICON_MAP[selectedSvc.icon_name] ?? Layers; return <Icon className="w-4 h-4" style={{ color: selectedSvc.color }} />; })()}
-                  {R ? selectedSvc.name_ar : selectedSvc.name_en}
-                </>
-              )}
-            </DialogTitle>
-            <p className="text-xs text-muted-foreground">
-              {R ? "أرسل طلبك وسنتواصل معك في أقرب وقت" : "Send your request and we'll contact you shortly"}
-            </p>
-          </DialogHeader>
+          {requestSent ? (
+            <RequestReceivedMessage
+              isAr={R}
+              onAcknowledge={() => {
+                setReqOpen(false);
+                setRequestSent(false);
+              }}
+              className="flex flex-col items-center gap-5 py-8 text-center px-2"
+            />
+          ) : (
+            <>
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2 text-sm">
+                  {selectedSvc && (
+                    <>
+                      {(() => { const Icon = ICON_MAP[selectedSvc.icon_name] ?? Layers; return <Icon className="w-4 h-4" style={{ color: selectedSvc.color }} />; })()}
+                      {R ? selectedSvc.name_ar : selectedSvc.name_en}
+                    </>
+                  )}
+                </DialogTitle>
+                <p className="text-xs text-muted-foreground">
+                  {R ? "أرسل طلبك وسنتواصل معك في أقرب وقت" : "Send your request and we'll contact you shortly"}
+                </p>
+              </DialogHeader>
 
-          <div className="space-y-3 py-2">
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <Label className="text-xs">{R ? "الاسم الكامل *" : "Full Name *"}</Label>
-                <Input
-                  value={form.fullName}
-                  onChange={e => setForm(p => ({ ...p, fullName: e.target.value }))}
-                  className="h-8 text-xs"
-                  placeholder={R ? "الاسم الكامل" : "Full name"}
-                />
+              <div className="space-y-3 py-2">
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-xs">{R ? "الاسم الكامل *" : "Full Name *"}</Label>
+                    <Input
+                      value={form.fullName}
+                      onChange={e => setForm(p => ({ ...p, fullName: e.target.value }))}
+                      className="h-8 text-xs"
+                      placeholder={R ? "الاسم الكامل" : "Full name"}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">{R ? "البريد الإلكتروني *" : "Email *"}</Label>
+                    <Input
+                      type="email"
+                      value={form.email}
+                      onChange={e => setForm(p => ({ ...p, email: e.target.value }))}
+                      className="h-8 text-xs"
+                      placeholder="email@example.com"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-xs">{R ? "رقم الهاتف" : "Phone"}</Label>
+                    <Input
+                      value={form.phone}
+                      onChange={e => setForm(p => ({ ...p, phone: e.target.value }))}
+                      className="h-8 text-xs"
+                      placeholder={R ? "01xxxxxxxxx" : "+201xxxxxxxxx"}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">{R ? "اسم الشركة" : "Company"}</Label>
+                    <Input
+                      value={form.company}
+                      onChange={e => setForm(p => ({ ...p, company: e.target.value }))}
+                      className="h-8 text-xs"
+                      placeholder={R ? "اسم الشركة" : "Company name"}
+                    />
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">{R ? "رسالة أو متطلبات إضافية" : "Message / Additional Requirements"}</Label>
+                  <Textarea
+                    value={form.message}
+                    onChange={e => setForm(p => ({ ...p, message: e.target.value }))}
+                    className="text-xs resize-none"
+                    rows={3}
+                    placeholder={R ? "أخبرنا بمزيد من التفاصيل..." : "Tell us more details..."}
+                  />
+                </div>
               </div>
-              <div className="space-y-1">
-                <Label className="text-xs">{R ? "البريد الإلكتروني *" : "Email *"}</Label>
-                <Input
-                  type="email"
-                  value={form.email}
-                  onChange={e => setForm(p => ({ ...p, email: e.target.value }))}
-                  className="h-8 text-xs"
-                  placeholder="email@example.com"
-                />
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <Label className="text-xs">{R ? "رقم الهاتف" : "Phone"}</Label>
-                <Input
-                  value={form.phone}
-                  onChange={e => setForm(p => ({ ...p, phone: e.target.value }))}
-                  className="h-8 text-xs"
-                  placeholder={R ? "01xxxxxxxxx" : "+201xxxxxxxxx"}
-                />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs">{R ? "اسم الشركة" : "Company"}</Label>
-                <Input
-                  value={form.company}
-                  onChange={e => setForm(p => ({ ...p, company: e.target.value }))}
-                  className="h-8 text-xs"
-                  placeholder={R ? "اسم الشركة" : "Company name"}
-                />
-              </div>
-            </div>
-            <div className="space-y-1">
-              <Label className="text-xs">{R ? "رسالة أو متطلبات إضافية" : "Message / Additional Requirements"}</Label>
-              <Textarea
-                value={form.message}
-                onChange={e => setForm(p => ({ ...p, message: e.target.value }))}
-                className="text-xs resize-none"
-                rows={3}
-                placeholder={R ? "أخبرنا بمزيد من التفاصيل..." : "Tell us more details..."}
-              />
-            </div>
-          </div>
 
-          <DialogFooter className="gap-2">
-            <Button variant="outline" size="sm" onClick={() => setReqOpen(false)}>
-              {R ? "إلغاء" : "Cancel"}
-            </Button>
-            <Button size="sm" onClick={submitRequest} disabled={submitting} className="gap-2">
-              {submitting && <Loader2 className="w-3 h-3 animate-spin" />}
-              {R ? "إرسال الطلب" : "Send Request"}
-            </Button>
-          </DialogFooter>
+              <DialogFooter className="gap-2">
+                <Button variant="outline" size="sm" onClick={() => setReqOpen(false)}>
+                  {R ? "إلغاء" : "Cancel"}
+                </Button>
+                <Button size="sm" onClick={submitRequest} disabled={submitting} className="gap-2">
+                  {submitting && <Loader2 className="w-3 h-3 animate-spin" />}
+                  {R ? "إرسال الطلب" : "Send Request"}
+                </Button>
+              </DialogFooter>
+            </>
+          )}
         </DialogContent>
       </Dialog>
       </div>

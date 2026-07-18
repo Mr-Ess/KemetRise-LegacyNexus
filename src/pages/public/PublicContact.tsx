@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
+import RequestReceivedMessage from "@/components/shared/RequestReceivedMessage";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
@@ -120,16 +121,14 @@ export default function PublicContact() {
             <Card className="border-border/40">
               <CardContent className="p-6">
                 {sent ? (
-                  <div className="text-center py-12">
-                    <div className="w-16 h-16 rounded-full bg-green-500/20 border border-green-500/30 flex items-center justify-center mx-auto mb-4">
-                      <Send className="w-8 h-8 text-green-400" />
-                    </div>
-                    <h3 className="text-lg font-bold mb-2">{R ? "تم الإرسال بنجاح!" : "Message Sent!"}</h3>
-                    <p className="text-sm text-muted-foreground">{R ? "سنتواصل معك في أقرب وقت." : "We'll get back to you as soon as possible."}</p>
-                    <Button variant="outline" size="sm" className="mt-4" onClick={() => { setSent(false); setForm({ name: "", email: "", phone: "", topic: "", message: "" }); }}>
-                      {R ? "إرسال رسالة أخرى" : "Send Another"}
-                    </Button>
-                  </div>
+                  <RequestReceivedMessage
+                    isAr={R}
+                    onAcknowledge={() => {
+                      setSent(false);
+                      setForm({ name: "", email: "", phone: "", topic: "", message: "" });
+                    }}
+                    className="flex flex-col items-center gap-5 py-12 text-center"
+                  />
                 ) : (
                   <form onSubmit={send} className="space-y-4">
                     <h3 className="text-sm font-bold mb-4">{R ? "أرسل لنا رسالة" : "Send us a message"}</h3>

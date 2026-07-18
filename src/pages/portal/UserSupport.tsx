@@ -74,7 +74,11 @@ export default function UserSupport() {
     const { error } = await db.from("support_tickets").insert({ user_id: user!.id, subject: form.subject, category: form.category, message: form.message, status: "open", created_at: new Date().toISOString() });
     setSaving(false);
     if (error) return toast.error(error.message);
-    toast.success(R ? "تم إرسال التذكرة" : "Ticket submitted");
+    toast.success(
+      R
+        ? "تم استلام طلبك بنجاح، وسيتواصل معك فريق الدعم خلال 24 ساعة عمل."
+        : "Your request has been received. Our support team will contact you within 24 business hours."
+    );
     setDlg(false); setForm({ subject: "", category: "general", message: "" }); load();
   };
 
