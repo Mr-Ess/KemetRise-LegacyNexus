@@ -8,6 +8,10 @@ export function getAppBaseUrl(): string {
   const configured = (import.meta.env.VITE_CANONICAL_BASE_URL as string | undefined)?.trim();
   if (configured) return ensureTrailingSlash(configured);
 
+  if (import.meta.env.PROD) {
+    return CANONICAL_FALLBACK;
+  }
+
   if (typeof window !== "undefined") {
     return new URL(import.meta.env.BASE_URL, window.location.origin).toString();
   }
