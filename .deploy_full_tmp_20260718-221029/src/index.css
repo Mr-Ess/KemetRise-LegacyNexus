@@ -1,0 +1,165 @@
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;900&family=Rajdhani:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 230 15% 8%;
+    --foreground: 45 80% 85%;
+
+    --card: 230 15% 11%;
+    --card-foreground: 45 60% 80%;
+
+    --popover: 230 15% 11%;
+    --popover-foreground: 45 60% 80%;
+
+    --primary: 42 85% 55%;
+    --primary-foreground: 230 15% 8%;
+
+    --secondary: 230 20% 16%;
+    --secondary-foreground: 45 60% 80%;
+
+    --muted: 230 15% 14%;
+    --muted-foreground: 230 10% 50%;
+
+    --accent: 42 85% 55%;
+    --accent-foreground: 230 15% 8%;
+
+    --destructive: 0 72% 50%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 42 40% 25%;
+    --input: 230 15% 18%;
+    --ring: 42 85% 55%;
+
+    --radius: 0.5rem;
+
+    --gold: 42 85% 55%;
+    --gold-dim: 42 50% 35%;
+    --gold-glow: 42 100% 65%;
+    --nile-blue: 200 80% 40%;
+    --scarab-green: 160 60% 35%;
+    --papyrus: 40 30% 75%;
+    --hieroglyph: 42 40% 25%;
+    --blood-red: 0 72% 50%;
+    --void: 230 20% 5%;
+
+    --sidebar-background: 230 20% 6%;
+    --sidebar-foreground: 45 60% 80%;
+    --sidebar-primary: 42 85% 55%;
+    --sidebar-primary-foreground: 230 15% 8%;
+    --sidebar-accent: 230 20% 12%;
+    --sidebar-accent-foreground: 45 60% 80%;
+    --sidebar-border: 42 40% 20%;
+    --sidebar-ring: 42 85% 55%;
+  }
+
+  .light {
+    --background: 40 30% 96%;
+    --foreground: 230 25% 12%;
+    --card: 0 0% 100%;
+    --card-foreground: 230 25% 12%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 230 25% 12%;
+    --primary: 38 75% 42%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 40 20% 90%;
+    --secondary-foreground: 230 25% 15%;
+    --muted: 40 15% 92%;
+    --muted-foreground: 230 10% 40%;
+    --accent: 38 75% 42%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 72% 50%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 38 30% 80%;
+    --input: 40 15% 88%;
+    --ring: 38 75% 42%;
+    --void: 40 30% 92%;
+    --sidebar-background: 40 25% 94%;
+    --sidebar-foreground: 230 25% 15%;
+    --sidebar-primary: 38 75% 42%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 40 20% 88%;
+    --sidebar-accent-foreground: 230 25% 15%;
+    --sidebar-border: 38 30% 78%;
+    --sidebar-ring: 38 75% 42%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground font-body antialiased;
+  }
+}
+
+@layer utilities {
+  .font-display {
+    font-family: 'Orbitron', sans-serif;
+  }
+  .font-body {
+    font-family: 'Rajdhani', sans-serif;
+  }
+  .gold-glow {
+    box-shadow: 0 0 15px hsl(42 85% 55% / 0.3), 0 0 30px hsl(42 85% 55% / 0.1);
+  }
+  .gold-glow-strong {
+    box-shadow: 0 0 20px hsl(42 85% 55% / 0.5), 0 0 40px hsl(42 85% 55% / 0.2), inset 0 0 20px hsl(42 85% 55% / 0.05);
+  }
+  .gold-text-glow {
+    text-shadow: 0 0 10px hsl(42 85% 55% / 0.5), 0 0 20px hsl(42 85% 55% / 0.3);
+  }
+  .hieroglyph-border {
+    border-image: repeating-linear-gradient(
+      90deg,
+      hsl(42 85% 55% / 0.6) 0px,
+      hsl(42 85% 55% / 0.2) 4px,
+      transparent 4px,
+      transparent 8px
+    ) 1;
+  }
+  .cyber-scanline::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      hsl(42 85% 55% / 0.03) 2px,
+      hsl(42 85% 55% / 0.03) 4px
+    );
+    pointer-events: none;
+  }
+}
+
+@keyframes heartbeat {
+  0%, 100% { transform: scale(1); opacity: 0.7; }
+  14% { transform: scale(1.3); opacity: 1; }
+  28% { transform: scale(1); opacity: 0.7; }
+  42% { transform: scale(1.3); opacity: 1; }
+  56% { transform: scale(1); opacity: 0.5; }
+}
+
+@keyframes pulse-ring {
+  0% { transform: scale(0.8); opacity: 1; }
+  100% { transform: scale(2); opacity: 0; }
+}
+
+@keyframes hieroglyph-scroll {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(-50%); }
+}
+
+@keyframes flicker {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.8; }
+  75% { opacity: 0.95; }
+}

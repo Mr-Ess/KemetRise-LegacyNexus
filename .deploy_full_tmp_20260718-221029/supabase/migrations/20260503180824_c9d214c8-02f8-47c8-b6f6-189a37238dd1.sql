@@ -1,0 +1,1 @@
+ALTER TYPE public.owner_kind ADD VALUE IF NOT EXISTS 'system';

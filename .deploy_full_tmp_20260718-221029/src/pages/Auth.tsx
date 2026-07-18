@@ -1,0 +1,210 @@
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { toast } from "sonner";
+import * as OTPAuth from "otpauth";
+import { trackLoginSuccess, trackFailedLogin, checkRateLimit } from "@/lib/authTracking";
+import { tenantDb } from "@/lib/tenantDb";
+import { getAppBaseUrl } from "@/lib/appUrl";
+
+export default function Auth() {
+  const nav = useNavigate();
+  const { user } = useAuth();
+  const { i18n } = useTranslation();
+  const R = i18n.language === "ar";
+  const appBaseUrl = getAppBaseUrl();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [name, setName] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [needs2fa, setNeeds2fa] = useState(false);
+  const [otp, setOtp] = useState("");
+  const [pendingSecret, setPendingSecret] = useState("");
+
+  // Show suspended notice if redirected here with ?suspended=1
+  const isSuspended = new URLSearchParams(window.location.search).get("suspended") === "1";
+
+  // Role-based redirect after login
+  const redirectByRole = async (userId: string) => {
+    try {
+      const { data } = await supabase
+        .from("user_profiles" as any)
+        .select("role")
+        .eq("id", userId)
+        .single();
+      const role = (data as any)?.role ?? "user";
+      if (role === "superadmin") return nav("/dashboard", { replace: true });
+      if (role === "admin")       return nav("/admin",     { replace: true });
+      if (role === "partner")   return nav("/partner",    { replace: true });
+      if (role === "agent")     return nav("/agent",      { replace: true });
+      if (role === "vendor")    return nav("/vendor",     { replace: true });
+      if (role === "provider")  return nav("/provider",   { replace: true }); // fixed: was /vendor
+      if (role === "marketing") return nav("/marketing",  { replace: true });
+      if (role === "manager")   return nav("/manager",    { replace: true });
+      if (role === "staff")     return nav("/staff",      { replace: true });
+      return nav("/portal", { replace: true });
+    } catch {
+      nav("/dashboard", { replace: true });
+    }
+  };
+
+  useEffect(() => {
+    if (user && !needs2fa) redirectByRole(user.id);
+  }, [user, needs2fa]);
+
+  const signIn = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setBusy(true);
+    const limit = await checkRateLimit(email);
+    if (!limit.allowed) {
+      setBusy(false);
+      toast.error(R
+        ? `تم تجاوز عدد المحاولات. حاول بعد ${limit.waitMin} دقيقة`
+        : `Too many attempts. Try again in ${limit.waitMin} minutes`
+      );
+      return;
+    }
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    setBusy(false);
+    if (error) {
+      await trackFailedLogin(email);
+      toast.error(error.message);
+      return;
+    }
+    await trackLoginSuccess(data.user!.id);
+    const tfaRows = await tenantDb.select("user_2fa", { eq: { user_id: data.user!.id }, limit: 1 });
+    const tfa = (tfaRows?.[0] || null) as any;
+    if (tfa && tfa.enabled) {
+      setPendingSecret(tfa.secret);
+      setNeeds2fa(true);
+    } else {
+      await redirectByRole(data.user!.id);
+    }
+  };
+
+  const verify2fa = async () => {
+    const totp = new OTPAuth.TOTP({ issuer: "KemetRise", label: email, secret: OTPAuth.Secret.fromBase32(pendingSecret) });
+    const delta = totp.validate({ token: otp, window: 1 });
+    if (delta === null) { toast.error(R ? "كود خاطئ" : "Wrong code"); return; }
+    const { data: { user: u } } = await supabase.auth.getUser();
+    setNeeds2fa(false);
+    if (u) await redirectByRole(u.id); else nav("/");
+  };
+
+  const cancel2fa = async () => {
+    await supabase.auth.signOut();
+    setNeeds2fa(false); setOtp(""); setPendingSecret("");
+  };
+
+  const signUp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setBusy(true);
+    // Check for referral code in URL (e.g. /auth?ref=KEMET-XXXXXX)
+    const refCode = new URLSearchParams(window.location.search).get("ref");
+    const { data: signUpData, error } = await supabase.auth.signUp({
+      email, password,
+      options: { emailRedirectTo: appBaseUrl, data: { display_name: name } },
+    });
+    setBusy(false);
+    if (error) { toast.error(error.message); return; }
+    toast.success(R ? "تم إنشاء الحساب. تحقق من بريدك للتحقق." : "Account created. Check your email to verify.");
+
+    // Credit referrer if a valid code was provided
+    if (refCode && signUpData.user) {
+      // Validate format before hitting DB (prevent unnecessary queries)
+      const REF_CODE_RE = /^[A-Z0-9]{4,32}$/;
+      if (!REF_CODE_RE.test(refCode)) return; // ignore invalid codes silently
+      try {
+        const { data: refs } = await supabase
+          .from("referrals")
+          .select("id, total_referred, total_earned, reward_amount")
+          .eq("code", refCode)
+          .limit(1);
+        const ref = refs?.[0];
+        if (ref) {
+          await supabase
+            .from("referrals")
+            .update({
+              total_referred: (ref.total_referred || 0) + 1,
+              total_earned: (ref.total_earned || 0) + (ref.reward_amount || 0),
+            })
+            .eq("id", ref.id);
+        }
+      } catch { /* non-blocking */ }
+    }
+  };
+
+  const google = async () => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: appBaseUrl },
+    });
+    if (error) toast.error((R ? "فشل تسجيل الدخول بجوجل: " : "Google sign-in failed: ") + error.message);
+  };
+
+  if (needs2fa) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
+        <Card className="w-full max-w-md p-6 space-y-4 border-primary/30">
+          <h1 className="text-xl font-bold text-primary text-center">🔐 {R ? "المصادقة الثنائية" : "Two-Factor Authentication"}</h1>
+          <p className="text-sm text-muted-foreground text-center">{R ? "أدخل الكود من تطبيق المصادقة" : "Enter the code from your authenticator app"}</p>
+          <Input value={otp} onChange={e=>setOtp(e.target.value)} maxLength={6} placeholder="123456" className="text-center text-2xl tracking-widest" />
+          <Button onClick={verify2fa} className="w-full">{R ? "تحقق" : "Verify"}</Button>
+          <Button variant="ghost" onClick={cancel2fa} className="w-full">{R ? "إلغاء" : "Cancel"}</Button>
+        </Card>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-background p-4">
+      <Card className="w-full max-w-md p-6 space-y-4 border-primary/30">
+        {isSuspended && (
+          <div className="bg-red-500/10 border border-red-500/30 text-red-400 rounded-lg p-3 text-sm text-center">
+            {R ? "⛔ حسابك موقوف. تواصل مع المسؤول." : "⛔ Your account has been suspended. Contact an administrator."}
+          </div>
+        )}
+        <div className="text-center">
+          <h1 className="text-3xl font-bold text-primary" style={{ fontFamily: "Orbitron" }}>KemetRise</h1>
+          <p className="text-sm text-muted-foreground mt-1">{R ? "سجّل دخولك إلى مركز قيادتك" : "Sign in to your command center"}</p>
+        </div>
+        <Tabs defaultValue="signin">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="signin">{R ? "تسجيل الدخول" : "Sign In"}</TabsTrigger>
+            <TabsTrigger value="signup">{R ? "إنشاء حساب" : "Sign Up"}</TabsTrigger>
+          </TabsList>
+          <TabsContent value="signin">
+            <form onSubmit={signIn} className="space-y-3 mt-4">
+              <div><Label>Email</Label><Input type="email" required value={email} onChange={e => setEmail(e.target.value)} /></div>
+              <div><Label>Password</Label><Input type="password" required value={password} onChange={e => setPassword(e.target.value)} /></div>
+              <Button type="submit" disabled={busy} className="w-full">{busy ? "..." : "Sign In"}</Button>
+              <button type="button" onClick={async () => {
+                if (!email) { toast.error(R ? "أدخل البريد أولاً" : "Enter email first"); return; }
+                const resetUrl = new URL("reset-password", appBaseUrl).toString();
+                const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: resetUrl });
+                if (error) toast.error(error.message); else toast.success(R ? "تم إرسال رابط إعادة التعيين" : "Reset link sent");
+              }} className="text-xs text-primary hover:underline w-full text-center">نسيت كلمة المرور؟</button>
+            </form>
+          </TabsContent>
+          <TabsContent value="signup">
+            <form onSubmit={signUp} className="space-y-3 mt-4">
+              <div><Label>{R ? "اسم العرض" : "Display Name"}</Label><Input value={name} onChange={e => setName(e.target.value)} /></div>
+              <div><Label>{R ? "البريد الإلكتروني" : "Email"}</Label><Input type="email" required value={email} onChange={e => setEmail(e.target.value)} /></div>
+              <div><Label>{R ? "كلمة المرور" : "Password"}</Label><Input type="password" required minLength={6} value={password} onChange={e => setPassword(e.target.value)} /></div>
+              <Button type="submit" disabled={busy} className="w-full">{busy ? "..." : (R ? "إنشاء حساب" : "Create Account")}</Button>
+            </form>
+          </TabsContent>
+        </Tabs>
+        <div className="relative"><div className="absolute inset-0 flex items-center"><span className="w-full border-t border-primary/20" /></div><div className="relative flex justify-center text-xs"><span className="bg-background px-2 text-muted-foreground">{R ? "أو" : "OR"}</span></div></div>
+        <Button variant="outline" onClick={google} className="w-full">{R ? "المتابعة مع Google" : "Continue with Google"}</Button>
+      </Card>
+    </div>
+  );
+}

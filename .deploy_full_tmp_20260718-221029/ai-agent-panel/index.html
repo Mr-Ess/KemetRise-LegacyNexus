@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Agent Control Panel</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+  <div class="panel">
+    <h1>AI Agent Control Panel</h1>
+    <div id="agent-list" class="agent-list"></div>
+    <button id="add-agent" class="btn primary">Add Agent</button>
+  </div>
+
+  <div id="modal" class="modal hidden">
+    <div class="modal-content glass">
+      <span class="close">&times;</span>
+      <h2 id="modal-title">Add New Agent</h2>
+      <form id="agent-form">
+        <label>Agent Name<input type="text" name="agentName" required /></label>
+        <label>Business Name<input type="text" name="businessName" /></label>
+        <label>Role
+          <select name="role">
+            <option value="sales_assistant">Sales Assistant</option>
+            <option value="support">Technical Support</option>
+            <option value="concierge">Concierge</option>
+            <option value="medical">Medical Assistant</option>
+            <option value="shopping">Shopping Advisor</option>
+            <option value="general">General Assistant</option>
+            <option value="custom">Custom Role</option>
+          </select>
+        </label>
+        <label>System Prompt<textarea name="systemPrompt"></textarea></label>
+        <button type="submit" class="btn primary">Save</button>
+      </form>
+    </div>
+  </div>
+
+  <script src="./app.js"></script>
+</body>
+</html>

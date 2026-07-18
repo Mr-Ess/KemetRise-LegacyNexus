@@ -1,0 +1,1 @@
+ALTER TABLE public.dead_man_switch ADD COLUMN IF NOT EXISTS warning_days integer NOT NULL DEFAULT 3;

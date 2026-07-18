@@ -1,0 +1,217 @@
+# n8n Workflow Blueprint — Autonomous AI Digital Product Factory
+
+Build this as **two separate n8n workflows** that call each other. Splitting
+it is what makes the Tier1 → Tier2 → Auto-Fallback logic reliable — a single
+workflow with three sequential `Wait` nodes works too, but a Sub-Workflow
+gives you clean retry/observability and lets the Approval Webhook resume
+exactly the right branch instead of guessing state from node position.
+
+```
+WORKFLOW A: "Factory — Main Pipeline"      (Cron-triggered)
+WORKFLOW B: "Factory — Approval Gateway"   (Called by A, handles Tier1→2→3)
+```
+
+---
+
+## WORKFLOW A — Main Pipeline
+
+### Node 1 — Cron Trigger
+- Type: `Schedule Trigger`
+- Interval: e.g. every day at 09:00 Cairo time (`0 9 * * *`)
+- Output: nothing meaningful yet — just fires.
+
+### Node 2 — Set `run_id`
+- Type: `Set`
+- Field: `run_id` = `{{$now.toMillis()}}-{{$randomString(6)}}` (or use the n8n `Crypto` node to generate a real UUID)
+
+### Node 3 — Check Factory Active
+- Type: `HTTP Request` (GET) → Supabase REST:
+  `GET https://YOUR_PROJECT_REF.supabase.co/rest/v1/aidpf_settings?id=eq.1&select=*`
+  Headers: `apikey`, `Authorization: Bearer <service_role_key>`
+- Node 4: `IF` — `is_factory_active === true` → continue, else stop (End node).
+
+### Node 5 — Idea Generation (LLM call)
+- Type: `HTTP Request` (POST) → `https://api.anthropic.com/v1/messages`
+  Headers: `x-api-key`, `anthropic-version: 2023-06-01`, `content-type: application/json`
+  Body:
+  ```json
+  {
+    "model": "claude-sonnet-4-6",
+    "max_tokens": 1500,
+    "messages": [{"role":"user","content":"Generate ONE digital product idea for an Egyptian SaaS/e-commerce audience. Return ONLY JSON: {name, description, long_description, category, sub_category, tags[], price_cents, pricing_model}"}]
+  }
+  ```
+- Node 6: `Code` node — parse `content[0].text`, `JSON.parse()`, guard against markdown fences.
+
+### Node 7 — Content Generation (expand description, marketing copy)
+- Same pattern as Node 5, feeding the idea JSON back in for a richer
+  `long_description`, feature bullets, and suggested `meta.license_type`.
+
+### Node 8 — Image Generation
+- Type: `HTTP Request` (POST) → your image-gen provider (e.g. OpenAI Images,
+  Stability, or Ideogram). Store the returned image bytes.
+- Node 9: `HTTP Request` (POST) → Supabase Storage upload:
+  `POST https://YOUR_PROJECT_REF.supabase.co/storage/v1/object/ai-digital-products/{{ $json.run_id }}/thumbnail.png`
+  Headers: `Authorization: Bearer <service_role_key>`, `Content-Type: image/png`
+  Body: binary image data.
+- Capture the returned path → this becomes `thumbnail_url` (or store the
+  storage path and resolve a public/signed URL later — since the bucket is
+  private, generate a **signed URL for the thumbnail specifically** with a
+  long expiry, or make a SEPARATE public bucket `ai-product-thumbnails` for
+  images only, keeping the deliverable file itself in the private bucket).
+
+### Node 10 — Generate/Package the actual deliverable file
+- Depends on product type (PDF, zip of templates, Notion export, etc.) — a
+  `Code` node or additional LLM/API calls build the real file bytes.
+- Node 11: `HTTP Request` (POST) → upload to
+  `ai-digital-products/{{ $json.run_id }}/product.zip` (private bucket), same
+  pattern as Node 9.
+
+### Node 12 — Create Draft + Request Tier-1 Approval
+- Type: `HTTP Request` (POST) → your edge function:
+  `POST https://YOUR_PROJECT_REF.functions.supabase.co/ai-factory-submit`
+  Headers: `Authorization: Bearer <service_role_key>`
+  Body:
+  ```json
+  {
+    "run_id": "{{ $json.run_id }}",
+    "n8n_execution_id": "{{ $execution.id }}",
+    "n8n_resume_url_t1": "={{ $json.tier1WaitResumeUrl }}",
+    "product": { "...": "all fields from Nodes 6/7/9/11" }
+  }
+  ```
+  > `n8n_resume_url_t1` is filled in by Workflow B (see below) — in practice,
+  > call Workflow B FIRST via an `Execute Workflow` node and let it own the
+  > entire approval gateway, passing it `product_id`/`queue_id` once created.
+  > The cleanest structure: **Node 12 calls `ai-factory-submit` directly**
+  > (no resume URL yet, leave it null), then **Node 13 hands off to
+  > Workflow B** which manages its OWN Wait nodes and updates
+  > `n8n_resume_url_t1/t2` on the queue row itself right before each Wait.
+
+### Node 13 — Execute Sub-Workflow "Factory — Approval Gateway"
+- Type: `Execute Workflow`
+- Input: `{ product_id, queue_id, run_id }` from Node 12's response.
+- Wait for completion (this sub-workflow doesn't return until the product is
+  either published or rejected — could take up to 4 hours).
+
+### Node 14 — IF Sub-Workflow Result === "rejected"
+- True branch → `NoOp`/End (log only).
+- False branch (published) → continue to Traffic Engine.
+
+### Node 15 — Traffic Engine: Instagram/Facebook Post
+- Type: `HTTP Request` (POST) → Meta Graph API `/{{page-id}}/photos` or
+  `/{{ig-user-id}}/media` + `/media_publish`, using the thumbnail + a
+  caption generated by another small LLM call.
+- Insert result into `aidpf_traffic_posts` via `HTTP Request` (POST) →
+  Supabase REST `POST /rest/v1/aidpf_traffic_posts`.
+
+### Node 16 — Traffic Engine: WhatsApp/Telegram Broadcast DM
+- Type: `HTTP Request` (POST) → WhatsApp Business Cloud API `/messages` or
+  Telegram Bot API `sendMessage`, to a saved list of leads/subscribers.
+- Same audit insert as Node 15.
+
+### Node 17 — End / Log completion
+- `HTTP Request` (POST) → `aidpf_generation_logs` insert: step=`"publish"`,
+  message=`"Run complete"`.
+
+---
+
+## WORKFLOW B — "Factory — Approval Gateway" (Sub-workflow)
+
+Input: `{ product_id, queue_id, run_id }`
+
+### Node 1 — Execute Workflow Trigger
+- Type: `Execute Workflow Trigger` (receives the input above)
+
+### Node 2 — Send Tier-1 Approval Message
+- Type: `HTTP Request` (POST) → WhatsApp/Telegram/Slack, message contains
+  two tappable links (or inline buttons):
+  - Approve: `https://YOUR_PROJECT_REF.functions.supabase.co/ai-factory-approve?queue_id={{queue_id}}&tier=1&decision=approved&responder_id={{super_admin_id}}`
+  - Reject: same with `decision=rejected`
+
+### Node 3 — Wait Node (Tier 1)
+- Type: `Wait` → **"On Webhook Call"** mode (not just time delay — this is
+  what lets the approval click resume the workflow immediately instead of
+  waiting the full 2 hours).
+- Resume URL: n8n auto-generates this — capture it and, **before** hitting
+  this node, use an `HTTP Request` (PATCH) to write it into
+  `aidpf_approval_queue.n8n_resume_url_t1` for this `queue_id`. Practically:
+  place a `Set`/`HTTP Request` node immediately BEFORE the Wait node that
+  reads `{{ $resumeWebhookUrl }}` (n8n exposes this via an expression on the
+  Wait node once configured) and PATCHes the DB row.
+- **Limit: 2 hours.** If no webhook call arrives, n8n resumes automatically
+  on timeout with empty input — this is your natural Tier-1 → Tier-2
+  escalation trigger.
+
+### Node 4 — IF: Did Tier-1 respond?
+- Condition: check the Wait node's output — if it resumed via webhook,
+  `$json` contains `{decision, tier, decided_by}`. If it resumed via
+  timeout, `$json` is empty/undefined.
+- **True (webhook fired)** → Node 8 (Finalize).
+- **False (timed out)** → continue to Tier 2.
+
+### Node 5 — Escalate: Mark Tier-2, Notify Both Candidates
+- `HTTP Request` (PATCH) → `aidpf_approval_queue` set
+  `status='awaiting_tier2', tier=2, tier2_deadline=now()+2h`.
+- `HTTP Request` (POST) ×2 (or one loop over `tier2_candidate_ids`) →
+  WhatsApp/Telegram messages to BOTH team members simultaneously, each with
+  their own `responder_id` baked into the approve/reject links:
+  `...&tier=2&responder_id={{ candidate_id }}`
+
+### Node 6 — Wait Node (Tier 2)
+- Same "On Webhook Call" pattern as Node 3. Write the resume URL into
+  `n8n_resume_url_t2` before entering.
+- Because BOTH team members received links pointing at the SAME
+  `queue_id`+`tier=2`, and the `ai-factory-approve` edge function does an
+  **atomic conditional UPDATE** (`WHERE status = 'awaiting_tier2'`), whichever
+  person clicks first is the one whose decision sticks — the second click
+  hits a 0-row update and the edge function tells them "already resolved."
+  Only the FIRST webhook call reaches n8n's Wait node too, so there's no
+  race inside n8n itself.
+- **Limit: 2 hours.**
+
+### Node 7 — IF: Did Tier-2 respond?
+- Same pattern as Node 4.
+- **True** → Node 8 (Finalize) with that decision.
+- **False (both timed out)** → Node 9 (Auto-Fallback).
+
+### Node 8 — Finalize: Call `ai-factory-publish`
+- `HTTP Request` (POST) →
+  `https://YOUR_PROJECT_REF.functions.supabase.co/ai-factory-publish`
+  Body: `{ product_id, queue_id, publish_reason: "tier1_approved" | "tier2_approved", rejected: {{ decision === 'rejected' }} }`
+- Return `{ result: decision === 'rejected' ? 'rejected' : 'published' }` to
+  Workflow A.
+
+### Node 9 — Auto-Fallback Approval
+- `HTTP Request` (PATCH) → `aidpf_approval_queue` set
+  `status='auto_fallback', decision='approved', decision_tier=3, decided_by=null`.
+- `HTTP Request` (POST) → `ai-factory-publish` with
+  `publish_reason: "auto_fallback"`, `rejected: false` — **the factory never
+  stalls**, this is the guaranteed unblock.
+- `HTTP Request` (POST) → `aidpf_generation_logs` insert, level=`warning`,
+  message=`"Auto-fallback triggered — no human responded within either tier window"`.
+- Return `{ result: 'published' }` to Workflow A.
+
+---
+
+## Timing summary (matches your spec exactly)
+
+| Time      | State                                              |
+|-----------|-----------------------------------------------------|
+| T+0       | Tier-1 request sent to Super Admin                   |
+| T+0→2h    | Waiting on Super Admin (Wait node, webhook-resumable)|
+| T+2h      | No response → escalate to BOTH Tier-2 members        |
+| T+2h→4h   | Waiting on first responder among the two             |
+| T+4h      | No response from either → Auto-Fallback publish       |
+
+## Idempotency & safety notes
+- The atomic `UPDATE ... WHERE status = 'awaiting_tierN'` in
+  `ai-factory-approve` is the single most important line in this entire
+  system — it's what makes "first click wins" actually true under
+  concurrent clicks. Never replace it with a plain SELECT-then-UPDATE.
+- Give n8n's Supabase credential the **service role key only**, and only use
+  it in n8n and inside edge functions — never in the frontend bundle.
+- Set `--no-verify-jwt` only on `ai-factory-approve` (it must be publicly
+  reachable from a chat app link with no session). Keep JWT verification on
+  for `ai-factory-download` (buyer must be logged in) and default settings
+  for `ai-factory-submit`/`ai-factory-publish` (service-role only, called by n8n).
