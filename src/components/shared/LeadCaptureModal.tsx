@@ -144,6 +144,25 @@ export default function LeadCaptureModal({ open, onClose, type, isAr, meta }: Pr
   const title = isAr ? titleObj.ar : titleObj.en;
   const subtitle = isAr ? subtitleObj.ar : subtitleObj.en;
 
+  const emailSection = (() => {
+    switch (type) {
+      case "service":
+        return { en: `Service Request — ${meta?.refName ?? "General Inquiry"}`, ar: `طلب خدمة — ${meta?.refName ?? "استفسار عام"}` };
+      case "product":
+        return { en: `Product Inquiry — ${meta?.refName ?? "General Inquiry"}`, ar: `استفسار منتج — ${meta?.refName ?? "استفسار عام"}` };
+      case "project":
+        return { en: "Project Collaboration Request", ar: "طلب شراكة / تنفيذ مشروع" };
+      case "partner":
+        return { en: "Partner Application", ar: "طلب انضمام كشريك" };
+      case "agent":
+        return { en: "Agent Application", ar: "طلب انضمام كوكيل" };
+      case "demo":
+        return { en: "Demo Request", ar: "طلب عرض تجريبي" };
+      default:
+        return { en: "Website Inquiry", ar: "طلب من الموقع" };
+    }
+  })();
+
   const handleSubmit = async () => {
     if (!f(form.full_name) || !f(form.email)) {
       setError(isAr ? "الاسم والبريد الإلكتروني حقلان مطلوبان." : "Full name and email are required.");
@@ -220,6 +239,45 @@ export default function LeadCaptureModal({ open, onClose, type, isAr, meta }: Pr
 
       const { error: dbErr } = await db.from(table).insert(payload);
       if (dbErr) throw dbErr;
+
+      const details: string[] = [];
+      if (f(form.country)) details.push(`Country: ${f(form.country)}`);
+      if (f(form.partner_type)) details.push(`Partner Type: ${f(form.partner_type)}`);
+      if (f(form.website_url)) details.push(`Website: ${f(form.website_url)}`);
+      if (f(form.annual_revenue)) details.push(`Annual Revenue: ${f(form.annual_revenue)}`);
+      if (f(form.region)) details.push(`Region: ${f(form.region)}`);
+      if (f(form.territory)) details.push(`Territory: ${f(form.territory)}`);
+      if (f(form.experience_years)) details.push(`Experience Years: ${f(form.experience_years)}`);
+      if (f(form.existing_network)) details.push(`Existing Network: ${f(form.existing_network)}`);
+      if (f(form.project_type)) details.push(`Project Type: ${f(form.project_type)}`);
+      if (f(form.project_scope)) details.push(`Project Scope: ${f(form.project_scope)}`);
+      if (f(form.budget_range)) details.push(`Budget Range: ${f(form.budget_range)}`);
+      if (f(form.timeline)) details.push(`Timeline: ${f(form.timeline)}`);
+
+      const mergedMessage = [f(form.message), ...details].filter(Boolean).join("\n");
+      const emailPayload: Record<string, string> = {
+        name: f(form.full_name),
+        email: f(form.email),
+        phone: f(form.phone),
+        company: f(form.company_name),
+        topic: meta?.refName ?? (isAr ? titleObj.ar : titleObj.en),
+        message: mergedMessage,
+      };
+      if (type === "product") {
+        emailPayload.product = meta?.refName ?? "Product Inquiry";
+      }
+
+      const { data: emailResult, error: emailInvokeError } = await supabase.functions.invoke("send-contact-email", {
+        body: {
+          section_en: emailSection.en,
+          section_ar: emailSection.ar,
+          data: emailPayload,
+        },
+      });
+      if (emailInvokeError) throw emailInvokeError;
+      if (emailResult && typeof emailResult === "object" && "success" in emailResult && !emailResult.success) {
+        throw new Error("Email provider rejected the request");
+      }
 
       // Fire n8n webhook (non-blocking)
       fireWebhook({ type, table, ...payload, meta, submitted_at: new Date().toISOString() });

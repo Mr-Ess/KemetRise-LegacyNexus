@@ -604,6 +604,26 @@ export default function PublicServices() {
         message: form.message.trim() || null,
       });
       if (error) throw error;
+
+      const { data: emailResult, error: emailInvokeError } = await supabase.functions.invoke("send-contact-email", {
+        body: {
+          section_en: `Services — ${selectedSvc?.name_en ?? "Service Request"}`,
+          section_ar: `الخدمات — ${selectedSvc?.name_ar ?? "طلب خدمة"}`,
+          data: {
+            name: form.fullName.trim(),
+            email: form.email.trim(),
+            phone: form.phone.trim(),
+            company: form.company.trim(),
+            topic: selectedSvc?.name_en ?? "Service Request",
+            message: form.message.trim(),
+          },
+        },
+      });
+      if (emailInvokeError) throw emailInvokeError;
+      if (emailResult && typeof emailResult === "object" && "success" in emailResult && !emailResult.success) {
+        throw new Error("Email provider rejected the request");
+      }
+
       setRequestSent(true);
       toast.success(R ? "تم استلام طلبك بنجاح." : "Your request was received successfully.");
     } catch {
