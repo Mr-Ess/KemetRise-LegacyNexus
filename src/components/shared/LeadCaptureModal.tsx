@@ -161,12 +161,11 @@ export default function LeadCaptureModal({ open, onClose, type, isAr, meta }: Pr
       const table = TYPE_TABLE[type];
 
       // Build payload based on type
+      // Note: service_requests historically used `company` (not `company_name`) and no `country`.
       let payload: Record<string, unknown> = {
         full_name: f(form.full_name),
         email: f(form.email),
         phone: f(form.phone) || null,
-        company_name: f(form.company_name) || null,
-        country: f(form.country) || null,
         message: f(form.message) || null,
         status: "pending",
       };
@@ -174,6 +173,7 @@ export default function LeadCaptureModal({ open, onClose, type, isAr, meta }: Pr
       if (type === "service" || type === "product" || type === "demo") {
         payload = {
           ...payload,
+          company: f(form.company_name) || null,
           service_name: meta?.refName ?? (isAr ? "استفسار عام" : "General Inquiry"),
           service_name_ar: meta?.refName ?? "استفسار عام",
           source: type === "demo" ? "landing_demo" : type === "product" ? "products_page" : "services_page",
@@ -186,6 +186,8 @@ export default function LeadCaptureModal({ open, onClose, type, isAr, meta }: Pr
       if (type === "partner") {
         payload = {
           ...payload,
+          company_name: f(form.company_name) || null,
+          country: f(form.country) || null,
           partner_type: f(form.partner_type) || null,
           website_url: f(form.website_url) || null,
           annual_revenue: f(form.annual_revenue) || null,
@@ -195,6 +197,8 @@ export default function LeadCaptureModal({ open, onClose, type, isAr, meta }: Pr
       if (type === "agent") {
         payload = {
           ...payload,
+          company_name: f(form.company_name) || null,
+          country: f(form.country) || null,
           region: f(form.region) || null,
           territory: f(form.territory) || null,
           experience_years: f(form.experience_years) || null,
@@ -205,6 +209,8 @@ export default function LeadCaptureModal({ open, onClose, type, isAr, meta }: Pr
       if (type === "project") {
         payload = {
           ...payload,
+          company_name: f(form.company_name) || null,
+          country: f(form.country) || null,
           project_type: f(form.project_type) || null,
           project_scope: f(form.project_scope) || null,
           budget_range: f(form.budget_range) || null,

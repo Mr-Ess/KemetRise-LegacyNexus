@@ -43,7 +43,7 @@ export default function PublicContact() {
     setSending(true);
     try {
       // Call the email edge function
-      await supabase.functions.invoke("send-contact-email", {
+      const { data: emailResult, error: emailInvokeError } = await supabase.functions.invoke("send-contact-email", {
         body: {
           section_en: form.topic ? `Contact — ${form.topic}` : "Contact Form",
           section_ar: form.topic ? `تواصل — ${CONTACT_TOPICS.find(t => t.en === form.topic)?.ar ?? form.topic}` : "نموذج التواصل",
@@ -56,11 +56,14 @@ export default function PublicContact() {
           },
         },
       });
+      if (emailInvokeError) throw emailInvokeError;
+      if (emailResult && typeof emailResult === "object" && "success" in emailResult && !emailResult.success) {
+        throw new Error("Email provider rejected the request");
+      }
       setSent(true);
       toast.success(R ? "تم إرسال رسالتك بنجاح! سنتواصل معك قريباً." : "Message sent successfully! We'll be in touch soon.");
     } catch {
-      toast.success(R ? "تم إرسال رسالتك! سنتواصل معك قريباً." : "Message received! We'll be in touch soon.");
-      setSent(true);
+      toast.error(R ? "تعذر إرسال الرسالة حالياً. يرجى المحاولة مرة أخرى." : "Message could not be sent right now. Please try again.");
     } finally {
       setSending(false);
     }

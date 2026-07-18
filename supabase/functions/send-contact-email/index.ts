@@ -206,9 +206,15 @@ serve(async (req) => {
     ]);
 
     const [adminBody, customerBody] = await Promise.all([adminRes.json(), customerRes.json()]);
+    const success = adminRes.ok;
 
     return new Response(JSON.stringify({
-      success: adminRes.ok && customerRes.ok,
+      success,
+      admin_sent: adminRes.ok,
+      customer_sent: customerRes.ok,
+      warning: adminRes.ok && !customerRes.ok
+        ? "Admin email sent, but customer confirmation email failed."
+        : undefined,
       admin: adminBody,
       customer: customerBody,
     }), { headers: { ...cors, "Content-Type": "application/json" } });

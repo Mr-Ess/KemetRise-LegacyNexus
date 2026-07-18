@@ -157,15 +157,16 @@ function RequestDialog({
     }
     setSubmitting(true);
     try {
-      await (supabase as any).from("service_requests").insert({
+      const { error: insertError } = await (supabase as any).from("service_requests").insert({
         service_name: item.name, service_name_ar: item.name_ar,
         customer_name: form.name, customer_email: form.email,
-        customer_phone: form.phone || null, company_name: form.company || null,
+        customer_phone: form.phone || null, company: form.company || null,
         message: form.message || null, status: "pending",
       });
+      if (insertError) throw insertError;
 
       // Send notification + confirmation emails
-      await supabase.functions.invoke("send-contact-email", {
+      const { data: emailResult, error: emailInvokeError } = await supabase.functions.invoke("send-contact-email", {
         body: {
           section_en: `Products & Services — ${item.name}`,
           section_ar: `المنتجات والخدمات — ${item.name_ar}`,
@@ -179,6 +180,10 @@ function RequestDialog({
           },
         },
       });
+      if (emailInvokeError) throw emailInvokeError;
+      if (emailResult && typeof emailResult === "object" && "success" in emailResult && !emailResult.success) {
+        throw new Error("Email provider rejected the request");
+      }
 
       setSuccess(true);
       toast.success(isAr ? "تم إرسال طلبك بنجاح!" : "Request submitted successfully!");
