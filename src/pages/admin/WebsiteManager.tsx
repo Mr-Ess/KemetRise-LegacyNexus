@@ -34,6 +34,7 @@ const TABS = [
   { id: "services",      labelAr: "الخدمات",            labelEn: "Services",        icon: Layers      },
   { id: "products",      labelAr: "المنتجات",           labelEn: "Products",        icon: Package     },
   { id: "projects",      labelAr: "المشاريع",           labelEn: "Projects",        icon: Briefcase   },
+  { id: "leadership",    labelAr: "الفريق القيادي",      labelEn: "Leadership Team", icon: Users       },
   { id: "agents",        labelAr: "الوكلاء",            labelEn: "Agents",          icon: Users       },
   { id: "partners",      labelAr: "الشركاء",            labelEn: "Partners",        icon: CheckCircle },
   { id: "tech_stack",    labelAr: "التقنيات",           labelEn: "Tech Stack",      icon: Cpu         },
@@ -243,6 +244,37 @@ function ProjectsPanel({ R }: { R: boolean }) {
       ])}
     >
       <RowDialog title={editing?.id ? "Edit Project" : "New Project"} open={!!editing} onClose={() => setEditing(null)}
+        fields={fields} initial={editing ?? {}} onSave={upsert} />
+    </CrudPanel>
+  );
+}
+
+function LeadershipPanel({ R }: { R: boolean }) {
+  const { rows, loading, remove, toggle, upsert, fetch } = useCrud("website_leadership_team");
+  const [editing, setEditing] = useState<Row | null>(null);
+  const fields = [
+    { key: "name_ar", label: "الاسم بالعربية" },
+    { key: "name_en", label: "Name (English)" },
+    { key: "role_ar", label: "المسمى الوظيفي بالعربية" },
+    { key: "role_en", label: "Role (English)" },
+    { key: "avatar", label: "Avatar initials (e.g. YE)" },
+    { key: "color_key", label: "Color key (primary/indigo/emerald/pink/blue/amber/cyan/violet/teal)" },
+    { key: "sort_order", label: "Sort Order", type: "number" as const },
+    { key: "is_active", label: "Active", type: "switch" as const },
+  ];
+  return (
+    <CrudPanel title={R ? "الفريق القيادي" : "Leadership Team"} loading={loading} onAdd={() => setEditing({})} onRefresh={fetch}
+      columns={["الاسم / Name", "المسمى / Role", "Avatar", "Color", "Active", "Actions"]}
+      rows={rows.map(r => [
+        <span className="font-medium">{R ? r.name_ar : r.name_en}</span>,
+        <span className="text-xs text-muted-foreground">{R ? r.role_ar : r.role_en}</span>,
+        <Badge variant="outline" className="text-[10px]">{r.avatar || "KR"}</Badge>,
+        <Badge variant="outline" className="text-[10px]">{r.color_key || "primary"}</Badge>,
+        <Switch checked={!!r.is_active} onCheckedChange={() => toggle(r.id, "is_active", r.is_active)} />,
+        <RowActions onEdit={() => setEditing(r)} onDelete={() => remove(r.id)} />,
+      ])}
+    >
+      <RowDialog title={editing?.id ? "Edit Team Member" : "New Team Member"} open={!!editing} onClose={() => setEditing(null)}
         fields={fields} initial={editing ?? {}} onSave={upsert} />
     </CrudPanel>
   );
@@ -702,6 +734,7 @@ export default function WebsiteManager() {
       case "services":      return <ServicesPanel R={R} />;
       case "products":      return <ProductsPanel R={R} />;
       case "projects":      return <ProjectsPanel R={R} />;
+      case "leadership":    return <LeadershipPanel R={R} />;
       case "agents":        return <AgentsPanel R={R} />;
       case "partners":      return <PartnersPanel R={R} />;
       case "tech_stack":    return <TechStackPanel R={R} />;

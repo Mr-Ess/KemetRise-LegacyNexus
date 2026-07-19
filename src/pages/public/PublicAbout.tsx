@@ -4,6 +4,7 @@ import PublicLayout from "@/layouts/PublicLayout";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { supabase } from "@/integrations/supabase/client";
 import {
   Target, Heart, Users, Globe, Award, TrendingUp,
   Rocket, Shield, Code2, ArrowRight, CheckCircle, Zap,
@@ -29,6 +30,32 @@ const TEAM = [
   { name: "Dina Fouad",        nameAr: "دينا فؤاد",    role: "Head of Marketing",    roleAr: "رئيسة التسويق",              avatar: "DF", bg: "bg-pink-500/20", color: "text-pink-400" },
 ];
 
+const db = supabase as any;
+
+interface TeamMember {
+  name: string;
+  nameAr: string;
+  role: string;
+  roleAr: string;
+  avatar: string;
+  bg: string;
+  color: string;
+}
+
+const DEFAULT_TEAM: TeamMember[] = TEAM;
+
+const TEAM_COLORS: Record<string, { bg: string; color: string }> = {
+  primary: { bg: "bg-primary/20", color: "text-primary" },
+  indigo: { bg: "bg-indigo-500/20", color: "text-indigo-400" },
+  emerald: { bg: "bg-emerald-500/20", color: "text-emerald-400" },
+  pink: { bg: "bg-pink-500/20", color: "text-pink-400" },
+  blue: { bg: "bg-blue-500/20", color: "text-blue-400" },
+  amber: { bg: "bg-amber-500/20", color: "text-amber-400" },
+  cyan: { bg: "bg-cyan-500/20", color: "text-cyan-400" },
+  violet: { bg: "bg-violet-500/20", color: "text-violet-400" },
+  teal: { bg: "bg-teal-500/20", color: "text-teal-400" },
+};
+
 const VALUES = [
   { icon: Target,  en: "Mission-Driven",    ar: "موجه بالرسالة",    desc_en: "Every feature serves a purpose aligned with our mission to empower businesses.",     desc_ar: "كل ميزة تخدم هدفاً متوافقاً مع رسالتنا لتمكين الأعمال." },
   { icon: Heart,   en: "Human-Centered",    ar: "محوره الإنسان",    desc_en: "We design for real people with real problems, in both Arabic and English.",           desc_ar: "نصمم لأناس حقيقيين بمشاكل حقيقية، بالعربية والإنجليزية." },
@@ -51,6 +78,34 @@ export default function PublicAbout() {
   const heroRev = useReveal();
   const teamRev = useReveal();
   const timelineRev = useReveal();
+  const [team, setTeam] = useState<TeamMember[]>(DEFAULT_TEAM);
+
+  useEffect(() => {
+    let cancelled = false;
+    db.from("website_leadership_team")
+      .select("name_ar,name_en,role_ar,role_en,avatar,color_key")
+      .eq("is_active", true)
+      .order("sort_order", { ascending: true })
+      .then(({ data, error }: any) => {
+        if (cancelled || error || !data || data.length === 0) return;
+        const mapped: TeamMember[] = data.map((m: any) => {
+          const color = TEAM_COLORS[m.color_key] ?? TEAM_COLORS.primary;
+          return {
+            name: m.name_en || "",
+            nameAr: m.name_ar || "",
+            role: m.role_en || "",
+            roleAr: m.role_ar || "",
+            avatar: m.avatar || "KR",
+            bg: color.bg,
+            color: color.color,
+          };
+        });
+        if (mapped.length > 0) setTeam(mapped);
+      })
+      .catch(() => { /* fallback to static team */ });
+
+    return () => { cancelled = true; };
+  }, []);
 
   return (
     <PublicLayout>
@@ -149,8 +204,8 @@ export default function PublicAbout() {
             <h2 className="text-3xl font-display font-black">{R ? "فريقنا القيادي" : "Our Leadership Team"}</h2>
           </div>
           <div className={cn("grid grid-cols-2 md:grid-cols-4 gap-5 transition-all duration-700 delay-200", teamRev.visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8")}>
-            {TEAM.map(member => (
-              <div key={member.name} className="text-center p-5 rounded-2xl border border-border/40 hover:border-primary/20 bg-secondary/10 hover:-translate-y-1 transition-all">
+            {team.map((member, idx) => (
+              <div key={`${member.name}-${idx}`} className="text-center p-5 rounded-2xl border border-border/40 hover:border-primary/20 bg-secondary/10 hover:-translate-y-1 transition-all">
                 <div className={cn("w-14 h-14 rounded-2xl mx-auto flex items-center justify-center text-lg font-display font-black mb-3", member.bg, member.color)}>
                   {member.avatar}
                 </div>
