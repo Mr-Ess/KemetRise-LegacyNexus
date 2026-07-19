@@ -25,6 +25,7 @@ const SECTIONS: SectionStat[] = [
   { icon: Layers,        labelAr: "الخدمات",          labelEn: "Services",      table: "website_services",      path: "/admin/website", color: "#f59e0b"  },
   { icon: Package,       labelAr: "المنتجات",          labelEn: "Products",      table: "website_products",      path: "/admin/website", color: "#3b82f6"  },
   { icon: Briefcase,     labelAr: "المشاريع",          labelEn: "Projects",      table: "website_projects",      path: "/admin/website", color: "#10b981"  },
+  { icon: Users,         labelAr: "الفريق القيادي",     labelEn: "Leadership",   table: "website_leadership_team", path: "/admin/website", color: "#eab308"  },
   { icon: Users,         labelAr: "الوكلاء",           labelEn: "Agents",        table: "website_agents",        path: "/admin/website", color: "#8b5cf6"  },
   { icon: CheckCircle,   labelAr: "الشركاء",           labelEn: "Partners",      table: "website_partners",      path: "/admin/website", color: "#06b6d4"  },
   { icon: Star,          labelAr: "آراء العملاء",      labelEn: "Testimonials",  table: "website_testimonials",  path: "/admin/website", color: "#ec4899"  },
@@ -94,7 +95,7 @@ export default function WebsiteDashboardCard() {
       </div>
 
       {/* Stats grid */}
-      <div className="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-9 gap-0 divide-x divide-border/30 rtl:divide-x-reverse">
+      <div className="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-10 gap-0 divide-x divide-border/30 rtl:divide-x-reverse">
         {SECTIONS.map(s => (
           <button key={s.table} onClick={() => navigate("/admin/website")}
             className="flex flex-col items-center gap-1 py-4 px-2 hover:bg-secondary/20 transition-colors group"
