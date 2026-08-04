@@ -1,0 +1,1 @@
+import{G as e}from"./index-Bf21TlqQ.js";function t(e){return t=>{let n=(e?Math[e]:Math.trunc)(t);return n===0?0:n}}function n(t,n){return e(t)-+e(n)}export{t as n,n as t};
