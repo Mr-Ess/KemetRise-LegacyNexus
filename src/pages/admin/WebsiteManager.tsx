@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import AdminLayout from "@/layouts/AdminLayout";
 import { Badge } from "@/components/ui/badge";
@@ -811,7 +812,21 @@ function CrudPanel({
 export default function WebsiteManager() {
   const { i18n } = useTranslation();
   const R = i18n.language === "ar";
+  const [searchParams, setSearchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState<TabId>("landing");
+
+  useEffect(() => {
+    const tab = searchParams.get("tab") as TabId | null;
+    if (!tab) return;
+    if (TABS.some(t => t.id === tab)) {
+      setActiveTab(tab);
+    }
+  }, [searchParams]);
+
+  const selectTab = (tab: TabId) => {
+    setActiveTab(tab);
+    setSearchParams({ tab });
+  };
 
   const renderPanel = () => {
     switch (activeTab) {
@@ -858,7 +873,7 @@ export default function WebsiteManager() {
           {/* Sidebar tabs */}
           <nav className="w-52 shrink-0 space-y-1">
             {TABS.map(tab => (
-              <button key={tab.id} onClick={() => setActiveTab(tab.id)}
+              <button key={tab.id} onClick={() => selectTab(tab.id)}
                 className={cn(
                   "w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-medium transition-all",
                   activeTab === tab.id

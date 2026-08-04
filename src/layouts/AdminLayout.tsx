@@ -54,11 +54,12 @@ const NAV_ITEMS = [
     { icon: Globe,    label: "خدمات الموقع", labelEn: "Website Services",      path: "/admin/website-services" },
   ]},
   { group: "Website CMS", items: [
-    { icon: Globe,       label: "إدارة الموقع",      labelEn: "Website CMS",          path: "/admin/website"          },
-    { icon: FileText,    label: "الصفحة الرئيسية",   labelEn: "Hero & Stats",         path: "/admin/website"          },
-    { icon: Layers,      label: "الخدمات والمنتجات",  labelEn: "Services & Products",  path: "/admin/website"          },
-    { icon: Users,       label: "الشهادات والأسئلة",  labelEn: "Testimonials & FAQs",  path: "/admin/website"          },
-    { icon: Newspaper,   label: "الأخبار والتواصل",   labelEn: "News & Contact",       path: "/admin/website"          },
+    { icon: Globe,       label: "إدارة الموقع",      labelEn: "Website CMS",          path: "/admin/website?tab=landing"      },
+    { icon: FileText,    label: "الصفحة الرئيسية",   labelEn: "Hero & Stats",         path: "/admin/website?tab=landing"      },
+    { icon: Layers,      label: "الخدمات والمنتجات",  labelEn: "Services & Products",  path: "/admin/website?tab=services"     },
+    { icon: Users,       label: "الشهادات والأسئلة",  labelEn: "Testimonials & FAQs",  path: "/admin/website?tab=testimonials" },
+    { icon: Newspaper,   label: "الأخبار والتواصل",   labelEn: "News & Contact",       path: "/admin/website?tab=news"         },
+    { icon: Globe,       label: "الفوتر والروابط",    labelEn: "Footer & Links",       path: "/admin/website?tab=footer"       },
   ]},
 ];
 

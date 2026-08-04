@@ -50,11 +50,12 @@ const Sidebar = ({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => 
     {
       icon: Globe, label: "Website CMS",
       children: [
-        { icon: LayoutDashboard, label: "Website Manager",  onClick: () => navigate("/admin/website") },
-        { icon: Layers,          label: "Hero & Stats",     onClick: () => navigate("/admin/website") },
-        { icon: Store,           label: "Services & Plans", onClick: () => navigate("/admin/website") },
-        { icon: Users,           label: "Testimonials & FAQs", onClick: () => navigate("/admin/website") },
-        { icon: FileText,        label: "News & Contact",   onClick: () => navigate("/admin/website") },
+        { icon: LayoutDashboard, label: "Website Manager",  onClick: () => navigate("/admin/website?tab=landing") },
+        { icon: Layers,          label: "Hero & Stats",     onClick: () => navigate("/admin/website?tab=landing") },
+        { icon: Store,           label: "Services & Plans", onClick: () => navigate("/admin/website?tab=services") },
+        { icon: Users,           label: "Testimonials & FAQs", onClick: () => navigate("/admin/website?tab=testimonials") },
+        { icon: FileText,        label: "News & Contact",   onClick: () => navigate("/admin/website?tab=news") },
+        { icon: Globe,           label: "Footer & Links",   onClick: () => navigate("/admin/website?tab=footer") },
       ],
     },
     ...(isAdmin ? [{
