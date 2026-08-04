@@ -509,22 +509,90 @@ function NewsPanel({ R }: { R: boolean }) {
 }
 
 function ContactPanel({ R }: { R: boolean }) {
-  const { rows, loading, toggle, fetch } = useCrud("website_contact_submissions");
+  const { rows: leads, loading, toggle, fetch } = useCrud("website_contact_submissions");
+  const { rows: settingsRows, loading: settingsLoading, fetch: fetchSettings } = useCrud("website_settings");
+  const [form, setForm] = useState<Row>({});
+  const [saving, setSaving] = useState(false);
+
+  const contactRows = settingsRows.filter(r => (r.category || "").toLowerCase() === "contact");
+
+  useEffect(() => {
+    const next: Row = {};
+    for (const r of contactRows) {
+      next[r.key] = R ? (r.value_ar ?? "") : (r.value_en ?? "");
+    }
+    setForm(next);
+  }, [settingsRows, R]);
+
+  const fields = [
+    { key: "contact_phone", labelAr: "رقم الهاتف", labelEn: "Phone", type: "text" as const },
+    { key: "contact_email", labelAr: "البريد الإلكتروني", labelEn: "Email", type: "text" as const },
+    { key: "contact_response_time", labelAr: "وقت الاستجابة", labelEn: "Response Time", type: "text" as const },
+    { key: "contact_working_hours", labelAr: "ساعات العمل", labelEn: "Working Hours", type: "text" as const },
+  ];
+
+  const save = async () => {
+    setSaving(true);
+    try {
+      for (const f of fields) {
+        const key = f.key;
+        const value = String(form[key] ?? "").trim();
+        const existing = contactRows.find(r => r.key === key);
+        const payload = {
+          ...(existing?.id ? { id: existing.id } : {}),
+          key,
+          category: "contact",
+          value_ar: R ? value : (existing?.value_ar ?? ""),
+          value_en: R ? (existing?.value_en ?? "") : value,
+          is_active: existing?.is_active ?? true,
+        };
+        const { error } = await db.from("website_settings").upsert(payload);
+        if (error) throw error;
+      }
+      toast.success(R ? "تم حفظ بيانات التواصل" : "Contact details saved");
+      await fetchSettings();
+    } catch (e: any) {
+      toast.error(e.message || (R ? "تعذّر حفظ بيانات التواصل" : "Failed to save contact details"));
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
-    <CrudPanel title={R ? "طلبات التواصل" : "Contact Submissions"} loading={loading} onRefresh={fetch}
-      columns={["الاسم / Name", "Email", "Type", "Message", "Status", "Date", "Actions"]}
-      rows={rows.map(r => [
-        <span className="font-medium">{r.name}</span>,
-        <span className="text-xs">{r.email}</span>,
-        <Badge variant="outline" className="text-[10px]">{r.inquiry_type}</Badge>,
-        <span className="text-xs text-muted-foreground truncate max-w-[200px] block">{r.message}</span>,
-        <Badge className={cn("text-[10px]", r.status === "new" ? "bg-blue-500/20 text-blue-400" : r.status === "replied" ? "bg-green-500/20 text-green-400" : "bg-secondary text-muted-foreground")}>{r.status}</Badge>,
-        <span className="text-xs text-muted-foreground">{new Date(r.created_at).toLocaleDateString()}</span>,
-        <div className="flex gap-1">
-          {r.status === "new" && <Button size="sm" variant="outline" className="h-6 text-[10px]" onClick={() => toggle(r.id, "status", false)}>Mark Read</Button>}
-        </div>,
-      ])}
-    />
+    <div className="space-y-6">
+      <div className="rounded-2xl border border-border/50 bg-card p-4 md:p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-base font-bold">{R ? "بيانات التواصل العامة" : "Public Contact Details"}</h3>
+          <Button onClick={save} disabled={saving || settingsLoading} size="sm" className="gap-2">
+            {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+            {R ? "حفظ" : "Save"}
+          </Button>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {fields.map(f => (
+            <div key={f.key}>
+              <Label className="text-xs mb-1 block">{R ? f.labelAr : f.labelEn}</Label>
+              <Input value={form[f.key] ?? ""} onChange={e => setForm(p => ({ ...p, [f.key]: e.target.value }))} />
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <CrudPanel title={R ? "طلبات التواصل" : "Contact Submissions"} loading={loading} onRefresh={fetch}
+        columns={["الاسم / Name", "Email", "Type", "Message", "Status", "Date", "Actions"]}
+        rows={leads.map(r => [
+          <span className="font-medium">{r.name}</span>,
+          <span className="text-xs">{r.email}</span>,
+          <Badge variant="outline" className="text-[10px]">{r.inquiry_type}</Badge>,
+          <span className="text-xs text-muted-foreground truncate max-w-[200px] block">{r.message}</span>,
+          <Badge className={cn("text-[10px]", r.status === "new" ? "bg-blue-500/20 text-blue-400" : r.status === "replied" ? "bg-green-500/20 text-green-400" : "bg-secondary text-muted-foreground")}>{r.status}</Badge>,
+          <span className="text-xs text-muted-foreground">{new Date(r.created_at).toLocaleDateString()}</span>,
+          <div className="flex gap-1">
+            {r.status === "new" && <Button size="sm" variant="outline" className="h-6 text-[10px]" onClick={() => toggle(r.id, "status", false)}>Mark Read</Button>}
+          </div>,
+        ])}
+      />
+    </div>
   );
 }
 

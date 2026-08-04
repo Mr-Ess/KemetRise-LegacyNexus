@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import PublicLayout from "@/layouts/PublicLayout";
 import { Badge } from "@/components/ui/badge";
@@ -34,6 +34,31 @@ export default function PublicContact() {
   const [form, setForm] = useState({ name: "", email: "", phone: "", topic: "", message: "" });
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
+  const [contactSettings, setContactSettings] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const { data } = await supabase
+          .from("website_settings")
+          .select("key,value_ar,value_en,is_active,category")
+          .eq("category", "contact")
+          .eq("is_active", true);
+        const map: Record<string, string> = {};
+        (data || []).forEach((r: any) => {
+          map[r.key] = R ? (r.value_ar || "") : (r.value_en || "");
+        });
+        setContactSettings(map);
+      } catch {
+        setContactSettings({});
+      }
+    })();
+  }, [R]);
+
+  const contactPhone = contactSettings.contact_phone || (R ? "٠٠٠٠ ٠٠٠ ١٠٠ ٢٠+" : "+20 100 000 0000");
+  const contactEmail = contactSettings.contact_email || "support@kemetrise.com";
+  const responseTime = contactSettings.contact_response_time || (R ? "أقل من ٢٤ ساعة" : "< 24 hours");
+  const workingHours = contactSettings.contact_working_hours || (R ? "الأحد–الخميس، ٩ص–٦م" : "Sun-Thu, 9am-6pm EET");
 
   const send = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -96,9 +121,9 @@ export default function PublicContact() {
         <div className="max-w-5xl mx-auto px-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-12">
             {[
-              { icon: Phone,      titleEn: "Phone",        titleAr: "الهاتف",        valueEn: "+20 100 000 0000",        valueAr: "٠٠٠٠ ٠٠٠ ١٠٠ ٢٠+",     descEn: "Sun–Thu, 9am–6pm EET",   descAr: "الأحد–الخميس، ٩ص–٦م",   color: "text-primary", bg: "bg-primary/10" },
-              { icon: Mail,       titleEn: "Email",        titleAr: "البريد",        valueEn: "support@kemetrise.com",   valueAr: "support@kemetrise.com",  descEn: "Always open",            descAr: "متاح دائماً",             color: "text-blue-400", bg: "bg-blue-500/10" },
-              { icon: Clock,      titleEn: "Response Time",titleAr: "وقت الاستجابة",valueEn: "< 24 hours",              valueAr: "أقل من ٢٤ ساعة",        descEn: "Average response time",  descAr: "متوسط وقت الرد",          color: "text-green-400", bg: "bg-green-500/10" },
+              { icon: Phone,      titleEn: "Phone",        titleAr: "الهاتف",        valueEn: contactPhone,               valueAr: contactPhone,              descEn: workingHours,              descAr: workingHours,               color: "text-primary", bg: "bg-primary/10" },
+              { icon: Mail,       titleEn: "Email",        titleAr: "البريد",        valueEn: contactEmail,               valueAr: contactEmail,              descEn: "Always open",            descAr: "متاح دائماً",             color: "text-blue-400", bg: "bg-blue-500/10" },
+              { icon: Clock,      titleEn: "Response Time",titleAr: "وقت الاستجابة",valueEn: responseTime,               valueAr: responseTime,              descEn: "Average response time",  descAr: "متوسط وقت الرد",          color: "text-green-400", bg: "bg-green-500/10" },
             ].map(c => (
               <Card key={c.titleEn} className="border-border/40">
                 <CardContent className="p-5 flex items-start gap-4">
