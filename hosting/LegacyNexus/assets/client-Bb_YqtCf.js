@@ -1,0 +1,1 @@
+import{n as e}from"./rolldown-runtime-QTnfLwEv.js";import{t}from"./supabase-vendor-Blk-10fc.js";var n=e({supabase:()=>r}),r=t(`https://eoxcpubjoaninjyxtfko.supabase.co`,`sb_publishable_rBfzOrjI-hj4GHlg5tlypg_3xdSO1-v`,{auth:{storage:localStorage,persistSession:!0,autoRefreshToken:!0}});export{r as n,n as t};
