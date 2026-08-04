@@ -41,6 +41,7 @@ const TABS = [
   { id: "testimonials",  labelAr: "آراء العملاء",       labelEn: "Testimonials",    icon: Star        },
   { id: "faqs",          labelAr: "الأسئلة الشائعة",    labelEn: "FAQs",            icon: HelpCircle  },
   { id: "news",          labelAr: "الأخبار",            labelEn: "News",            icon: Newspaper   },
+  { id: "footer",        labelAr: "الفوتر",             labelEn: "Footer",          icon: Layout      },
   { id: "contact",       labelAr: "طلبات التواصل",      labelEn: "Contact Leads",   icon: Phone       },
   { id: "plans",         labelAr: "الباقات",            labelEn: "Plans",           icon: BarChart3   },
   { id: "stats",         labelAr: "الإحصائيات",         labelEn: "Stats",           icon: BarChart3   },
@@ -639,6 +640,90 @@ function LandingPanel({ R }: { R: boolean }) {
   );
 }
 
+function FooterPanel({ R }: { R: boolean }) {
+  const { rows, loading, fetch } = useCrud("website_settings");
+  const [form, setForm] = useState<Row>({});
+  const [saving, setSaving] = useState(false);
+
+  const footerRows = rows.filter(r => (r.category || "").toLowerCase() === "footer");
+
+  useEffect(() => {
+    const next: Row = {};
+    for (const r of footerRows) {
+      next[r.key] = R ? (r.value_ar ?? "") : (r.value_en ?? "");
+    }
+    setForm(next);
+  }, [rows, R]);
+
+  const fields = [
+    { key: "footer_desc", labelAr: "وصف الفوتر", labelEn: "Footer Description", type: "textarea" as const },
+    { key: "footer_phone", labelAr: "رقم الهاتف", labelEn: "Phone", type: "text" as const },
+    { key: "footer_email", labelAr: "البريد الإلكتروني", labelEn: "Email", type: "text" as const },
+    { key: "footer_address", labelAr: "العنوان", labelEn: "Address", type: "text" as const },
+    { key: "footer_copyright", labelAr: "نص الحقوق", labelEn: "Copyright Text", type: "text" as const },
+    { key: "footer_platform_links", labelAr: "روابط المنصة (كل سطر: الاسم | الرابط)", labelEn: "Platform Links (one per line: label | href)", type: "textarea" as const },
+    { key: "footer_company_links", labelAr: "روابط الشركة (كل سطر: الاسم | الرابط)", labelEn: "Company Links (one per line: label | href)", type: "textarea" as const },
+    { key: "footer_portal_links", labelAr: "روابط البوابات (كل سطر: الاسم | الرابط)", labelEn: "Portals Links (one per line: label | href)", type: "textarea" as const },
+  ];
+
+  const save = async () => {
+    setSaving(true);
+    try {
+      for (const f of fields) {
+        const key = f.key;
+        const value = String(form[key] ?? "").trim();
+        const existing = footerRows.find(r => r.key === key);
+        const payload = {
+          ...(existing?.id ? { id: existing.id } : {}),
+          key,
+          category: "footer",
+          value_ar: R ? value : (existing?.value_ar ?? ""),
+          value_en: R ? (existing?.value_en ?? "") : value,
+          is_active: existing?.is_active ?? true,
+        };
+        const { error } = await db.from("website_settings").upsert(payload);
+        if (error) throw error;
+      }
+      toast.success(R ? "تم حفظ إعدادات الفوتر" : "Footer settings saved");
+      await fetch();
+    } catch (e: any) {
+      toast.error(e.message || (R ? "تعذّر حفظ الفوتر" : "Failed to save footer settings"));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h3 className="text-base font-bold">{R ? "إعدادات الفوتر" : "Footer Settings"}</h3>
+        <Button onClick={save} disabled={saving || loading} size="sm" className="gap-2">
+          {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+          {R ? "حفظ" : "Save"}
+        </Button>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {fields.map(f => (
+          <div key={f.key} className={f.type === "textarea" ? "md:col-span-2" : ""}>
+            <Label className="text-xs mb-1 block">{R ? f.labelAr : f.labelEn}</Label>
+            {f.type === "textarea" ? (
+              <Textarea rows={4} value={form[f.key] ?? ""} onChange={e => setForm(p => ({ ...p, [f.key]: e.target.value }))} />
+            ) : (
+              <Input value={form[f.key] ?? ""} onChange={e => setForm(p => ({ ...p, [f.key]: e.target.value }))} />
+            )}
+          </div>
+        ))}
+      </div>
+
+      <div className="p-4 rounded-xl border border-border/40 bg-secondary/10 text-xs text-muted-foreground">
+        <p className="font-semibold mb-1">{R ? "ملاحظة:" : "Note:"}</p>
+        <p>{R ? "للروابط استخدم سطر لكل رابط بالشكل: الاسم | /path أو https://..." : "For links use one per line as: label | /path or https://..."}</p>
+      </div>
+    </div>
+  );
+}
+
 function SettingsPanel({ R }: { R: boolean }) {
   const { rows, loading, upsert, fetch } = useCrud("website_settings");
   const [editing, setEditing] = useState<Row | null>(null);
@@ -741,6 +826,7 @@ export default function WebsiteManager() {
       case "testimonials":  return <TestimonialsPanel R={R} />;
       case "faqs":          return <FAQsPanel R={R} />;
       case "news":          return <NewsPanel R={R} />;
+      case "footer":        return <FooterPanel R={R} />;
       case "contact":       return <ContactPanel R={R} />;
       case "plans":         return <PlansPanel R={R} />;
       case "stats":         return <StatsPanel R={R} />;

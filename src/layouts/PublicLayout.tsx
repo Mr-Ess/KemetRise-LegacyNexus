@@ -11,6 +11,9 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
+
+const db = supabase as any;
 
 const KEY = "kemet-theme";
 function useTheme() {
@@ -91,6 +94,7 @@ export default function PublicLayout({ children }: { children: ReactNode }) {
   const [portalOpen, setPortalOpen] = useState(false);
   const [aboutOpen, setAboutOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [footerSettings, setFooterSettings] = useState<Record<string, string>>({});
   const userRoles = [userRole];
   const R = i18n.language === "ar";
 
@@ -99,6 +103,25 @@ export default function PublicLayout({ children }: { children: ReactNode }) {
     window.addEventListener("scroll", onScroll);
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const { data } = await db
+          .from("website_settings")
+          .select("key,value_ar,value_en,is_active,category")
+          .eq("category", "footer")
+          .eq("is_active", true);
+        const map: Record<string, string> = {};
+        (data || []).forEach((r: any) => {
+          map[r.key] = R ? (r.value_ar || "") : (r.value_en || "");
+        });
+        setFooterSettings(map);
+      } catch {
+        setFooterSettings({});
+      }
+    })();
+  }, [R]);
 
   const portalLink = userRole && userRole !== "user" ? ROLE_PORTAL[userRole] ?? ROLE_PORTAL.user : (user ? ROLE_PORTAL.user : null);
   /* Superadmin / admin can access ALL portals; others see only their own */
@@ -111,6 +134,40 @@ export default function PublicLayout({ children }: { children: ReactNode }) {
 
   const isActive = (href: string) =>
     href === "/" ? location.pathname === "/" : location.pathname.startsWith(href.split("#")[0]) && href.split("#")[0] !== "/";
+
+  const parseLinks = (raw: string, fallback: { l: string; h: string }[]) => {
+    if (!raw?.trim()) return fallback;
+    const parsed = raw
+      .split("\n")
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .map((line) => {
+        const [label = "", href = "#"] = line.split("|").map((x) => x.trim());
+        return { l: label || href || "Link", h: href || "#" };
+      });
+    return parsed.length ? parsed : fallback;
+  };
+
+  const platformDefault = [
+    { l: R ? "الرئيسية" : "Home", h: "/" },
+    { l: R ? "منتجاتنا" : "Products", h: "/products" },
+    { l: R ? "مشاريعنا" : "Projects", h: "/our-projects" },
+    { l: R ? "باقاتنا" : "Our Plans", h: "/pricing" },
+    { l: "API", h: "/api-docs" },
+  ];
+  const companyDefault = [
+    { l: R ? "من نحن" : "About Us", h: "/about" },
+    { l: R ? "أعمالنا السابقة" : "Portfolio", h: "/portfolio" },
+    { l: R ? "شركاؤنا" : "Partners", h: "/partners" },
+    { l: R ? "وكلاؤنا" : "Our Agents", h: "/our-agents" },
+    { l: R ? "آخر أخبارنا" : "News", h: "/news" },
+    { l: R ? "اتصل بنا" : "Contact", h: "/contact" },
+  ];
+  const portalsDefault = PORTAL_LINKS.map((p) => ({ l: R ? p.ar : p.en, h: p.href }));
+
+  const platformLinks = parseLinks(footerSettings.footer_platform_links || "", platformDefault);
+  const companyLinks = parseLinks(footerSettings.footer_company_links || "", companyDefault);
+  const portalLinks = parseLinks(footerSettings.footer_portal_links || "", portalsDefault);
 
   return (
     <div dir={R ? "rtl" : "ltr"} className={cn("min-h-screen bg-background text-foreground", R && "rtl")}>
@@ -314,31 +371,22 @@ export default function PublicLayout({ children }: { children: ReactNode }) {
                 <span className="font-display text-sm font-black text-primary tracking-widest">KemetRise</span>
               </div>
               <p className="text-xs text-muted-foreground leading-relaxed mb-5 max-w-xs">
-                {R ? "منصة SaaS + ERP موحدة تجمع أحد عشر بوابة في نظام واحد متكامل." : "Unified SaaS + ERP platform uniting eleven portals in one integrated system."}
+                {footerSettings.footer_desc || (R ? "منصة SaaS + ERP موحدة تجمع أحد عشر بوابة في نظام واحد متكامل." : "Unified SaaS + ERP platform uniting eleven portals in one integrated system.")}
               </p>
               <div className="flex flex-col gap-2 text-xs text-muted-foreground">
-                <div className="flex items-center gap-2"><Phone className="w-3.5 h-3.5 text-primary" /><span>+20 100 000 0000</span></div>
-                <div className="flex items-center gap-2"><Mail className="w-3.5 h-3.5 text-primary" /><span>support@kemetrise.com</span></div>
-                <div className="flex items-center gap-2"><MapPin className="w-3.5 h-3.5 text-primary" /><span>{R ? "القاهرة، مصر" : "Cairo, Egypt"}</span></div>
+                <div className="flex items-center gap-2"><Phone className="w-3.5 h-3.5 text-primary" /><span>{footerSettings.footer_phone || "+20 100 000 0000"}</span></div>
+                <div className="flex items-center gap-2"><Mail className="w-3.5 h-3.5 text-primary" /><span>{footerSettings.footer_email || "support@kemetrise.com"}</span></div>
+                <div className="flex items-center gap-2"><MapPin className="w-3.5 h-3.5 text-primary" /><span>{footerSettings.footer_address || (R ? "القاهرة، مصر" : "Cairo, Egypt")}</span></div>
               </div>
             </div>
             {[
               { title: R ? "المنصة" : "Platform", links: [
-                { l: R ? "الرئيسية" : "Home", h: "/" },
-                { l: R ? "منتجاتنا" : "Products", h: "/products" },
-                { l: R ? "مشاريعنا" : "Projects", h: "/our-projects" },
-                { l: R ? "باقاتنا" : "Our Plans", h: "/pricing" },
-                { l: "API", h: "/api-docs" },
+                ...platformLinks,
               ]},
               { title: R ? "الشركة" : "Company", links: [
-                { l: R ? "من نحن" : "About Us",          h: "/about" },
-                { l: R ? "أعمالنا السابقة" : "Portfolio", h: "/portfolio" },
-                { l: R ? "شركاؤنا" : "Partners",          h: "/partners" },
-                { l: R ? "وكلاؤنا" : "Our Agents",         h: "/our-agents" },
-                { l: R ? "آخر أخبارنا" : "News",           h: "/news" },
-                { l: R ? "اتصل بنا" : "Contact",           h: "/contact" },
+                ...companyLinks,
               ]},
-              { title: R ? "البوابات" : "Portals", links: PORTAL_LINKS.map(p => ({ l: R ? p.ar : p.en, h: p.href })) },
+              { title: R ? "البوابات" : "Portals", links: portalLinks },
             ].map(col => (
               <div key={col.title}>
                 <h4 className="text-xs font-bold mb-3 uppercase tracking-widest text-foreground/70">{col.title}</h4>
@@ -353,7 +401,7 @@ export default function PublicLayout({ children }: { children: ReactNode }) {
             ))}
           </div>
           <div className="border-t border-border/40 mt-10 pt-6 flex flex-col md:flex-row items-center justify-between gap-3">
-            <p className="text-xs text-muted-foreground">© {new Date().getFullYear()} KemetRise: Legacy Nexus. {R ? "جميع الحقوق محفوظة." : "All rights reserved."}</p>
+            <p className="text-xs text-muted-foreground">© {new Date().getFullYear()} KemetRise: Legacy Nexus. {footerSettings.footer_copyright || (R ? "جميع الحقوق محفوظة." : "All rights reserved.")}</p>
             <div className="flex items-center gap-4 text-xs text-muted-foreground">
               <button onClick={() => navigate("/privacy")} className="hover:text-foreground transition-colors">{R ? "الخصوصية" : "Privacy"}</button>
               <button onClick={() => navigate("/terms")} className="hover:text-foreground transition-colors">{R ? "الشروط" : "Terms"}</button>
