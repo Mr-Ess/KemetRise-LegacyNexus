@@ -41,7 +41,7 @@ export const InstallAndPush = () => {
     if (!supported) { toast.error("Push not supported on this device"); return; }
     try {
       let reg = await navigator.serviceWorker.getRegistration();
-      if (!reg) reg = await navigator.serviceWorker.register("/sw.js");
+      if (!reg) reg = await navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`);
       const existing = await reg.pushManager.getSubscription();
       if (existing) {
         await existing.unsubscribe();
