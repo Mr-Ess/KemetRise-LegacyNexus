@@ -1,0 +1,38 @@
+name: Build LegacyNexus Dist
+
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+
+jobs:
+  build-dist:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build production dist
+        run: npm run build
+
+      - name: Create deploy zip
+        run: |
+          cd dist
+          zip -r ../LegacyNexus-dist.zip .
+
+      - name: Upload dist artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: LegacyNexus-dist
+          path: LegacyNexus-dist.zip
+          retention-days: 14
